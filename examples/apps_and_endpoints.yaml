@@ -1,0 +1,31 @@
+# Databricks App policies.
+policy: apps-naming-convention
+description: App names must be lowercase, hyphen-separated identifiers.
+resource_type: app
+effect: allow
+severity: low
+rule:
+  all:
+    - { attribute: name, operator: matches_regex, value: "^[a-z][a-z0-9-]+$" }
+remediation: Rename the app to a lowercase, hyphen-separated identifier.
+---
+# Model serving endpoint policies.
+policy: endpoints-owned-by-service-principals
+description: Model serving endpoints must be owned by a service principal, not an individual.
+resource_type: serving_endpoint
+effect: deny
+severity: high
+rule:
+  any:
+    - { attribute: owner_type, operator: equals, value: user }
+remediation: Recreate the endpoint under a service principal owner.
+---
+policy: endpoints-require-budget-policy
+description: Model serving endpoints must be attached to a budget policy for cost attribution.
+resource_type: serving_endpoint
+effect: allow
+severity: medium
+rule:
+  all:
+    - { attribute: budget_policy_id, operator: exists }
+remediation: Attach a budget policy to the serving endpoint.

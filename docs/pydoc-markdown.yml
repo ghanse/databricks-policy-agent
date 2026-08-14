@@ -1,0 +1,17 @@
+# Generates the API reference from the library's Google-style docstrings into
+# ``docs/docs/api`` as Docusaurus-compatible markdown. Run from the ``docs`` directory:
+#   uv run --project .. pydoc-markdown
+loaders:
+  - type: python
+    search_path: ["../src"]
+    packages: ["policy_agent"]
+processors:
+  - type: filter
+    skip_empty_modules: true
+  - type: google
+  - type: crossref
+renderer:
+  type: docusaurus
+  docs_base_path: docs
+  relative_output_path: api
+  sidebar_top_level_label: "API Reference"

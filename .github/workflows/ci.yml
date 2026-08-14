@@ -1,0 +1,101 @@
+name: ci
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+# Cancel superseded runs for the same ref to save runner time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  fmt:
+    name: Format
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+      - name: Format all files
+        run: make fmt
+      - name: Fail on differences
+        run: git diff --exit-code
+
+  test:
+    name: Unit tests
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pyVersion: ["3.11", "3.12"]
+    env:
+      UV_PYTHON: ${{ matrix.pyVersion }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+      - name: Setup env
+        run: make dev
+      - name: Run unit tests with coverage
+        run: make coverage
+
+  docs:
+    name: Build docs
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: docs/package-lock.json
+      - name: Install docs dependencies
+        run: make docs-install
+      - name: Generate API reference and build the site
+        run: make docs-build
+
+  app:
+    name: Build & check app
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/src/policy_agent_app/ui/package-lock.json
+      - name: Install app dependencies
+        run: make app-install
+      - name: Build the SPA and deployable app tree
+        run: make app-build
+      - name: Lint & type-check the app
+        run: make app-lint
+      - name: Run app backend tests
+        run: make app-test
