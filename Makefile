@@ -1,9 +1,16 @@
 .PHONY: dev fmt lint test coverage build integration \
+        lock-dependencies lock-app-dependencies \
         docs docs-install docs-build docs-serve \
         app-install app-build app-lint app-test clean
 
 UV_RUN := uv run --exact --all-extras
 UV_TEST := $(UV_RUN) pytest -n 10 --timeout 60 --durations 20
+
+# After ``uv lock`` resolves through the internal PyPI proxy, the lock is tainted with
+# proxy URLs. This rewrites the registry index and every per-package download URL back to
+# the public PyPI hosts, and drops the proxy-only ``size`` field, so the committed lock is
+# identical for contributors inside Databricks (proxy) and outside (public PyPI).
+SANITIZE_LOCK := perl -pi -e 's|registry = "https://[^"]*"|registry = "https://pypi.org/simple"|g; s|url = "https://[^/"]+/packages/|url = "https://files.pythonhosted.org/packages/|g; s|, size = \d+||g'
 
 # Library:
 dev:
@@ -31,6 +38,11 @@ build:
 integration:
 	uv run pytest tests/integration -m integration
 
+# Regenerate the library lock and sanitize proxy URLs out of it.
+lock-dependencies:
+	uv lock
+	$(SANITIZE_LOCK) uv.lock
+
 # Documentation:
 docs-install:
 	cd docs && npm ci
@@ -47,6 +59,11 @@ docs-serve:
 app-install:
 	cd app && uv sync --group dev
 	cd app/src/policy_agent_app/ui && npm ci
+
+# Regenerate the app lock and sanitize proxy URLs out of it.
+lock-app-dependencies:
+	cd app && uv lock
+	$(SANITIZE_LOCK) app/uv.lock
 
 app-build:
 	cd app && uv run python scripts/build_app.py

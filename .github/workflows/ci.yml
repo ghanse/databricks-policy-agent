@@ -1,4 +1,4 @@
-name: Run Continuous Integration
+name: ci
 
 on:
   pull_request:
