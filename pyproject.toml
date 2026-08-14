@@ -1,0 +1,87 @@
+[project]
+name = "databricks-policy-agent"
+dynamic = ["version"]
+description = "Policy compliance framework for Databricks workspace objects"
+readme = "README.md"
+# Pinned to 3.11 to match the Databricks Apps runtime (Ubuntu 22.04 / Python 3.11).
+requires-python = ">=3.11"
+keywords = ["Databricks", "policy", "compliance", "governance", "OPA"]
+authors = [{ name = "Greg Hansen", email = "gregory.hansen@databricks.com" }]
+
+# Every dependency carries an upper bound (major-version range); no unbounded deps.
+# The pure library core needs only the SDK (resource inventory) and PyYAML (policy
+# authoring). Lakebase storage extras stay optional so the core installs lean.
+dependencies = [
+    "databricks-sdk>=0.81.0,<1.0",
+    "PyYAML>=6.0,<7.0",
+]
+
+[project.optional-dependencies]
+# Lakebase (Postgres) storage backend. UC Delta storage needs no extra client.
+lakebase = [
+    "psycopg[binary]>=3.1,<4.0",
+    "SQLAlchemy>=2.0,<3.0",
+]
+
+[project.scripts]
+policy-agent = "policy_agent.cli:main"
+
+[build-system]
+requires = ["hatchling>=1.9.0,<2.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+sources = ["src"]
+include = ["src", "README.md"]
+
+[tool.hatch.version]
+path = "src/policy_agent/__about__.py"
+
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+    { include-group = "docs" },
+]
+lint = [
+    "mypy~=1.9.0",
+    "ruff~=0.3.4",
+    "types-PyYAML~=6.0",
+]
+test = [
+    "pytest~=8.3.3",
+    "pytest-cov~=4.1.0",
+    "databricks-labs-pytester~=0.7",
+]
+docs = [
+    "pydoc-markdown~=4.8",
+]
+
+[tool.uv]
+required-version = "~=0.11.0"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["policy_agent"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+packages = ["policy_agent"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a live Databricks workspace (deselect with '-m \"not integration\"')",
+]

@@ -1,0 +1,33 @@
+# Cluster policies.
+policy: clusters-owned-by-service-principals
+description: All-purpose clusters created through the UI must be owned by a service principal.
+resource_type: cluster
+effect: deny
+severity: high
+match:
+  all:
+    - { attribute: cluster_source, operator: equals, value: UI }
+rule:
+  any:
+    - { attribute: owner_type, operator: not_equals, value: service_principal }
+remediation: Recreate the cluster under an approved service principal, or transfer ownership.
+---
+policy: clusters-must-autoterminate
+description: All-purpose clusters must auto-terminate within two hours to control cost.
+resource_type: cluster
+effect: allow
+severity: medium
+rule:
+  all:
+    - { attribute: autotermination_minutes, operator: ttl_within, value: 120 }
+remediation: Set the cluster's auto-termination to 120 minutes or less.
+---
+policy: clusters-require-cost-center-tag
+description: Every all-purpose cluster must carry a cost_center tag.
+resource_type: cluster
+effect: allow
+severity: medium
+rule:
+  all:
+    - { attribute: tags, operator: has_tag, value: cost_center }
+remediation: Add a 'cost_center' custom tag to the cluster.

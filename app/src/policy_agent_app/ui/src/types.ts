@@ -1,0 +1,83 @@
+export interface Condition {
+  all?: Condition[];
+  any?: Condition[];
+  not?: Condition;
+  attribute?: string;
+  operator?: string;
+  value?: unknown;
+}
+
+export interface Policy {
+  policy: string;
+  resource_type: string;
+  effect: string;
+  severity: string;
+  status: string;
+  version: number;
+  description?: string;
+  remediation?: string;
+  rule: Condition;
+  match?: Condition;
+}
+
+export interface ScanSummary {
+  evaluated: number;
+  compliant: number;
+  violations: number;
+  compliance_rate: number;
+  violations_by_severity: Record<string, number>;
+  violations_by_resource_type: Record<string, number>;
+}
+
+export interface Finding {
+  policy_name: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string;
+  compliant: boolean;
+  severity: string;
+  message: string;
+  remediation: string;
+  owner: string | null;
+}
+
+export interface ScanResult {
+  scan_id: string;
+  started_at: string;
+  finished_at: string;
+  summary: ScanSummary;
+  violations: Finding[];
+}
+
+export interface Remediation {
+  remediation_id: string;
+  policy_name: string;
+  resource_type: string;
+  resource_id: string;
+  resource_name: string;
+  severity: string;
+  status: string;
+  assignee: string | null;
+  note: string;
+  opened_at: string;
+  updated_at: string;
+}
+
+export interface Settings {
+  storage: {
+    backend: string;
+    catalog: string | null;
+    schema: string;
+    qualified_schema: string;
+    object_tags: Record<string, string>;
+  };
+  resource_types: string[];
+  operators: string[];
+  roles: string[];
+  notifications: { emails: string[]; webhook_configured: boolean };
+}
+
+export interface MyRoles {
+  user: string;
+  roles: string[];
+}
