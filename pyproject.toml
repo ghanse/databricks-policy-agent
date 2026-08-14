@@ -5,7 +5,7 @@ description = "Policy compliance framework for Databricks workspace objects"
 readme = "README.md"
 # Pinned to 3.11 to match the Databricks Apps runtime (Ubuntu 22.04 / Python 3.11).
 requires-python = ">=3.11"
-keywords = ["Databricks", "policy", "compliance", "governance", "OPA"]
+keywords = ["Databricks", "policy", "compliance", "governance"]
 authors = [{ name = "Greg Hansen", email = "gregory.hansen@databricks.com" }]
 
 # Every dependency carries an upper bound (major-version range); no unbounded deps.
