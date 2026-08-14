@@ -9,7 +9,7 @@ const config: Config = {
   tagline: "Policy compliance for Databricks workspace objects",
   favicon: "img/favicon.ico",
   url: "https://example.com",
-  baseUrl: "/",
+  baseUrl: "/databricks-policy-agent",
   onBrokenLinks: "throw",
   i18n: { defaultLocale: "en", locales: ["en"] },
   // Parse ``.md`` as CommonMark (not MDX) so literal braces in policy examples and the
