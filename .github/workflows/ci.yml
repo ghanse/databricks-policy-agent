@@ -18,6 +18,10 @@ concurrency:
 jobs:
   fmt:
     name: Format
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -30,22 +34,32 @@ jobs:
 
   test:
     name: Unit tests
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         pyVersion: ["3.11", "3.12"]
-    runs-on: ubuntu-latest
     env:
       UV_PYTHON: ${{ matrix.pyVersion }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Setup environment
         uses: ./.github/actions/setup-env
+      - name: Setup env
+        run: make dev
       - name: Run unit tests with coverage
         run: make coverage
 
   docs:
     name: Build docs
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -63,6 +77,10 @@ jobs:
 
   app:
     name: Build & check app
+    if: |
+      (github.event_name == 'push' || github.event_name == 'pull_request') 
+      && !github.event.pull_request.draft 
+      && !github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2

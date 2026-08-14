@@ -1,5 +1,5 @@
 .PHONY: dev fmt lint test coverage build integration \
-        lock-dependencies lock-app-dependencies \
+        lock-dependencies lock-docs-dependencies lock-app-dependencies \
         docs docs-install docs-build docs-serve \
         app-install app-build app-lint app-test clean
 
@@ -11,6 +11,11 @@ UV_TEST := $(UV_RUN) pytest -n 10 --timeout 60 --durations 20
 # the public PyPI hosts, and drops the proxy-only ``size`` field, so the committed lock is
 # identical for contributors inside Databricks (proxy) and outside (public PyPI).
 SANITIZE_LOCK := perl -pi -e 's|registry = "https://[^"]*"|registry = "https://pypi.org/simple"|g; s|url = "https://[^/"]+/packages/|url = "https://files.pythonhosted.org/packages/|g; s|, size = \d+||g'
+
+# npm lockfiles are likewise tainted with the internal npm proxy host after ``npm install``
+# runs through it. Swap the proxy host back to the public npm registry; the paths and the
+# integrity hashes are identical, so the committed lock installs cleanly on public runners.
+SANITIZE_NPM_LOCK := perl -pi -e 's|https://npm-proxy\.cloud\.databricks\.com/|https://registry.npmjs.org/|g'
 
 # Library:
 dev:
@@ -43,6 +48,11 @@ lock-dependencies:
 	uv lock
 	$(SANITIZE_LOCK) uv.lock
 
+# Regenerate the docs npm lock and sanitize the proxy host out of it.
+lock-docs-dependencies:
+	cd docs && npm install
+	$(SANITIZE_NPM_LOCK) docs/package-lock.json
+
 # Documentation:
 docs-install:
 	cd docs && npm ci
@@ -60,10 +70,12 @@ app-install:
 	cd app && uv sync --group dev
 	cd app/src/policy_agent_app/ui && npm ci
 
-# Regenerate the app lock and sanitize proxy URLs out of it.
+# Regenerate the app locks (Python + UI npm) and sanitize proxy URLs out of both.
 lock-app-dependencies:
 	cd app && uv lock
 	$(SANITIZE_LOCK) app/uv.lock
+	cd app/src/policy_agent_app/ui && npm install
+	$(SANITIZE_NPM_LOCK) app/src/policy_agent_app/ui/package-lock.json
 
 app-build:
 	cd app && uv run python scripts/build_app.py
