@@ -8,9 +8,15 @@ const config: Config = {
   title: "Databricks Policy Agent",
   tagline: "Policy compliance for Databricks workspace objects",
   favicon: "img/favicon.ico",
-  url: "https://example.com",
-  baseUrl: "/databricks-policy-agent",
+  url: "https://ghanse.github.io",
+  baseUrl: "/databricks-policy-agent/",
+  trailingSlash: true,
+  organizationName: "ghanse",
+  projectName: "databricks-policy-agent",
   onBrokenLinks: "throw",
+  onBrokenMarkdownLinks: "throw",
+  onBrokenAnchors: "throw",
+  onDuplicateRoutes: "throw",
   i18n: { defaultLocale: "en", locales: ["en"] },
   // Parse ``.md`` as CommonMark (not MDX) so literal braces in policy examples and the
   // generated API reference are not mistaken for JSX expressions.
