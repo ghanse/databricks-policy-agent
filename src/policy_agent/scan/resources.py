@@ -38,7 +38,7 @@ def scan_jobs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
         One snapshot per job.
     """
     snapshots = []
-    for job in workspace_client.jobs.list(expand_tasks=False):
+    for job in workspace_client.jobs.list(expand_tasks=True):
         settings = job.settings
         owner, owner_type = _job_owner(job, getattr(settings, "run_as", None))
         schedule = getattr(settings, "schedule", None)
@@ -56,6 +56,8 @@ def scan_jobs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 timeout_seconds=getattr(settings, "timeout_seconds", None),
                 run_as_type=owner_type,
                 has_email_notifications=_has_failure_notifications(settings),
+                has_retry_policy=_has_retry_policy(settings),
+                uses_serverless_compute=_uses_serverless_compute(settings),
                 format=_enum_value(getattr(settings, "format", None)),
             )
         )
@@ -230,6 +232,36 @@ def _has_failure_notifications(settings: Any) -> bool:
     notifications = getattr(settings, "email_notifications", None)
     on_failure = getattr(notifications, "on_failure", None)
     return bool(on_failure)
+
+
+def _has_retry_policy(settings: Any) -> bool:
+    tasks = getattr(settings, "tasks", None)
+    if not tasks:
+        return False
+    return all(_task_has_retries(task) for task in tasks)
+
+
+def _task_has_retries(task: Any) -> bool:
+    max_retries = getattr(task, "max_retries", None)
+    # A task retries when max_retries is a nonzero count; -1 means unlimited, 0 means never.
+    return isinstance(max_retries, int) and not isinstance(max_retries, bool) and max_retries != 0
+
+
+def _uses_serverless_compute(settings: Any) -> bool:
+    tasks = getattr(settings, "tasks", None)
+    if not tasks:
+        return False
+    return all(_task_is_serverless(task) for task in tasks)
+
+
+def _task_is_serverless(task: Any) -> bool:
+    # A serverless task references no classic compute: no interactive cluster, no
+    # task-defined job cluster, and no shared job-cluster key.
+    return (
+        getattr(task, "existing_cluster_id", None) is None
+        and getattr(task, "new_cluster", None) is None
+        and getattr(task, "job_cluster_key", None) is None
+    )
 
 
 def _normalize_tags(raw: Any) -> dict[str, str]:

@@ -21,3 +21,33 @@ rule:
   all:
     - { attribute: has_email_notifications, operator: equals, value: true }
 remediation: Add an on-failure email notification to the job.
+---
+policy: jobs-must-be-tagged
+description: Every job must carry at least one tag for cost attribution and ownership.
+resource_type: job
+effect: allow
+severity: medium
+rule:
+  all:
+    - { attribute: tags, operator: not_empty }
+remediation: Add one or more tags to the job.
+---
+policy: jobs-must-have-retry-policy
+description: Every job task must configure a retry policy so transient failures self-heal.
+resource_type: job
+effect: allow
+severity: medium
+rule:
+  all:
+    - { attribute: has_retry_policy, operator: equals, value: true }
+remediation: Set max_retries to a nonzero value on every task (use -1 for unlimited retries).
+---
+policy: jobs-should-use-serverless-compute
+description: Jobs should run on serverless compute rather than classic job clusters.
+resource_type: job
+effect: allow
+severity: low
+rule:
+  all:
+    - { attribute: uses_serverless_compute, operator: equals, value: true }
+remediation: Remove new_cluster / existing_cluster_id / job_cluster_key from the job's tasks.

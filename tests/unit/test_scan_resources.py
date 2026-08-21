@@ -59,6 +59,33 @@ def test_scan_jobs_uses_run_as_service_principal_and_tags():
     assert attrs["format"] == "MULTI_TASK"
 
 
+def _job_with_tasks(tasks):
+    return SimpleNamespace(
+        job_id=1,
+        created_time=None,
+        creator_user_name="alice@example.com",
+        settings=SimpleNamespace(name="prod_etl", tasks=tasks),
+    )
+
+
+def test_scan_jobs_detects_retry_policy_across_tasks():
+    retried = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=-1)])
+    partial = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=0)])
+    (retried_snapshot,) = scan_jobs(_ws(jobs=_FakeService([retried])))
+    (partial_snapshot,) = scan_jobs(_ws(jobs=_FakeService([partial])))
+    assert retried_snapshot.attributes["has_retry_policy"] is True
+    assert partial_snapshot.attributes["has_retry_policy"] is False
+
+
+def test_scan_jobs_detects_serverless_compute():
+    serverless = _job_with_tasks([SimpleNamespace(environment_key="default")])
+    classic = _job_with_tasks([SimpleNamespace(existing_cluster_id="c-1")])
+    (serverless_snapshot,) = scan_jobs(_ws(jobs=_FakeService([serverless])))
+    (classic_snapshot,) = scan_jobs(_ws(jobs=_FakeService([classic])))
+    assert serverless_snapshot.attributes["uses_serverless_compute"] is True
+    assert classic_snapshot.attributes["uses_serverless_compute"] is False
+
+
 def test_scan_clusters_classifies_creator_and_normalizes_enum():
     cluster = SimpleNamespace(
         cluster_id="c1",
