@@ -150,6 +150,8 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "timeout_seconds",
         "run_as_type",
         "has_email_notifications",
+        "has_retry_policy",
+        "uses_serverless_compute",
         "format",
     },
     ResourceType.CLUSTER: COMMON_RESOURCE_ATTRIBUTES

@@ -36,12 +36,13 @@ Attributes may use dotted paths to index nested mappings, e.g. `tags.environment
 ## Operators
 
 `equals`, `not_equals`, `matches_regex`, `in`, `not_in`, `exists`, `absent`, `less_than`,
-`greater_than`, `contains`, `has_tag`, `missing_tag`, `owner_is_service_principal`,
-`ttl_within`.
+`greater_than`, `contains`, `has_tag`, `missing_tag`, `not_empty`,
+`owner_is_service_principal`, `ttl_within`.
 
-`exists`, `absent`, and `owner_is_service_principal` ignore `value`. `has_tag` / `missing_tag`
-operate on a mapping attribute (usually `tags`) and take a tag key as `value`. `ttl_within`
-compares a numeric attribute against a maximum.
+`exists`, `absent`, `not_empty`, and `owner_is_service_principal` ignore `value`. `not_empty`
+holds when the attribute is a non-empty collection or mapping (e.g. a `tags` map with at
+least one entry). `has_tag` / `missing_tag` operate on a mapping attribute (usually `tags`)
+and take a tag key as `value`. `ttl_within` compares a numeric attribute against a maximum.
 
 Validating a policy checks that every operator is registered and every attribute is valid
 for the resource type, so mistakes are caught at author time rather than during a scan.
