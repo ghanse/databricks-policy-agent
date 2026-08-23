@@ -41,3 +41,51 @@ def test_scan_reports_compliance_for_conforming_job(ws, make_job, make_random):
     violating_ids = {f.resource_id for f in result.violations}
     assert str(job.job_id) in compliant_ids
     assert str(job.job_id) not in violating_ids
+
+
+@pytest.mark.integration
+def test_scan_evaluates_cluster_autotermination_policy(ws, make_cluster):
+    """A cluster is compliant with a lenient auto-termination limit and violates a strict one."""
+    cluster = make_cluster(single_node=True, autotermination_minutes=10)
+
+    within_limit = allow(
+        "cluster-auto-terminates",
+        ResourceType.CLUSTER,
+        leaf("autotermination_minutes", "ttl_within", 60),
+    )
+    compliant = run_scan(ws, [within_limit], [ResourceType.CLUSTER])
+    compliant_ids = {f.resource_id for f in compliant.findings if f.compliant}
+    assert str(cluster.cluster_id) in compliant_ids
+
+    strict_limit = allow(
+        "cluster-auto-terminates-fast",
+        ResourceType.CLUSTER,
+        leaf("autotermination_minutes", "ttl_within", 5),
+    )
+    strict = run_scan(ws, [strict_limit], [ResourceType.CLUSTER])
+    violating_ids = {f.resource_id for f in strict.violations}
+    assert str(cluster.cluster_id) in violating_ids
+
+
+@pytest.mark.integration
+def test_scan_evaluates_warehouse_size_policy(ws, make_warehouse):
+    """A warehouse is compliant with an allowed-size policy and violates a stricter one."""
+    warehouse = make_warehouse(cluster_size="Small")
+
+    approved_sizes = allow(
+        "warehouse-approved-size",
+        ResourceType.SQL_WAREHOUSE,
+        leaf("cluster_size", "in", ["2X-Small", "X-Small", "Small", "Medium"]),
+    )
+    compliant = run_scan(ws, [approved_sizes], [ResourceType.SQL_WAREHOUSE])
+    compliant_ids = {f.resource_id for f in compliant.findings if f.compliant}
+    assert str(warehouse.id) in compliant_ids
+
+    large_only = allow(
+        "warehouse-large-only",
+        ResourceType.SQL_WAREHOUSE,
+        leaf("cluster_size", "equals", "Large"),
+    )
+    strict = run_scan(ws, [large_only], [ResourceType.SQL_WAREHOUSE])
+    violating_ids = {f.resource_id for f in strict.violations}
+    assert str(warehouse.id) in violating_ids
