@@ -1,4 +1,4 @@
-.PHONY: dev fmt lint test coverage build integration fork-sync \
+.PHONY: dev fmt lint test coverage build integration \
         lock-dependencies lock-docs-dependencies lock-app-dependencies \
         docs docs-install docs-build docs-serve docs-clean \
         app-install app-build app-lint app-test clean
@@ -42,13 +42,6 @@ build:
 
 integration:
 	uv run pytest tests/integration -m integration
-
-# Mirror a public-repo PR to the private databricks-field-eng mirror and open a test
-# PR there so integration tests can run with workspace secrets (they are skipped on
-# the public repo). Usage: make fork-sync PR=123
-fork-sync: ## Mirror a public PR to the field-eng mirror for full CI (PR=<number>)
-	@test -n "$(PR)" || (echo "Usage: make fork-sync PR=<number>"; exit 1)
-	./.github/scripts/fork-sync-pr.sh $(PR)
 
 # Regenerate the library lock and sanitize proxy URLs out of it.
 lock-dependencies:
