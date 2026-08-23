@@ -1,0 +1,69 @@
+---
+title: Storage
+description: Store policy agent data in Unity Catalog or Lakebase
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Policy agent data (e.g. policies, versions, scans) is saved to a persistent backend that can
+be used from the policy agent application or directly in code.
+
+## Setting up storage
+Use `ensure_storage` to set up tables for the policy agent. Data can be written to Unity Catalog or Lakebase.
+Install the additional `lakebase` dependencies to store data in a Lakebase backend.
+
+<Tabs items={['Unity Catalog', 'Lakebase']}>
+<Tab value='Unity Catalog'>
+```python
+from policy_agent.storage import StorageConfig, DeltaSqlExecutor, ensure_storage, save_policy
+
+# Configure the UC volume, schema, and tags
+config = StorageConfig(
+  backend="uc", catalog="governance", schema="policy_agent", object_tags={"team": "platform"}
+)
+
+# Create an engine using a SQL warehouse
+executor = DeltaSqlExecutor(workspace_client, warehouse_id="WAREHOUSE_ID")
+
+# Create the catalog, schema, and tables if they don't exist
+ensure_storage(executor, config)
+```
+</Tab>
+<Tab value='Lakebase'>
+```python
+from sqlalchemy import create_engine
+from policy_agent.storage import StorageConfig, ensure_storage, save_policy
+from policy_agent.storage.lakebase import LakebaseSqlExecutor  # needs the 'lakebase' extra
+
+# Configure the Lakebase schema and tags
+config = StorageConfig(
+  backend="lakebase", schema="policy_agent", object_tags={"team": "platform"}
+)
+
+# Create an engine from a Lakebase Postgres connection URL
+engine = create_engine("postgresql+psycopg://USER:TOKEN@HOST:5432/databricks_postgres")
+executor = LakebaseSqlExecutor(engine)
+
+# Create the schema and tables if they don't exist
+ensure_storage(executor, config)
+```
+</Tab>
+</Tabs>
+
+## Tagging and metadata
+Use tags to mark objects created by the policy agent. Any schemas, tables, or rows created
+by the policy agent are marked with the configured `object_tags`.
+
+Common object tagging use cases include:
+
+* Policies applied by different teams
+* Policies applied for specific resource groups
+* Policies applied for compliance purposes
+
+<Callout type="info" title="Default tags">
+All objects are tagged with `"managed_by": "policy-agent"` by default.
+</Callout>
+
+## Configuration
+Both the app and the jobs read configuration from `POLICY_AGENT_*` environment variables via
+`config_from_env`. See [Deployment](/docs/deployment) for the full list.

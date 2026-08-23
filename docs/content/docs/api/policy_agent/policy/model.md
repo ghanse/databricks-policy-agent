@@ -1,0 +1,161 @@
+---
+sidebar_label: model
+title: policy_agent.policy.model
+---
+
+Core policy data model: resource types, effects, condition trees, and policies.
+
+Policies are immutable, declarative data. A policy pairs a *condition tree* with an
+:class:`Effect` (allow or deny) over one :class:`ResourceType`. Condition trees are built
+from a small set of frozen node types (:class:`Comparison`, :class:`AllOf`, :class:`AnyOf`,
+:class:`Negation`) so evaluation is a pure walk over data with no code execution.
+
+## ResourceType Objects
+
+```python
+class ResourceType(str, Enum)
+```
+
+A Databricks workspace object type a policy can target.
+
+## Effect Objects
+
+```python
+class Effect(str, Enum)
+```
+
+Whether matching a policy&#x27;s rule means a resource is compliant or violating.
+
+``ALLOW`` policies are allow-lists: a resource is compliant only when its rule matches.
+``DENY`` policies are deny-lists: a resource violates the policy when its rule matches.
+
+## Severity Objects
+
+```python
+class Severity(str, Enum)
+```
+
+Relative importance of a policy violation.
+
+## PolicyStatus Objects
+
+```python
+class PolicyStatus(str, Enum)
+```
+
+Lifecycle state of a policy in the draft-review-approve workflow.
+
+## Condition Objects
+
+```python
+class Condition()
+```
+
+Base type for every node in a policy condition tree.
+
+## Comparison Objects
+
+```python
+@dataclass(frozen=True)
+class Comparison(Condition)
+```
+
+A leaf condition comparing one resource attribute against an expected value.
+
+**Attributes**:
+
+- `attribute` - Name of the resource-snapshot attribute to read. Dotted paths such as
+  ``tags.environment`` index into nested mappings.
+- `operator` - Name of a registered operator (see :mod:`policy_agent.policy.conditions`).
+- `value` - The expected value the operator compares the attribute against. Operators
+  such as ``exists`` and ``absent`` ignore it.
+
+## AllOf Objects
+
+```python
+@dataclass(frozen=True)
+class AllOf(Condition)
+```
+
+A conjunction that holds only when every child condition holds.
+
+**Attributes**:
+
+- `conditions` - Child conditions; an empty tuple evaluates to ``True``.
+
+## AnyOf Objects
+
+```python
+@dataclass(frozen=True)
+class AnyOf(Condition)
+```
+
+A disjunction that holds when at least one child condition holds.
+
+**Attributes**:
+
+- `conditions` - Child conditions; an empty tuple evaluates to ``False``.
+
+## Negation Objects
+
+```python
+@dataclass(frozen=True)
+class Negation(Condition)
+```
+
+A negation that holds when its child condition does not.
+
+**Attributes**:
+
+- `condition` - The child condition whose truth value is inverted.
+
+## Policy Objects
+
+```python
+@dataclass(frozen=True)
+class Policy()
+```
+
+An immutable compliance policy over a single resource type.
+
+**Attributes**:
+
+- `name` - Unique, human-readable policy identifier (kebab-case by convention).
+- `resource_type` - The workspace object type this policy is evaluated against.
+- `effect` - Whether a rule match means compliant (``ALLOW``) or violating (``DENY``).
+- `rule` - The condition tree evaluated against each resource snapshot.
+- `description` - Free-text explanation of the policy&#x27;s intent.
+- `severity` - Importance assigned to violations of this policy.
+- `resource_type`0 - Optional selector narrowing which resources the policy applies to; when
+  ``None`` the policy applies to every resource of ``resource_type``.
+- `resource_type`5 - Guidance shown to owners on how to bring a resource into compliance.
+- `resource_type`6 - Position of the policy in the approval lifecycle.
+- `resource_type`7 - Monotonic version incremented on each approved change.
+
+#### COMMON\_RESOURCE\_ATTRIBUTES
+
+Attributes every resource snapshot exposes, regardless of resource type.
+
+#### RESOURCE\_ATTRIBUTES
+
+Attributes each resource type exposes; the contract scanning must satisfy and the set
+policy validation checks attribute names against.
+
+#### base\_attribute
+
+```python
+def base_attribute(attribute: str) -> str
+```
+
+Return the top-level attribute name from a possibly dotted attribute path.
+
+**Arguments**:
+
+- `attribute` - An attribute name such as ``tags`` or a dotted path such as
+  ``tags.environment``.
+  
+
+**Returns**:
+
+  The portion of ``attribute`` before the first dot.
+

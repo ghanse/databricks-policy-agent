@@ -1,0 +1,94 @@
+---
+title: Creating Policies
+description: Write resource compliance policies
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Policies can be written in YAML or using Python constructors. This allows you to flexibly
+create policies in the policy agent application, in code, or by writing configuration files.
+
+## Writing policies in YAML
+Policies use an Open Policy Agent-style YAML format. Policies written in YAML are automatically 
+validated when you run scheduled scans or call `load_policies_from_yaml()`. A file may contain 
+a single policy, a list of policies, or several documents separated by `---`.
+
+```yaml
+policy: clusters-owned-by-service-principals
+description: All-purpose clusters created through the UI must be owned by a service principal.
+resource_type: cluster        # job | cluster | sql_warehouse | app | serving_endpoint
+effect: deny                  # allow | deny
+severity: high                # low | medium | high | critical
+match:                        # optional selector; omit to apply to all resources of the type
+  all:
+    - { attribute: cluster_source, operator: equals, value: UI }
+rule:
+  any:
+    - { attribute: owner_type, operator: not_equals, value: service_principal }
+remediation: Recreate the cluster under an approved service principal.
+```
+
+<Callout type="info" title="Validating policies">
+Validating a policy checks that every operator is registered and that every attribute is valid
+for the resource type. Invalid policies are caught as they're written rather than during a scan.
+</Callout>
+
+### Writing rules
+Rules are defined in the `rule` section and can consist of several types of nodes.
+
+| Node Type                      | Usage                                                                                   |
+|--------------------------------|-----------------------------------------------------------------------------------------|
+| `{attribute, operator, value}` | Leaf comparisons using a fixed [operator registry](/docs/policy-syntax#using-operators) |
+| `all: [...]`                   | Conjunction; All leaf nodes must be true                                                |
+| `any: [...]`                   | Disjunction; Any leaf nodes must be true                                                |
+| `not: { ... }`                 | Negation; The inner leaf node must be false                                             |
+
+<Callout type="info" title="Accessing nested properties">
+Attributes can use dotted paths to specify properties nested within other objects, e.g. `tags.environment`.
+</Callout>
+
+###  Using operators
+Rules use a set of built-in operators for common compliance conditions.
+
+| Operator Type   | Usage                                                                               |
+|-----------------|-------------------------------------------------------------------------------------|
+| `equals`        | Checks for strict equality                                                          |
+| `not_equals`    | Checks for strict inequality                                                        |
+| `matches_regex` | Checks for a regular expression matching (e.g. of a name, tag, or other text value) |
+| `in`            | Checks for membership in a list of values                                           |
+| `not_in`        | Opposite of `in`                                                                    |
+| `exists`        | Checks for existence of an attribute or property                                    |
+| `absent`        | Opposite of `exists`                                                                |
+| `less_than`     | Checks that a property is less than a configured limit                              |
+| `greater_than`  | Checks that a property is greater than a configured limit                           |
+| `contains`      | Checks that a property contains a specified value                                   |
+| `has_tag`       | Checks that a resource has a specified tag                                          |
+| `missing_tag`   | Opposite of `has_tag`                                                               |
+
+## Writing policies using Python
+Policies can be also be declared in Python. The functional constructors return immutable `Policy` objects
+that can be directly run in code. See [API reference](/docs/api/policy_agent/policy/model) for details.
+
+```python
+from policy_agent.policy import deny, allow, all_of, any_of, leaf, ResourceType
+
+deny(
+    name="clusters-owned-by-service-principals",
+    resource_type=ResourceType.CLUSTER,
+    severity="high",
+    match=all_of(leaf("cluster_source", "equals", "UI")),
+    rule=any_of(leaf("owner_type", "not_equals", "service_principal")),
+    remediation="Recreate the cluster under an approved service principal.",
+)
+
+allow(
+    name="jobs-naming-convention",
+    resource_type="job",
+    rule=all_of(leaf("name", "matches_regex", r"^(prod|stg|dev)_[a-z0-9_]+$")),
+)
+```
+
+<Callout type="info" title="Interoperating between Python and YAML">
+Policies defined in Python and YAML share the same structure. Users can define and apply policies using 
+either Python constructors, YAML files, or both.
+</Callout>

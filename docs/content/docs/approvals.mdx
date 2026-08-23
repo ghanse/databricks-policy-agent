@@ -1,0 +1,69 @@
+---
+title: Managing Policies
+description: Review, approve, and manage policies
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+Policies follow a *lifecycle* of creation, review, and approval that allow you to separate
+policy creation from policy application. Users can be assigned *roles* granting them privileges
+throughout the policy lifecycle.
+
+## Policy lifecycle
+Policies follow a lifecycle of creation, review, and approval. Only approved rules can be run
+by users when scanning workspace resources.
+
+| Stage       | Description                                                             |
+|-------------|-------------------------------------------------------------------------|
+| `draft`     | The policy is being created                                             |
+| `in_review` | The policy is being reviewed by an approver                             |
+| `approved`  | The policy has been approved and *can be run* against workspace objects |
+| `rejected`  | The policy has been rejected and *cannot be run*                        |
+| `archived`  | The policy has been archived after long-term use and *cannot be run*    |
+
+<Callout type="info" title="Auditing policy lifecycle events">
+All lifecycle transitions create an `ApprovalEvent` record in the policy agent tables. Query the
+backend tables for an auditable history of policy lifecycle events. See [Storage](/docs/storage) 
+for details on configuring the storage backend.
+</Callout>
+
+## Submitting policies for approval
+Users with the `policy_author` role can submit policies for approval using the application or in code.
+
+```python
+from policy_agent.approval import Role, submit_for_review
+
+# Submit a policy for review
+in_review, submit_event = submit_for_review(
+    policy=policy, actor="alice@example.com", roles={Role.POLICY_AUTHOR}
+)
+```
+
+## Approving policies
+Users with the `policy_approver` role can approve policies using the application or in code.
+
+```python
+from policy_agent.approval import Role, approve
+
+approved, approve_event = approve(
+    policy=in_review, actor="bob@example.com", roles={Role.POLICY_APPROVER}
+)
+```
+
+## Roles
+You can provision different *roles* for users to create, approve, run, and manage policies. Roles 
+provide control over the rule lifecycle and are granted to workspace groups. A user can have multiple 
+roles if they belong to different groups (e.g. both `policy_approver`and `scan_runner`).
+
+| Role              | Privileges                                                     |
+|-------------------|----------------------------------------------------------------|
+| `admin`           | All privileges including archiving policies and managing roles |
+| `policy_author`   | Drafting and submitting policies for review                    |
+| `policy_approver` | Approving or rejecting draft policies                          |
+| `scan_runner`     | Running policy scans                                           |
+| `viewer`          | Viewing policies and scans                                     |
+
+<Callout type="warn" title="Updating the default role mappings">
+When the policy agent is installed, all users have `admin` privileges. Modify the role mappings 
+to provision access based on user roles.
+</Callout>

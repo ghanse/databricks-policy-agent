@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Databricks bundle
+.databricks/
+app/.build/
+
+# Node (app UI + docs)
+node_modules/
+app/src/policy_agent_app/ui/dist/
+docs/build/
+docs/.docusaurus/
+# API reference is generated from docstrings by pydoc-markdown (make docs).
+docs/docs/api/
+
+# Local, per-workspace deploy config (never committed)
+target.*.yml
+!target.*.yml.example
+
+# OS
+.DS_Store

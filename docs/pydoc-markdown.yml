@@ -1,0 +1,20 @@
+# Generates the API reference from the library's Google-style docstrings into
+# ``docs/content/docs/api`` as markdown that fumadocs renders as MDX. The docusaurus renderer
+# emits ``title`` frontmatter (which fumadocs uses) and a stray ``sidebar.json`` (gitignored;
+# fumadocs orders the section from content/docs/api/meta.json instead). Run from the ``docs``
+# directory:
+#   uv run --project .. pydoc-markdown
+loaders:
+  - type: python
+    search_path: ["../src"]
+    packages: ["policy_agent"]
+processors:
+  - type: filter
+    skip_empty_modules: true
+  - type: google
+  - type: crossref
+renderer:
+  type: docusaurus
+  docs_base_path: content/docs
+  relative_output_path: api
+  sidebar_top_level_label: "API Reference"

@@ -1,0 +1,61 @@
+---
+title: Concepts
+description: Understand policies, violations, and roles
+---
+
+## Policies
+A *policy* targets a single resource type composed of a conditional *rule* and an
+*effect* (e.g. "allow" or "deny"). Policies may optionally define a *match* selector 
+that narrows which resources it applies to, a *severity*, and *remediation* guidance
+displayed when reviewing violations.
+
+### Rules
+*Rules* are declarative trees built from several node types:
+
+| Node Type                      | Usage                                                                                   |
+|--------------------------------|-----------------------------------------------------------------------------------------|
+| `{attribute, operator, value}` | Leaf comparisons using a fixed [operator registry](/docs/policy-syntax#using-operators) |
+| `all: [...]`                   | Conjunction; All leaf nodes must be true                                                |
+| `any: [...]`                   | Disjunction; Any leaf nodes must be true                                                |
+| `not: { ... }`                 | Negation; The inner leaf node must be false                                             |
+
+### Effects
+*Effects* allow users to allow or deny objects that match a given rule. These can be used to:
+
+* Allow only clusters or SQL warehouses with specific naming conventions or tags
+* Allow only jobs that are created by privileged groups
+* Reject oversized SQL warehouses or serving endpoints
+* Reject jobs that do not implement failure notifications
+
+### Policy lifecycle
+Policies move through the following stages. Transitions are gated by [roles](/docs/approvals#roles).
+
+| Stage       | Description                                                             |
+|-------------|-------------------------------------------------------------------------|
+| `draft`     | The policy is being created                                             |
+| `in_review` | The policy is being reviewed by an approver                             |
+| `approved`  | The policy has been approved and *can be run* against workspace objects |
+| `rejected`  | The policy has been rejected and *cannot be run*                        |
+| `archived`  | The policy has been archived after long-term use and *cannot be run*    |
+
+
+## Violations
+*Violations* are created by scanning workspace resources for compliance with 1 or more policies. 
+Scans can be executed programmatically or through the policy agent application. Each violation
+contains a *severity* and *remediation* guidance inherited from its relevant policy.
+
+### Resource snapshots
+Scanning resources normalizes each workspace object into a *snapshot* of its attributes (e.g. 
+name, owner, owner type, tags, and type-specific fields). Rules are evaluated against these
+snapshots. The attributes available per resource type are a fixed contract that policy
+validation checks against.
+
+### Findings
+Evaluating one policy against one applicable resource produces a *finding* with the resource's
+status and the policy's severity and remediation guidance. Resources can be either *compliant* or
+*violating*. 
+
+### Remediation cycle
+Each violation is tracked as a *remediation item* (`open → in_progress → resolved`, or`waived`).
+Repeated scans reconcile open items automatically. Items whose violations have cleared are automatically
+resolved.

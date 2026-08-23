@@ -1,0 +1,14 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "concepts",
+    "policy-syntax",
+    "approvals",
+    "scanning",
+    "remediation",
+    "storage",
+    "deployment",
+    "api"
+  ]
+}

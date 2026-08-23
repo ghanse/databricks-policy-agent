@@ -1,0 +1,188 @@
+# Single Declarative Asset Bundle for the whole policy compliance framework:
+#   * app                       — FastAPI + built React SPA (authoring, scans, approvals)
+#   * policy-agent-scan         — on-demand scan job (python wheel entry point)
+#   * policy-agent-scheduled    — scheduled scan job (cron-triggered)
+#   * storage bootstrap         — UC schema + SQL warehouse the app and jobs use
+#
+# Deploy as a workspace-admin service principal:
+#   1. (cd app && uv run python scripts/build_app.py)   # builds SPA + wheel + app/.build
+#   2. cp target.dev.yml.example target.dev.yml && edit it
+#   3. databricks bundle deploy -t dev
+#
+# The scan jobs read configuration from POLICY_AGENT_* environment variables set as
+# ``spark_env_vars`` on their single-node job cluster, so job and app configuration match.
+bundle:
+  name: policy-agent
+
+# Per-workspace values (profile, catalog, service principal) live in an untracked
+# ``target.*.yml`` so they are never committed. Copy target.dev.yml.example to start.
+include:
+  - "target.*.yml"
+
+variables:
+  catalog_name:
+    description: Unity Catalog catalog holding policy-agent storage.
+    default: main
+  schema_name:
+    description: Schema holding policy-agent tables.
+    default: policy_agent
+  storage_backend:
+    description: Storage backend for policy-agent state ("uc" or "lakebase").
+    default: uc
+  object_tags:
+    description: Comma-separated key=value tags stamped on every object the agent creates.
+    default: managed_by=policy-agent
+  notification_email:
+    description: Email notified when scan jobs fail.
+    default: gregory.hansen@databricks.com
+  notification_webhook:
+    description: Optional webhook posted with scan summaries when violations are found.
+    default: ""
+  app_name:
+    description: Databricks App name (unique per workspace).
+    default: policy-agent
+  warehouse_name:
+    description: Name of the bundle-managed SQL warehouse the app and jobs query through.
+    default: policy-agent-warehouse
+  scan_cron:
+    description: Quartz cron expression for the scheduled scan job.
+    default: "0 0 6 * * ?"
+  node_type_id:
+    description: Job-cluster node type (cloud-specific; override per workspace).
+    default: i3.xlarge
+  spark_version:
+    description: Databricks Runtime version for the scan job clusters.
+    default: "15.4.x-scala2.12"
+  app_config:
+    type: complex
+    description: Databricks Apps runtime config (command + environment).
+    default:
+      command: ["uvicorn", "policy_agent_app.backend.app:app", "--host", "0.0.0.0", "--port", "8000"]
+      env:
+        - name: POLICY_AGENT_STORAGE_BACKEND
+          value: "${var.storage_backend}"
+        - name: POLICY_AGENT_CATALOG
+          value: "${var.catalog_name}"
+        - name: POLICY_AGENT_SCHEMA
+          value: "${var.schema_name}"
+        - name: POLICY_AGENT_TAGS
+          value: "${var.object_tags}"
+        - name: POLICY_AGENT_WAREHOUSE_ID
+          valueFrom: "policy-agent-warehouse"
+        - name: POLICY_AGENT_NOTIFICATION_EMAILS
+          value: "${var.notification_email}"
+        - name: POLICY_AGENT_NOTIFICATION_WEBHOOK
+          value: "${var.notification_webhook}"
+  job_cluster:
+    type: complex
+    description: Single-node job cluster the scan jobs run on, carrying POLICY_AGENT_* config.
+    default:
+      spark_version: "${var.spark_version}"
+      node_type_id: "${var.node_type_id}"
+      num_workers: 0
+      spark_conf:
+        spark.master: "local[*]"
+        spark.databricks.cluster.profile: singleNode
+      custom_tags:
+        ResourceClass: SingleNode
+        managed_by: policy-agent
+      spark_env_vars:
+        POLICY_AGENT_STORAGE_BACKEND: "${var.storage_backend}"
+        POLICY_AGENT_CATALOG: "${var.catalog_name}"
+        POLICY_AGENT_SCHEMA: "${var.schema_name}"
+        POLICY_AGENT_TAGS: "${var.object_tags}"
+        POLICY_AGENT_WAREHOUSE_ID: "${resources.sql_warehouses.policy_agent_warehouse.id}"
+        POLICY_AGENT_NOTIFICATION_EMAILS: "${var.notification_email}"
+        POLICY_AGENT_NOTIFICATION_WEBHOOK: "${var.notification_webhook}"
+
+artifacts:
+  # Build the library wheel (jobs depend on it) and assemble the deployable app tree.
+  policy_agent_build:
+    type: whl
+    build: uv build --wheel && cd app && uv run python scripts/build_app.py
+    path: .
+
+resources:
+  apps:
+    policy-agent:
+      name: ${var.app_name}
+      description: "Databricks Policy Agent — author policies, scan, review, remediate"
+      source_code_path: ./app/.build
+      config: ${var.app_config}
+      # Scopes for on-behalf-of reads of the resources the agent scans.
+      user_api_scopes:
+        - sql
+        - clusters.read
+        - jobs.read
+        - apps.read
+        - serving.serving-endpoints
+      resources:
+        - name: "policy-agent-warehouse"
+          description: "SQL warehouse policy-agent queries and stores state through."
+          sql_warehouse:
+            id: ${resources.sql_warehouses.policy_agent_warehouse.id}
+            permission: "CAN_USE"
+      permissions:
+        - group_name: "users"
+          level: "CAN_USE"
+
+  sql_warehouses:
+    policy_agent_warehouse:
+      name: ${var.warehouse_name}
+      cluster_size: "Small"
+      max_num_clusters: 1
+      auto_stop_mins: 30
+      enable_serverless_compute: true
+      warehouse_type: PRO
+
+  schemas:
+    policy_agent_schema:
+      catalog_name: ${var.catalog_name}
+      name: ${var.schema_name}
+      comment: "Policy-agent state (policies, scans, findings, remediations, approvals)."
+      # Guard against accidental teardown of stored compliance history.
+      lifecycle:
+        prevent_destroy: true
+
+  jobs:
+    policy_agent_scan:
+      name: "[policy-agent] scan"
+      tags:
+        managed_by: policy-agent
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tasks:
+        - task_key: scan
+          python_wheel_task:
+            package_name: policy_agent
+            entry_point: policy-agent-scan
+          new_cluster: ${var.job_cluster}
+          libraries:
+            - whl: ./dist/*.whl
+
+    policy_agent_scheduled:
+      name: "[policy-agent] scheduled scan"
+      tags:
+        managed_by: policy-agent
+      schedule:
+        quartz_cron_expression: ${var.scan_cron}
+        timezone_id: America/Los_Angeles
+      email_notifications:
+        on_failure:
+          - ${var.notification_email}
+      tasks:
+        - task_key: scheduled_scan
+          python_wheel_task:
+            package_name: policy_agent
+            entry_point: policy-agent-scheduled-scan
+          new_cluster: ${var.job_cluster}
+          libraries:
+            - whl: ./dist/*.whl
+
+targets:
+  dev:
+    mode: development
+    default: true
+  prod:
+    mode: production

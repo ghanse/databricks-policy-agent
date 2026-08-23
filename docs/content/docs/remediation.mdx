@@ -1,0 +1,72 @@
+---
+title: Tracking Violations
+description: Track and remediate policy violations
+---
+
+Violations are tracked as *remediation items* that can be completed by resource owners. Each 
+item applies to a specific policy, resource type, and resource.
+
+## Violation lifecycle
+Violations follow a lifecycle of detection, review, and resolution.
+
+| Status        | Description                                                          |
+|---------------|----------------------------------------------------------------------|
+| `open`        | A newly detected violation                                           |
+| `in_progress` | A violation being reviewed or addressed by a resource owner          |
+| `resolved`    | A violation that has been resolved by a resource owner               |
+| `waived`      | A violation that has been allow-listed after detection and review    |
+
+## Reconciling violations
+Violations can be *reconciled* automatically or manually through the policy agent app, 
+scheduled jobs, or in code.
+
+### Using the scheduled jobs
+When you use the policy agent's scheduled jobs, scanning the same resources will *reconcile* 
+any existing violations with the resource's current configuration:
+
+* New violations open new items
+* Open items whose violation no longer appears are **auto-resolved**
+* Resolved and waived items are preserved
+
+### Using the policy agent app
+Users can view and resolve violations in the policy agent app. Check the **Remediations** tab
+to advance, resolve, waive, or assign violations.
+
+### Using Python
+To reconcile violations in code, read the currently-open items from storage, run a fresh scan to
+get the current violations, and pass both to `reconcile(...)`. Persist the reconciled items so the
+new statuses are saved.
+
+```python
+from datetime import datetime, timezone
+
+from databricks.sdk import WorkspaceClient
+from policy_agent import config_from_env, create_executor, run_scan
+from policy_agent.policy.model import PolicyStatus
+from policy_agent.remediation import reconcile
+from policy_agent.storage import load_policies, read_remediations, save_remediation
+
+# Build the storage executor from the environment configuration
+config = config_from_env()
+workspace_client = WorkspaceClient()
+executor = create_executor(config=config, workspace_client=workspace_client)
+
+# Get the currently-open remediation items from storage
+existing_items = read_remediations(executor=executor, config=config.storage)
+
+# Run a fresh scan of the approved policies to get the current violations
+policies = load_policies(executor=executor, config=config.storage, status=PolicyStatus.APPROVED)
+scan_result = run_scan(workspace_client=workspace_client, policies=policies)
+
+# Reconcile the existing items against the fresh scan
+updated = reconcile(
+    existing_items=existing_items,
+    violations=scan_result.violations,
+    scan_id=scan_result.scan_id,
+    now=datetime.now(timezone.utc),
+)
+
+# Persist the reconciled items
+for item in updated:
+    save_remediation(executor=executor, config=config.storage, item=item)
+```

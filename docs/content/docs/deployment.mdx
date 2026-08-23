@@ -1,0 +1,45 @@
+---
+title: Deployment
+description: Deploy the policy agent resources
+---
+
+All policy agent resources deploy through a Declarative Automation Bundle (`databricks.yml`). This
+includes the app, on-demand and scheduled scan jobs, and the storage backend.
+
+<Callout type="warning" title="Required workspace permissions">
+Deploy the bundle as a user or service principal with **workspace administrator** privileges.
+</Callout>
+
+## Steps
+Navigate to the root directory where you cloned `databricks-policy-agent`. Run the setup scripts,
+update the app configuration, then deploy the app using the Databricks CLI.
+
+```bash
+# 1. Build the SPA, the library wheel, and assemble the deployable app tree.
+cd app && uv run python scripts/build_app.py && cd ..
+
+# 2. Configure the target for your workspace (never committed).
+cp target.dev.yml.example target.dev.yml   # edit catalog, tags, service principal, node type
+
+# 3. Deploy.
+databricks bundle deploy -t dev -p <profile>
+```
+
+## Configuration
+The app and jobs read several environment variables set by the bundle. Update these to configure
+the app for your environment.
+
+| Variable                            | Purpose                                                 |
+|-------------------------------------|---------------------------------------------------------|
+| `POLICY_AGENT_STORAGE_BACKEND`      | `uc` or `lakebase`                                      |
+| `POLICY_AGENT_CATALOG`              | Unity Catalog catalog (UC backend)                      |
+| `POLICY_AGENT_SCHEMA`               | schema holding the tables                               |
+| `POLICY_AGENT_WAREHOUSE_ID`         | SQL warehouse id (UC backend)                           |
+| `POLICY_AGENT_LAKEBASE_URL`         | SQLAlchemy URL (Lakebase backend)                       |
+| `POLICY_AGENT_TAGS`                 | tags stamped on created objects (`key=value,key=value`) |
+| `POLICY_AGENT_NOTIFICATION_EMAILS`  | comma-separated recipients                              |
+| `POLICY_AGENT_NOTIFICATION_WEBHOOK` | webhook posted with violation summaries                 |
+
+## Scheduling
+Scheduled scans use the cron in `scan_cron`. By default, scheduled scans run at 06:00 and scans every 
+approved policy. Adjust the schedule for each deployment target in the bundle configuration.

@@ -1,0 +1,48 @@
+---
+title: Introduction
+description: Get started with the Databricks Policy Agent
+---
+
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+## Motivation
+Databricks Policy Agent is a compliance framework for Databricks that allows users to:
+* *Declare and manage policies* for workspace objects (e.g. Jobs, Clusters, SQL Warehouses, Apps, and Model Serving Endpoints)
+* *Scan workspace objects* for policy compliance
+* *Identify and track violations* through a remediation cycle
+
+## Quick start
+Policies are defined in policy files and can be run via Python or shell commands:
+
+<Tabs items={['Python', 'Shell']}>
+<Tab value='Python'>
+```python
+from databricks.sdk import WorkspaceClient
+from policy_agent import load_policies_from_yaml, run_scan
+
+# Load policies from a YAML file
+policies = load_policies_from_yaml("examples/clusters.yaml")
+
+# Run a scan against the workspace
+result = run_scan(WorkspaceClient(), policies)
+
+# Print the scan summary
+print(result.summary())
+```
+</Tab>
+<Tab value='Shell'>
+```bash
+# Sync the project requirements
+uv sync --all-extras
+
+# Validate policy files
+uv run policy-agent validate examples/
+
+# Dry-run a scan against a workspace (no writes)
+uv run policy-agent scan --profile my-profile --policies examples/
+```
+</Tab>
+</Tabs>
+
+Continue with [Concepts](/docs/concepts) to understand the model, or jump to
+[Policy syntax](/docs/policy-syntax) to start authoring.

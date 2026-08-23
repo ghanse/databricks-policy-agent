@@ -1,0 +1,182 @@
+---
+title: Running Scans
+description: Scan resources and evaluate policies
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+*Scanning* workspaces evaluates any affected resources for compliance with the selected policies. 
+Users can run scans from the policy agent application, invoke ad-hoc scans directly from code, or 
+configure scans to run as scheduled Databricks Lakeflow Jobs.
+
+<Callout type="warn" title="Scanning large workspaces">
+Scans fetch only relevant resources and caches resource snapshots when evaluating many policies.
+For large workspaces with many objects, set each policy's `match` argument to restrict scope and 
+avoid rate-limiting.
+</Callout>
+
+## Running ad-hoc scans
+Users can run ad-hoc scans using either Python or shell commands. This uses the Databricks SDK to 
+fetch resource snapshots, then evaluates policies against the fetched snapshots.
+
+<Tabs items={['Python', 'Shell']}>
+<Tab value='Python'>
+```python
+from databricks.sdk import WorkspaceClient
+from policy_agent import run_scan, load_policies_from_yaml
+
+# Load policies from a YAML file
+policies = load_policies_from_yaml("examples/clusters.yaml")
+
+# Run a scan against the workspace
+result = run_scan(WorkspaceClient(), policies)
+
+# Print the scan summary
+print(result.summary())
+
+# Print the detailed findings
+for finding in result.violations:
+    print(finding.severity, finding.policy_name, finding.resource_name)
+```
+</Tab>
+<Tab value='Shell'>
+```bash
+# Sync the project requirements
+uv sync --all-extras
+
+# Validate policy files
+uv run policy-agent validate examples/
+
+# Dry-run a scan against the workspace (no output)
+uv run policy-agent scan --profile my-profile --policies examples/ --dry-run
+
+# Run a scan against the workspace (with output)
+uv run policy-agent scan --profile my-profile --policies examples/
+```
+</Tab>
+</Tabs>
+
+## Scheduling recurring scans
+You can also schedule recurring scans as Databricks jobs. Each job run scans every approved policy 
+and persists the results. You can create a schedule in code or set the cadence directly through the 
+job bundle.
+
+See [Deployment](/docs/deployment) for the full bundle setup.
+
+<Tabs items={['Python', 'Shell']}>
+<Tab value='Python'>
+```python
+from databricks.sdk import WorkspaceClient
+from policy_agent import config_from_env, create_executor
+from policy_agent.schedule import ScanSchedule
+from policy_agent.storage import save_schedule
+
+# Get the default policy agent configuration for the current environment
+config = config_from_env()
+
+# Create a policy agent executor
+executor = create_executor(config, WorkspaceClient())
+
+# Define a schedule
+schedule = ScanSchedule(
+    schedule_id="nightly",
+    name="Nightly compliance scan",
+    cron="0 0 6 * * ?",              # Quartz cron: every day at 06:00
+    timezone="America/Los_Angeles",
+    policy_names=(),                 # empty = every approved policy
+)
+
+# Update the scan configuration
+save_schedule(executor, config.storage, schedule)
+```
+</Tab>
+<Tab value='Shell'>
+```bash
+# The scheduled scan job's cadence is the `scan_cron` bundle variable
+# (a Quartz cron expression; defaults to "0 0 6 * * ?" — every day at 06:00).
+
+# Deploy the scheduled job with the default cadence.
+databricks bundle deploy -t dev -p my-profile
+
+# Or override the cadence at deploy time (e.g. every 6 hours).
+databricks bundle deploy -t dev -p my-profile --var="scan_cron=0 0 0/6 * * ?"
+```
+</Tab>
+</Tabs>
+
+<Callout type="info" title="Updating the scan schedule">
+The job schedule is specified in its asset bundle configuration. Setting a `ScanSchedule` in code 
+records the intended schedule and scope. Update the job's `scan_cron` through the bundle to update 
+the scan schedule.
+</Callout>
+
+## Adding a resource type
+
+Scans are backed by a registry that designates which resource types can be scanned. Adding a 
+new type (e.g. for instance pools) takes a few small changes.
+
+### Declare the type and its attributes
+Add the type to `ResourceType` and the attributes policies may reference to `RESOURCE_ATTRIBUTES`.
+
+```python
+class ResourceType(str, Enum):
+    ...
+    INSTANCE_POOL = "instance_pool"
+
+
+RESOURCE_ATTRIBUTES = {
+    ...
+    ResourceType.INSTANCE_POOL: COMMON_RESOURCE_ATTRIBUTES
+    | {
+        "node_type_id",
+        "idle_autotermination_minutes",
+        "max_capacity",
+    },
+}
+```
+
+### Normalize the resource into a snapshot
+Write a scan function in `policy_agent.scan.resources` that maps each resource to the flat 
+attribute set you declared.
+
+```python
+def scan_instance_pools(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalise every instance pool in the workspace."""
+    snapshots = []
+    for pool in workspace_client.instance_pools.list():
+        snapshots.append(
+            _snapshot(
+                ResourceType.INSTANCE_POOL,
+                id=str(getattr(pool, "instance_pool_id", "")),
+                name=getattr(pool, "instance_pool_name", "") or "",
+                owner=None,
+                owner_type=OWNER_TYPE_UNKNOWN,
+                tags=_normalize_tags(getattr(pool, "custom_tags", None)),
+                created_time=None,
+                node_type_id=getattr(pool, "node_type_id", None),
+                idle_autotermination_minutes=getattr(
+                    pool, "idle_instance_autotermination_minutes", None
+                ),
+                max_capacity=getattr(pool, "max_capacity", None),
+            )
+        )
+    return snapshots
+```
+
+<Callout type="info" title="Handling missing resource attributes">
+When resources or attributes are not available via the Databricks SDK, their values are treated
+as `None`. You can safely add new resource types and attributes and interoperate across versions
+of the Databricks SDK.
+</Callout>
+
+### Register the scanner
+Map the type to its scanner in `RESOURCE_SCANNERS`. Policies can now target `resource_type: instance_pool`. 
+Scans will evaluate instance pools automatically.
+
+```python
+RESOURCE_SCANNERS = {
+    ...
+    ResourceType.INSTANCE_POOL: scan_instance_pools,
+}
+```

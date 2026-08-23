@@ -1,0 +1,26 @@
+# Copy to ``target.dev.yml`` (git-ignored) and fill in per-workspace values.
+# The workspace host + auth come from your Databricks CLI profile; deploy with a
+# workspace-admin service principal:  databricks bundle deploy -t dev -p <profile>
+targets:
+  dev:
+    workspace:
+      # host: https://<your-workspace>.cloud.databricks.com
+      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalog_name: main
+      schema_name: policy_agent_dev
+      storage_backend: uc
+      object_tags: "managed_by=policy-agent,environment=dev,team=platform"
+      notification_email: gregory.hansen@databricks.com
+      # AWS default shown; for Azure use e.g. Standard_DS3_v2, for GCP n1-standard-4.
+      node_type_id: i3.xlarge
+      # To store state in Lakebase Postgres instead of UC Delta, set:
+      #   storage_backend: lakebase
+      # and provide POLICY_AGENT_LAKEBASE_URL to the app/jobs (a SQLAlchemy URL).
+
+    # Run the deploy and the scan jobs as a workspace-admin service principal.
+    run_as:
+      service_principal_name: "<service-principal-application-id>"
+    permissions:
+      - level: CAN_MANAGE
+        service_principal_name: "<service-principal-application-id>"
