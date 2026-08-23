@@ -56,7 +56,16 @@ jobs:
 
   integration:
     name: Integration tests
-    runs-on: ubuntu-latest
+    # Integration tests need Databricks workspace secrets, which live only in the
+    # private databricks-field-eng mirror — never in the public repo. Run them there
+    # only (the `make fork-sync` PR lands on a branch in that repo). Skip fork PRs:
+    # GitHub withholds secrets from fork-triggered `pull_request` runs, so they would
+    # fail, and running fork code against secrets would be unsafe.
+    if: |
+      github.repository == 'databricks-field-eng/databricks-policy-agent'
+      && !github.event.pull_request.draft
+      && !github.event.pull_request.head.repo.fork
+    runs-on: databricks-field-eng-protected-runner-group
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
