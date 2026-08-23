@@ -1,0 +1,39 @@
+name: integration
+
+# Integration tests run against a live Databricks workspace, so they are not run on every
+# pull request. They run on a nightly schedule and can be triggered manually. Authentication
+# uses a service principal (OAuth M2M) whose credentials are stored as repository secrets.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *" # nightly at 08:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    env:
+      # Workspace host and service-principal OAuth credentials (see the repository secrets).
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+      # SQL warehouse used by the Delta storage integration tests.
+      POLICY_AGENT_WAREHOUSE_ID: ${{ secrets.POLICY_AGENT_WAREHOUSE_ID }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-env
+
+      - name: Install dependencies
+        run: make dev
+
+      - name: Run integration tests
+        run: make integration
