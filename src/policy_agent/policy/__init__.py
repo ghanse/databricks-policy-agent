@@ -24,7 +24,6 @@ from policy_agent.policy.model import (
     Policy,
     PolicyStatus,
     ResourceType,
-    Severity,
     referenced_attributes,
 )
 from policy_agent.policy.python_dsl import (

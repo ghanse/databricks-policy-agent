@@ -1,19 +1,17 @@
 ---
 title: Enforcing Policies
-description: Block non-compliant Databricks Asset Bundle deployments before they happen.
+description: Block deployments with non-compliant resources
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-Scanning is *detective* — it finds violations on resources that already exist. Enforcement is
-*preventive* — it evaluates the resources a [Databricks Asset Bundle](/docs/deployment)
-*declares* and blocks the deployment before non-compliant resources are created. Both use the
-same policies and the same evaluation engine; only the source of the resources differs.
+Scanning finds violations on resources that already exist. Enforcement is **preventive**. It evaluates
+configuration and blocks deployments before non-compliant resources are created. Both use the same 
+policies and the same evaluation engine.
 
 ## Enforcement levels
-Every policy carries an `enforcement` level that decides what the gate does when the policy is
-violated.
+Every policy carries an `enforcement` level that dictates how the policy acts on non-compliant deployments.
 
 | Level      | Effect at the gate                                            |
 |------------|---------------------------------------------------------------|
@@ -21,31 +19,39 @@ violated.
 | `soft`     | Blocks, but may be overridden with a recorded reason.         |
 | `hard`     | Blocks, and cannot be overridden.                             |
 
-<Callout type="info" title="Advisory by default">
-A policy with no `enforcement` set is `advisory`, so adding a policy never unexpectedly blocks
-a deployment. Promote a policy to `soft` or `hard` when you are ready to enforce it.
+<Callout type="info" title="Default enforcement level">
+Policies use `advisory` as the default enforcement level. Adding a policy never unexpectedly blocks a 
+deployment. Change the enforcement level if you want to block deployments.
 </Callout>
 
-## Gating a bundle
-`policy-agent enforce` resolves a bundle with `databricks bundle validate --output json`,
-snapshots its declared resources, evaluates the policies, and exits non-zero when a violation
-meets the `--fail-on` level.
+## Enforcing policies for deployments
+Use `policy-agent enforce` to enforce policies on validated resource bundle. Enforce policies for
+automated deployments using the CLI or GitHub Actions.
 
-<Tabs items={['Shell', 'GitHub Action']}>
-<Tab value='Shell'>
+<Tabs items={['CLI', 'GitHub Actions']}>
+<Tab value='CLI'>
 ```bash
-# Between `bundle validate` and `bundle deploy` in your pipeline:
-policy-agent enforce --bundle . --target prod --policies policies/ --fail-on hard
+# Validate your bundle's configuration
+databricks bundle validate -t prod
+
+# Enforce policies on validated resources
+policy-agent enforce \
+  --bundle . \
+  --target prod \
+  --policies policies/ \
+  --fail-on hard
+
+# Deploy the compliant bundle
 databricks bundle deploy -t prod
 ```
 </Tab>
-<Tab value='GitHub Action'>
+<Tab value='GitHub Actions'>
 ```yaml
 - uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
   with:
     target: prod
-    policies: policies/        # or "storage" for approved policies
-    fail-on: hard              # advisory | soft | hard
+    policies: policies/        # Use "storage" to load approved policies from the configured storage
+    fail-on: soft              # Can be "hard", "soft", or "advisory"
   env:
     DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
     DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
@@ -54,37 +60,74 @@ databricks bundle deploy -t prod
 </Tab>
 </Tabs>
 
-<Callout type="warn" title="There is no automatic deploy hook">
-Databricks bundles do not run policy checks automatically during `databricks bundle deploy`.
-Enforcement is a step your CI/CD pipeline sequences before the deploy. Pair it with a scheduled
-[scan](/docs/scanning) to also catch resources deployed outside the pipeline.
+<Callout type="warn" title="Handling compliance failures">
+Set `fail-on` to adjust when compliance issues fail deployments. The CLI exits with a non-zero result 
+when any violation meets the `--fail-on` level.
 </Callout>
 
-## Overrides
+## Overriding enforcement
 When a `soft` policy blocks a change you knowingly want to ship, override it by policy name with
 a required reason. `hard` policies can never be overridden.
 
+<Tabs items={['CLI', 'GitHub Actions']}>
+<Tab value='CLI'>
 ```bash
-policy-agent enforce --bundle . --target stg \
+policy-agent enforce \
+  --bundle . \
+  --target stg \
   --override jobs-should-use-serverless-compute \
   --override-reason "migration tracked in JIRA-123"
 ```
+</Tab>
+<Tab value='GitHub Actions'>
+```yaml
+- uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
+  with:
+    target: prod
+    policies: policies/
+    fail-on: soft
+    override: jobs-should-use-serverless-compute        # Pass the overridden policy name
+    override-reason: "migration tracked in JIRA-123"    # Pass the override reason
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+    DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+```
+</Tab>
+</Tabs>
 
 In the GitHub Action, pass `override` (newline-separated policy names) and `override-reason`.
 The override and its reason are recorded in the gate's output so the decision is auditable in
 the pipeline run.
 
-## Suggested fixes
-Add `--fix` (or `fix: true` in the Action) to include the remediation guidance for each
-violation in the output.
+## Suggesting fixes to compliance violations
+Use the `fix` option to include the remediation guidance for each violation in the output.
 
-<Callout type="info" title="Suggestions, not auto-edits">
-The gate evaluates the *resolved* bundle, which does not map 1:1 back to your templated
-`databricks.yml`. `--fix` therefore surfaces the changes to make; it does not rewrite your
-source.
+<Tabs items={['CLI', 'GitHub Actions']}>
+<Tab value='CLI'>
+```bash
+policy-agent enforce \
+  --bundle . \
+  --target stg \
+  --fix
+```
+</Tab>
+<Tab value='GitHub Actions'>
+```yaml
+- uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
+  with:
+    target: prod
+    policies: policies/
+    fail-on: soft
+    fix: true
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+    DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+```
+</Tab>
+</Tabs>
+
+<Callout type="info" title="Implementing suggested fixes">
+Fixes are suggested, not implemented. Update your bundle configuration to implement the suggested changes.
 </Callout>
-
-## Rollout
-Roll enforcement out per target: keep policies `advisory` in `dev`, promote to `soft` in
-staging, and reserve `hard` for `prod` and the non-negotiables. The policy definitions are the
-same everywhere — only the `enforcement` level and the `--fail-on` threshold change.

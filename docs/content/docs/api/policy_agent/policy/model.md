@@ -186,3 +186,24 @@ Return the top-level attribute name from a possibly dotted attribute path.
 
   The portion of ``attribute`` before the first dot.
 
+#### referenced\_attributes
+
+```python
+def referenced_attributes(policy: Policy) -> frozenset[str]
+```
+
+Return the base attribute names a policy reads across its rule and match trees.
+
+Lets a scanner fetch only the data a policy actually inspects — for example, skipping an
+expensive expansion when no active policy references an attribute derived from it.
+
+**Arguments**:
+
+- `policy` - The policy to inspect.
+  
+
+**Returns**:
+
+  The set of top-level attribute names (dotted paths reduced to their base) named by
+  any leaf in the policy&#x27;s ``rule`` or ``match`` condition trees.
+
