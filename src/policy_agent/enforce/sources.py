@@ -21,6 +21,7 @@ from policy_agent.scan.results import ResourceSnapshot
 _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "jobs": ResourceType.JOB,
     "clusters": ResourceType.CLUSTER,
+    "sql_warehouses": ResourceType.SQL_WAREHOUSE,
     "apps": ResourceType.APP,
     "model_serving_endpoints": ResourceType.SERVING_ENDPOINT,
 }
@@ -78,6 +79,18 @@ def _cluster_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _sql_warehouse_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, definition.get("tags")),
+        "warehouse_type": definition.get("warehouse_type"),
+        "cluster_size": definition.get("cluster_size"),
+        "auto_stop_minutes": definition.get("auto_stop_mins"),
+        "enable_serverless_compute": definition.get("enable_serverless_compute"),
+        "min_num_clusters": definition.get("min_num_clusters"),
+        "max_num_clusters": definition.get("max_num_clusters"),
+    }
+
+
 def _app_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, None),
@@ -128,6 +141,15 @@ def _run_as_owner(run_as: Any) -> tuple[str | None, str]:
 
 def _normalize_tags(tags: Any) -> dict[str, str]:
     if isinstance(tags, dict):
+        # SQL warehouses declare tags as {"custom_tags": [{"key": ..., "value": ...}]};
+        # jobs and clusters use a flat {key: value} mapping.
+        custom_tags = tags.get("custom_tags")
+        if isinstance(custom_tags, list):
+            return {
+                str(pair["key"]): str(pair.get("value", ""))
+                for pair in custom_tags
+                if isinstance(pair, dict) and "key" in pair
+            }
         return {str(key): str(value) for key, value in tags.items()}
     return {}
 
@@ -135,6 +157,7 @@ def _normalize_tags(tags: Any) -> dict[str, str]:
 _COMMON = {
     ResourceType.JOB: _job_attributes,
     ResourceType.CLUSTER: _cluster_attributes,
+    ResourceType.SQL_WAREHOUSE: _sql_warehouse_attributes,
     ResourceType.APP: _app_attributes,
     ResourceType.SERVING_ENDPOINT: _serving_endpoint_attributes,
 }

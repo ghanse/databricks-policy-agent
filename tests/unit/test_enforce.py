@@ -42,6 +42,36 @@ def test_snapshot_bundle_maps_declared_jobs():
     assert adhoc["owner_type"] == "unknown"
 
 
+def test_snapshot_bundle_maps_declared_sql_warehouses():
+    # A warehouse policy must see declared warehouses; otherwise a non-compliant bundle would
+    # pass because the gate evaluated zero resources.
+    config = {
+        "resources": {
+            "sql_warehouses": {
+                "reporting": {
+                    "name": "reporting_wh",
+                    "cluster_size": "2X-Large",
+                    "auto_stop_mins": 10,
+                    "enable_serverless_compute": True,
+                    "tags": {"custom_tags": [{"key": "team", "value": "data"}]},
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.SQL_WAREHOUSE
+    attrs = snapshot.attributes
+    assert attrs["cluster_size"] == "2X-Large"
+    assert attrs["auto_stop_minutes"] == 10
+    assert attrs["enable_serverless_compute"] is True
+    # Warehouse tags use the {custom_tags: [{key, value}]} shape, unlike the flat job dict.
+    assert attrs["tags"] == {"team": "data"}
+
+    oversized = allow("wh-size", "sql_warehouse", leaf("cluster_size", "equals", "Medium"))
+    result = run_gate([oversized], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert result.blocked
+
+
 def test_soft_violation_warns_below_threshold_but_blocks_at_threshold():
     tagged = allow(
         "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement="soft"

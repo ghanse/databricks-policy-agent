@@ -26,7 +26,7 @@ policy: jobs-must-be-tagged
 description: Every job must carry at least one tag for cost attribution and ownership.
 resource_type: job
 effect: allow
-severity: medium
+enforcement: soft
 rule:
   all:
     - { attribute: tags, operator: not_empty }
@@ -36,7 +36,7 @@ policy: jobs-must-have-retry-policy
 description: Every job task must configure a retry policy so transient failures self-heal.
 resource_type: job
 effect: allow
-severity: medium
+enforcement: soft
 rule:
   all:
     - { attribute: has_retry_policy, operator: equals, value: true }
@@ -46,7 +46,7 @@ policy: jobs-should-use-serverless-compute
 description: Jobs should run on serverless compute rather than classic job clusters.
 resource_type: job
 effect: allow
-severity: low
+enforcement: advisory
 rule:
   all:
     - { attribute: uses_serverless_compute, operator: equals, value: true }

@@ -52,30 +52,44 @@ runs:
     - name: Resolve the bundle
       shell: bash
       working-directory: ${{ inputs.bundle-path }}
-      run: databricks bundle validate -t "${{ inputs.target }}" --output json > "$RUNNER_TEMP/resolved-bundle.json"
+      env:
+        TARGET: ${{ inputs.target }}
+      run: databricks bundle validate -t "$TARGET" --output json > "$RUNNER_TEMP/resolved-bundle.json"
 
     - name: Enforce policies
       id: gate
       shell: bash
+      # Pass every caller-controlled input through env vars and reference only quoted "$VARS"
+      # below. Interpolating ${{ inputs.* }} directly into the script would let shell syntax in
+      # a value (e.g. a command substitution) execute on the runner before quoting applies.
+      env:
+        POLICIES: ${{ inputs.policies }}
+        FAIL_ON: ${{ inputs.fail-on }}
+        FIX: ${{ inputs.fix }}
+        OVERRIDE: ${{ inputs.override }}
+        OVERRIDE_REASON: ${{ inputs.override-reason }}
+        REF: ${{ inputs.ref }}
       run: |
         set -o pipefail
-        args=(enforce --bundle "$RUNNER_TEMP/resolved-bundle.json" --fail-on "${{ inputs.fail-on }}" --output json)
-        if [ "${{ inputs.policies }}" != "storage" ]; then
-          args+=(--policies "${{ inputs.policies }}")
+        args=(enforce --bundle "$RUNNER_TEMP/resolved-bundle.json" --fail-on "$FAIL_ON" --output json)
+        if [ "$POLICIES" != "storage" ]; then
+          args+=(--policies "$POLICIES")
         fi
-        if [ "${{ inputs.fix }}" = "true" ]; then
+        if [ "$FIX" = "true" ]; then
           args+=(--fix)
         fi
-        if [ -n "${{ inputs.override-reason }}" ]; then
-          args+=(--override-reason "${{ inputs.override-reason }}")
+        if [ -n "$OVERRIDE_REASON" ]; then
+          args+=(--override-reason "$OVERRIDE_REASON")
         fi
         while IFS= read -r policy; do
           [ -n "$policy" ] && args+=(--override "$policy")
-        done <<< "${{ inputs.override }}"
+        done <<< "$OVERRIDE"
 
         # Run the gate. A blocking verdict exits non-zero and fails this step (blocks the deploy).
+        # Install with the lakebase extra so the default 'storage' policy source works against a
+        # Lakebase (Postgres) backend, which needs SQLAlchemy; the extra is inert for UC Delta.
         set +e
-        uvx --from "git+https://github.com/ghanse/databricks-policy-agent@${{ inputs.ref }}" \
+        uvx --from "databricks-policy-agent[lakebase] @ git+https://github.com/ghanse/databricks-policy-agent@${REF}" \
           policy-agent "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
         code=${PIPESTATUS[0]}
         set -e
