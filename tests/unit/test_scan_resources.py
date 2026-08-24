@@ -13,8 +13,10 @@ class _FakeService:
     def __init__(self, items, list_kwargs_ok=True):
         self._items = items
         self._list_kwargs_ok = list_kwargs_ok
+        self.list_kwargs = None
 
-    def list(self, **_kwargs):
+    def list(self, **kwargs):
+        self.list_kwargs = kwargs
         return list(self._items)
 
 
@@ -57,6 +59,55 @@ def test_scan_jobs_uses_run_as_service_principal_and_tags():
     assert attrs["schedule_pause_status"] == "UNPAUSED"
     assert attrs["has_email_notifications"] is True
     assert attrs["format"] == "MULTI_TASK"
+
+
+def _job_with_tasks(tasks):
+    return SimpleNamespace(
+        job_id=1,
+        created_time=None,
+        creator_user_name="alice@example.com",
+        settings=SimpleNamespace(name="prod_etl", tasks=tasks),
+    )
+
+
+def test_scan_jobs_detects_retry_policy_across_tasks():
+    retried = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=-1)])
+    partial = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=0)])
+    invalid = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=-2)])
+    (retried_snapshot,) = scan_jobs(_ws(jobs=_FakeService([retried])))
+    (partial_snapshot,) = scan_jobs(_ws(jobs=_FakeService([partial])))
+    (invalid_snapshot,) = scan_jobs(_ws(jobs=_FakeService([invalid])))
+    assert retried_snapshot.attributes["has_retry_policy"] is True
+    assert partial_snapshot.attributes["has_retry_policy"] is False
+    assert invalid_snapshot.attributes["has_retry_policy"] is False
+
+
+def test_scan_jobs_detects_serverless_compute():
+    serverless = _job_with_tasks([SimpleNamespace(environment_key="default")])
+    classic = _job_with_tasks([SimpleNamespace(existing_cluster_id="c-1")])
+    (serverless_snapshot,) = scan_jobs(_ws(jobs=_FakeService([serverless])))
+    (classic_snapshot,) = scan_jobs(_ws(jobs=_FakeService([classic])))
+    assert serverless_snapshot.attributes["uses_serverless_compute"] is True
+    assert classic_snapshot.attributes["uses_serverless_compute"] is False
+
+
+def test_scan_jobs_skips_task_expansion_when_disabled():
+    job = _job_with_tasks([SimpleNamespace(max_retries=3)])
+    jobs = _FakeService([job])
+    (snapshot,) = scan_jobs(_ws(jobs=jobs), expand_tasks=False)
+    # Don't ask the API for tasks, and report task-derived attributes as unknown rather than a
+    # value guessed from tasks that were never fetched.
+    assert jobs.list_kwargs == {"expand_tasks": False}
+    assert snapshot.attributes["has_retry_policy"] is None
+    assert snapshot.attributes["uses_serverless_compute"] is None
+    # Non-task attributes are still populated.
+    assert snapshot.attributes["name"] == "prod_etl"
+
+
+def test_scan_jobs_expands_tasks_by_default():
+    jobs = _FakeService([_job_with_tasks([SimpleNamespace(max_retries=3)])])
+    scan_jobs(_ws(jobs=jobs))
+    assert jobs.list_kwargs == {"expand_tasks": True}
 
 
 def test_scan_clusters_classifies_creator_and_normalizes_enum():

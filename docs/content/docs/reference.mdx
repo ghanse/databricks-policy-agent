@@ -1,0 +1,104 @@
+---
+title: Reference
+description: Supported resource types, attributes, operators, roles, and lifecycle statuses.
+---
+
+A quick reference for the values the policy agent supports. These are the source of truth that
+policy validation checks against — a policy referencing anything outside these sets is rejected
+at author time.
+
+## Resource types
+Policies target one of the following resource types (the `resource_type` field).
+
+| Resource type      | Description                          |
+|--------------------|--------------------------------------|
+| `job`              | Databricks Lakeflow Jobs             |
+| `cluster`          | All-purpose compute clusters         |
+| `sql_warehouse`    | SQL warehouses                       |
+| `app`              | Databricks Apps                      |
+| `serving_endpoint` | Model serving endpoints              |
+
+## Resource attributes
+Rules compare these attributes (the `attribute` field of a leaf). Every resource type exposes the
+common attributes; each type adds its own.
+
+**Common (all resource types):** `id`, `name`, `owner`, `owner_type`, `tags`, `created_time`
+
+| Resource type      | Additional attributes                                                                                                          |
+|--------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `job`              | `schedule_pause_status`, `max_concurrent_runs`, `timeout_seconds`, `run_as_type`, `has_email_notifications`, `has_retry_policy`, `uses_serverless_compute`, `format` |
+| `cluster`          | `cluster_source`, `autotermination_minutes`, `spark_version`, `node_type_id`, `num_workers`, `data_security_mode`, `single_user_name` |
+| `sql_warehouse`    | `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
+| `app`              | `app_status`, `compute_status`, `active_deployment_mode`                                                                       |
+| `serving_endpoint` | `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                                                       |
+
+Attributes may use dotted paths to index nested mappings, e.g. `tags.environment`. See
+[Running Scans](/docs/scanning) for how to add a new resource type and its attributes.
+
+## Operators
+Leaf comparisons use one of these operators (the `operator` field).
+
+| Operator                     | Usage                                                                        |
+|------------------------------|------------------------------------------------------------------------------|
+| `equals`                     | Strict equality                                                              |
+| `not_equals`                 | Strict inequality                                                            |
+| `matches_regex`              | Regular-expression match against a text value                               |
+| `in`                         | Membership in a list of values                                              |
+| `not_in`                     | Not a member of a list of values                                            |
+| `exists`                     | The attribute is present (not null)                                         |
+| `absent`                     | The attribute is absent (null)                                              |
+| `less_than`                  | Numeric attribute is less than the value                                    |
+| `greater_than`               | Numeric attribute is greater than the value                                 |
+| `contains`                   | The attribute contains the value                                            |
+| `has_tag`                    | The `tags` mapping contains the given tag key                               |
+| `missing_tag`                | The `tags` mapping does not contain the given tag key                       |
+| `not_empty`                  | The collection or mapping (e.g. `tags`) has at least one entry              |
+| `owner_is_service_principal` | The owner is a service principal                                            |
+| `ttl_within`                 | Numeric attribute is greater than 0 and at most the value (e.g. auto-stop minutes) |
+
+`exists`, `absent`, `not_empty`, and `owner_is_service_principal` ignore the `value` field.
+
+## Policy effects
+| Effect  | Meaning                                                        |
+|---------|----------------------------------------------------------------|
+| `allow` | The resource is compliant only when its rule matches (allow-list) |
+| `deny`  | The resource violates the policy when its rule matches (deny-list) |
+
+## Severities
+Violations carry one of these severities (the `severity` field): `low`, `medium`, `high`,
+`critical`. `medium` is the default when unspecified.
+
+## Roles
+Roles are granted to workspace groups; a caller's effective roles are the union of the roles
+mapped to their groups. See [Managing Policies](/docs/approvals) for the full lifecycle.
+
+| Role              | Privileges                                                     |
+|-------------------|----------------------------------------------------------------|
+| `admin`           | All privileges, including archiving policies and managing roles |
+| `policy_author`   | Draft and submit policies for review                           |
+| `policy_approver` | Approve or reject policies under review                        |
+| `scan_runner`     | Run scans                                                      |
+| `viewer`          | Read-only access                                               |
+
+## Policy lifecycle statuses
+Policies move through these statuses (the `status` field). Only `approved` policies are run by
+scans.
+
+| Status      | Description                                              |
+|-------------|----------------------------------------------------------|
+| `draft`     | The policy is being created                              |
+| `in_review` | The policy has been submitted and is awaiting approval   |
+| `approved`  | The policy is approved and is run by scans               |
+| `rejected`  | The policy was rejected and is not run                   |
+| `archived`  | The policy was archived and is not run                   |
+
+## Remediation statuses
+Each tracked violation is a remediation item in one of these statuses. See
+[Tracking Violations](/docs/remediation) for the reconciliation rules.
+
+| Status        | Description                                                        |
+|---------------|--------------------------------------------------------------------|
+| `open`        | A newly detected violation                                         |
+| `in_progress` | Being reviewed or addressed by a resource owner                    |
+| `resolved`    | Fixed, either manually or auto-resolved on a later scan            |
+| `waived`      | Knowingly accepted after review                                    |

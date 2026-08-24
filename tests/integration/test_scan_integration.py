@@ -89,3 +89,45 @@ def test_scan_evaluates_warehouse_size_policy(ws, make_warehouse):
     strict = run_scan(ws, [large_only], [ResourceType.SQL_WAREHOUSE])
     violating_ids = {f.resource_id for f in strict.violations}
     assert str(warehouse.id) in violating_ids
+
+
+@pytest.mark.integration
+def test_scan_reports_tagged_job_compliant_with_not_empty(ws, make_job, make_random):
+    """A job that carries tags satisfies a 'must be tagged' (not_empty) policy."""
+    suffix = make_random(6).lower()
+    job = make_job(name=f"dev_{suffix}", tags={"team": f"platform_{suffix}"})
+
+    policy = allow(
+        "jobs-must-be-tagged",
+        ResourceType.JOB,
+        leaf("tags", "not_empty"),
+    )
+    result = run_scan(ws, [policy], [ResourceType.JOB])
+
+    compliant_ids = {f.resource_id for f in result.findings if f.compliant}
+    violating_ids = {f.resource_id for f in result.violations}
+    assert str(job.job_id) in compliant_ids
+    assert str(job.job_id) not in violating_ids
+
+
+@pytest.mark.integration
+def test_scan_flags_job_without_retry_policy_or_serverless_compute(ws, make_job, make_random):
+    """A default job (classic compute, no task retries) violates retry and serverless policies."""
+    suffix = make_random(6).lower()
+    job = make_job(name=f"dev_{suffix}")
+
+    must_retry = allow(
+        "jobs-must-have-retry-policy",
+        ResourceType.JOB,
+        leaf("has_retry_policy", "equals", True),
+    )
+    retry_result = run_scan(ws, [must_retry], [ResourceType.JOB])
+    assert str(job.job_id) in {f.resource_id for f in retry_result.violations}
+
+    must_be_serverless = allow(
+        "jobs-should-use-serverless-compute",
+        ResourceType.JOB,
+        leaf("uses_serverless_compute", "equals", True),
+    )
+    serverless_result = run_scan(ws, [must_be_serverless], [ResourceType.JOB])
+    assert str(job.job_id) in {f.resource_id for f in serverless_result.violations}

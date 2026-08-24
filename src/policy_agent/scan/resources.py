@@ -27,18 +27,31 @@ if TYPE_CHECKING:
 _HEX = "[0-9a-fA-F]"
 _UUID_PATTERN = re.compile(rf"^{_HEX}{{8}}-{_HEX}{{4}}-{_HEX}{{4}}-{_HEX}{{4}}-{_HEX}{{12}}$")
 
+TASK_DERIVED_JOB_ATTRIBUTES: frozenset[str] = frozenset(
+    {"has_retry_policy", "uses_serverless_compute"}
+)
+"""Job attributes computed from a job's task definitions. Populating them requires listing
+jobs with ``expand_tasks=True``, which fetches and deserializes every task — costly in large
+workspaces — so callers should expand only when a policy actually reads one of these."""
 
-def scan_jobs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+
+def scan_jobs(
+    workspace_client: WorkspaceClient, *, expand_tasks: bool = True
+) -> list[ResourceSnapshot]:
     """Fetch and normalize every job in the workspace.
 
     Args:
         workspace_client: An authenticated Databricks workspace client.
+        expand_tasks: Whether to fetch full task definitions. Required to populate the
+            :data:`TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
+            as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
+            to ``True`` so direct and inventory callers get complete snapshots.
 
     Returns:
         One snapshot per job.
     """
     snapshots = []
-    for job in workspace_client.jobs.list(expand_tasks=False):
+    for job in workspace_client.jobs.list(expand_tasks=expand_tasks):
         settings = job.settings
         owner, owner_type = _job_owner(job, getattr(settings, "run_as", None))
         schedule = getattr(settings, "schedule", None)
@@ -56,6 +69,10 @@ def scan_jobs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 timeout_seconds=getattr(settings, "timeout_seconds", None),
                 run_as_type=owner_type,
                 has_email_notifications=_has_failure_notifications(settings),
+                has_retry_policy=_has_retry_policy(settings) if expand_tasks else None,
+                uses_serverless_compute=(
+                    _uses_serverless_compute(settings) if expand_tasks else None
+                ),
                 format=_enum_value(getattr(settings, "format", None)),
             )
         )
@@ -230,6 +247,40 @@ def _has_failure_notifications(settings: Any) -> bool:
     notifications = getattr(settings, "email_notifications", None)
     on_failure = getattr(notifications, "on_failure", None)
     return bool(on_failure)
+
+
+def _has_retry_policy(settings: Any) -> bool:
+    tasks = getattr(settings, "tasks", None)
+    if not tasks:
+        return False
+    return all(_task_has_retries(task) for task in tasks)
+
+
+def _task_has_retries(task: Any) -> bool:
+    max_retries = getattr(task, "max_retries", None)
+    # A task retries when max_retries is a nonzero count; -1 means unlimited, 0 means never.
+    return (
+        isinstance(max_retries, int)
+        and not isinstance(max_retries, bool)
+        and (max_retries == -1 or max_retries > 0)
+    )
+
+
+def _uses_serverless_compute(settings: Any) -> bool:
+    tasks = getattr(settings, "tasks", None)
+    if not tasks:
+        return False
+    return all(_task_is_serverless(task) for task in tasks)
+
+
+def _task_is_serverless(task: Any) -> bool:
+    # A serverless task references no classic compute: no interactive cluster, no
+    # task-defined job cluster, and no shared job-cluster key.
+    return (
+        getattr(task, "existing_cluster_id", None) is None
+        and getattr(task, "new_cluster", None) is None
+        and getattr(task, "job_cluster_key", None) is None
+    )
 
 
 def _normalize_tags(raw: Any) -> dict[str, str]:

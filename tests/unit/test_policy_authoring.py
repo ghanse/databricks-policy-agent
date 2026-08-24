@@ -13,8 +13,10 @@ from policy_agent.policy import (
     dump_policies_to_yaml,
     leaf,
     load_policies_from_yaml,
+    not_,
     policy_from_dict,
     policy_to_dict,
+    referenced_attributes,
     validate_policy,
 )
 
@@ -119,3 +121,24 @@ def test_load_rejects_unknown_resource_type():
                 "rule": {"attribute": "name", "operator": "exists"},
             }
         )
+
+
+def test_referenced_attributes_collects_across_rule_and_match():
+    p = deny(
+        "tagged-serverless",
+        "job",
+        all_of(
+            leaf("has_retry_policy", "equals", True),
+            any_of(leaf("tags.team", "exists"), leaf("uses_serverless_compute", "equals", True)),
+        ),
+        match=leaf("name", "matches_regex", "^prod_.+$"),
+    )
+    # Dotted paths reduce to their base, and both trees contribute.
+    assert referenced_attributes(p) == frozenset(
+        {"has_retry_policy", "tags", "uses_serverless_compute", "name"}
+    )
+
+
+def test_referenced_attributes_handles_negation_and_no_match():
+    p = allow("no-serverless", "job", not_(leaf("uses_serverless_compute", "equals", True)))
+    assert referenced_attributes(p) == frozenset({"uses_serverless_compute"})
