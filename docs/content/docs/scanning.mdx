@@ -6,8 +6,8 @@ description: Scan resources and evaluate policies
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-*Scanning* workspaces evaluates any affected resources for compliance with the selected policies. 
-Users can run scans from the policy agent application, invoke ad-hoc scans directly from code, or 
+Scanning workspaces *evaluates affected resources* for compliance with the selected policies. 
+Users can scan resources from the policy agent app, invoke ad-hoc scans directly from code, or 
 configure scans to run as scheduled Databricks Lakeflow Jobs.
 
 <Callout type="warn" title="Scanning large workspaces">
@@ -37,7 +37,7 @@ print(result.summary())
 
 # Print the detailed findings
 for finding in result.violations:
-    print(finding.severity, finding.policy_name, finding.resource_name)
+    print(finding.enforcement_level, finding.policy_name, finding.resource_name)
 ```
 </Tab>
 <Tab value='Shell'>

@@ -6,9 +6,9 @@ title: policy_agent.scan.engine
 The scan orchestrator — the primary public entry point for running compliance scans.
 
 ``run_scan`` fetches each relevant resource type once, evaluates every applicable policy
-against every resource, and returns an immutable :class:`ScanResult`. It is a pure function
+against every resource, and returns an immutable `ScanResult`. It is a pure function
 of the workspace state and the supplied policies, which makes it equally usable from ad-hoc
-code, a scheduled job, or the app&#x27;s API.
+code, a scheduled job, or the app's API.
 
 #### run\_scan
 
@@ -34,13 +34,13 @@ Only resource types that both appear in ``policies`` and (when provided) in
 
 **Returns**:
 
-  A :class:``1 containing one finding per applicable (policy, resource) pair.
+  A `ScanResult` containing one finding per applicable (policy, resource) pair.
   
 
 **Raises**:
 
-- ``2 - If any supplied policy fails validation.
-- ``3 - If any policy references an unregistered operator.
+- `InvalidPolicyError` - If any supplied policy fails validation.
+- `UnknownConditionError` - If any policy references an unregistered operator.
 
 #### collect\_snapshots
 

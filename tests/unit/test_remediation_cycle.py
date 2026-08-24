@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from policy_agent.policy.model import Effect, ResourceType, Severity
+from policy_agent.policy.model import Effect, EnforcementLevel, ResourceType
 from policy_agent.remediation import (
     RemediationStatus,
     advance,
@@ -23,7 +23,7 @@ def _violation(resource_id, policy_name="sp-owned"):
         resource_name=resource_id,
         compliant=False,
         effect=Effect.DENY,
-        severity=Severity.HIGH,
+        enforcement_level=EnforcementLevel.HARD,
         message="violation",
         remediation="fix it",
     )

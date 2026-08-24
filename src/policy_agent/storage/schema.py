@@ -1,6 +1,6 @@
 """Table definitions and dialect-aware SQL builders for both storage backends.
 
-Everything here is a pure function of a :class:`StorageConfig`: it produces SQL text and
+Everything here is a pure function of a `StorageConfig`: it produces SQL text and
 parameter mappings but never executes anything. The same table set is created for Unity
 Catalog Delta and Lakebase Postgres, differing only in type names, tagging syntax, and
 upsert strategy (delete-then-insert, which both dialects support without vendor extensions).
@@ -69,7 +69,7 @@ TABLES: tuple[Table, ...] = (
             Column("name", _S, nullable=False),
             Column("resource_type", _S),
             Column("effect", _S),
-            Column("severity", _S),
+            Column("enforcement_level", _S),
             Column("status", _S),
             Column("version", _L),
             Column("description", _S),
@@ -131,7 +131,7 @@ TABLES: tuple[Table, ...] = (
             Column("resource_name", _S),
             Column("compliant", _B),
             Column("effect", _S),
-            Column("severity", _S),
+            Column("enforcement_level", _S),
             Column("message", _S),
             Column("remediation", _S),
             Column("owner", _S),
@@ -149,7 +149,7 @@ TABLES: tuple[Table, ...] = (
             Column("resource_type", _S),
             Column("resource_id", _S),
             Column("resource_name", _S),
-            Column("severity", _S),
+            Column("enforcement_level", _S),
             Column("status", _S),
             Column("assignee", _S),
             Column("note", _S),

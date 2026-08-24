@@ -1,9 +1,9 @@
 """Core policy data model: resource types, effects, condition trees, and policies.
 
 Policies are immutable, declarative data. A policy pairs a *condition tree* with an
-:class:`Effect` (allow or deny) over one :class:`ResourceType`. Condition trees are built
-from a small set of frozen node types (:class:`Comparison`, :class:`AllOf`, :class:`AnyOf`,
-:class:`Negation`) so evaluation is a pure walk over data with no code execution.
+`Effect` (allow or deny) over one `ResourceType`. Condition trees are built
+from a small set of frozen node types (`Comparison`, `AllOf`, `AnyOf`,
+`Negation`) so evaluation is a pure walk over data with no code execution.
 """
 
 from __future__ import annotations
@@ -33,13 +33,37 @@ class Effect(str, Enum):
     DENY = "deny"
 
 
-class Severity(str, Enum):
-    """Relative importance of a policy violation."""
+class EnforcementLevel(str, Enum):
+    """How strongly a policy is enforced, in increasing order of strictness.
 
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    ``advisory`` policies only report; ``soft`` policies block a deployment gate but may be
+    overridden with a recorded reason; ``hard`` policies block and cannot be overridden.
+    """
+
+    ADVISORY = "advisory"
+    SOFT = "soft"
+    HARD = "hard"
+
+
+ENFORCEMENT_ORDER: tuple[EnforcementLevel, ...] = (
+    EnforcementLevel.ADVISORY,
+    EnforcementLevel.SOFT,
+    EnforcementLevel.HARD,
+)
+"""Enforcement levels from least to most strict."""
+
+
+def meets_threshold(level: EnforcementLevel, threshold: EnforcementLevel) -> bool:
+    """Return whether ``level`` is at least as strict as ``threshold``.
+
+    Args:
+        level: The level to test.
+        threshold: The minimum strictness.
+
+    Returns:
+        ``True`` when ``level`` is at or above ``threshold`` in `ENFORCEMENT_ORDER`.
+    """
+    return ENFORCEMENT_ORDER.index(level) >= ENFORCEMENT_ORDER.index(threshold)
 
 
 class PolicyStatus(str, Enum):
@@ -63,7 +87,7 @@ class Comparison(Condition):
     Attributes:
         attribute: Name of the resource-snapshot attribute to read. Dotted paths such as
             ``tags.environment`` index into nested mappings.
-        operator: Name of a registered operator (see :mod:`policy_agent.policy.conditions`).
+        operator: Name of a registered operator (see `policy_agent.policy.conditions`).
         value: The expected value the operator compares the attribute against. Operators
             such as ``exists`` and ``absent`` ignore it.
     """
@@ -116,7 +140,8 @@ class Policy:
         effect: Whether a rule match means compliant (``ALLOW``) or violating (``DENY``).
         rule: The condition tree evaluated against each resource snapshot.
         description: Free-text explanation of the policy's intent.
-        severity: Importance assigned to violations of this policy.
+        enforcement_level: How strongly the policy is enforced (advisory/soft/hard). Governs whether
+            a deployment gate reports, blocks-with-override, or hard-blocks on a violation.
         match: Optional selector narrowing which resources the policy applies to; when
             ``None`` the policy applies to every resource of ``resource_type``.
         remediation: Guidance shown to owners on how to bring a resource into compliance.
@@ -129,7 +154,7 @@ class Policy:
     effect: Effect
     rule: Condition
     description: str = ""
-    severity: Severity = Severity.MEDIUM
+    enforcement_level: EnforcementLevel = EnforcementLevel.ADVISORY
     match: Condition | None = None
     remediation: str = ""
     status: PolicyStatus = PolicyStatus.DRAFT

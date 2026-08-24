@@ -1,7 +1,7 @@
 """Configurable persistence for policies, scans, findings, and workflow state.
 
-Two interchangeable backends implement the same :class:`SqlExecutor` surface: Unity Catalog
-Delta (:class:`DeltaSqlExecutor`) and Lakebase Postgres (imported separately to keep the
+Two interchangeable backends implement the same `SqlExecutor` surface: Unity Catalog
+Delta (`DeltaSqlExecutor`) and Lakebase Postgres (imported separately to keep the
 core install free of the optional SQLAlchemy dependency)::
 
     from policy_agent.storage import StorageConfig, DeltaSqlExecutor, ensure_storage

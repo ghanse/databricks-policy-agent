@@ -18,3 +18,9 @@ renderer:
   docs_base_path: content/docs
   relative_output_path: api
   sidebar_top_level_label: "API Reference"
+  # Skip the renderer's HTML-escaping pass. Its token-substitution step corrupts docstrings
+  # with many inline-code spans (BLOCKQUOTE_TOKEN_1 also matches BLOCKQUOTE_TOKEN_10+),
+  # producing artifacts like `arg`0. Our docstrings have no raw HTML outside code spans, so
+  # escaping is unnecessary here.
+  markdown:
+    escape_html_in_docstring: false

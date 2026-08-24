@@ -3,7 +3,7 @@
 Evaluating a condition tree is a pure walk over a resource snapshot (a flat mapping of
 attribute names to values). Leaf comparisons delegate to named operators drawn from a fixed
 registry, so no policy can execute arbitrary code — the entire operator vocabulary is the
-functions in :data:`OPERATORS`.
+functions in `OPERATORS`.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ def is_registered_operator(name: str) -> bool:
         name: Candidate operator name.
 
     Returns:
-        ``True`` if the operator exists in :data:`OPERATORS`.
+        ``True`` if the operator exists in `OPERATORS`.
     """
     return name in OPERATORS
 

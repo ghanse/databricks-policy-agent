@@ -70,7 +70,7 @@ export function ScansTab({ settings }: { settings: Settings | null }) {
             <table>
               <thead>
                 <tr>
-                  <th>Severity</th>
+                  <th>Enforcement</th>
                   <th>Policy</th>
                   <th>Resource</th>
                   <th>Message</th>
@@ -80,7 +80,7 @@ export function ScansTab({ settings }: { settings: Settings | null }) {
                 {result.violations.map((f, i) => (
                   <tr key={i}>
                     <td>
-                      <span className={`badge ${f.severity}`}>{f.severity}</span>
+                      <span className={`badge ${f.enforcement_level}`}>{f.enforcement_level}</span>
                     </td>
                     <td>{f.policy_name}</td>
                     <td>

@@ -5,15 +5,23 @@ title: policy_agent.scan.resources
 
 Fetch workspace resources and normalize them into evaluable snapshots.
 
-Each ``scan_*`` function reads one resource type from a :class:`WorkspaceClient` and maps
+Each ``scan_*`` function reads one resource type from a `WorkspaceClient` and maps
 every resource to the flat attribute set declared in
-:data:`policy_agent.policy.model.RESOURCE_ATTRIBUTES`. Missing SDK attributes degrade to
+`policy_agent.policy.model.RESOURCE_ATTRIBUTES`. Missing SDK attributes degrade to
 ``None`` rather than raising, so a newer or older SDK still produces usable snapshots.
+
+#### TASK\_DERIVED\_JOB\_ATTRIBUTES
+
+Job attributes computed from a job's task definitions. Populating them requires listing
+jobs with ``expand_tasks=True``, which fetches and deserializes every task — costly in large
+workspaces — so callers should expand only when a policy actually reads one of these.
 
 #### scan\_jobs
 
 ```python
-def scan_jobs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+def scan_jobs(workspace_client: WorkspaceClient,
+              *,
+              expand_tasks: bool = True) -> list[ResourceSnapshot]
 ```
 
 Fetch and normalize every job in the workspace.
@@ -21,6 +29,10 @@ Fetch and normalize every job in the workspace.
 **Arguments**:
 
 - `workspace_client` - An authenticated Databricks workspace client.
+- `expand_tasks` - Whether to fetch full task definitions. Required to populate the
+  `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
+  as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
+  to ``True`` so direct and inventory callers get complete snapshots.
   
 
 **Returns**:

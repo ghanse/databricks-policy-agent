@@ -1,0 +1,32 @@
+# Sample bundle used by the enforcement integration test. `databricks bundle validate
+# --output json` resolves this into the config the gate evaluates. It declares one compliant
+# job (tagged + failure notifications) and one violating job (neither). The tasks use absolute
+# workspace notebook paths and serverless compute so validation needs no local files or
+# cloud-specific node types. No `mode: development`, so names and tags are not rewritten.
+bundle:
+  name: policy-agent-sample
+
+targets:
+  dev:
+    default: true
+
+resources:
+  jobs:
+    compliant_job:
+      name: prod_compliant_scan
+      tags:
+        team: data-platform
+      email_notifications:
+        on_failure:
+          - oncall@example.com
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: /Workspace/Shared/policy-agent-sample/noop
+
+    violating_job:
+      name: adhoc_scan
+      tasks:
+        - task_key: main
+          notebook_task:
+            notebook_path: /Workspace/Shared/policy-agent-sample/noop

@@ -8,7 +8,7 @@ Condition evaluation and the registry of comparison operators.
 Evaluating a condition tree is a pure walk over a resource snapshot (a flat mapping of
 attribute names to values). Leaf comparisons delegate to named operators drawn from a fixed
 registry, so no policy can execute arbitrary code — the entire operator vocabulary is the
-functions in :data:`OPERATORS`.
+functions in `OPERATORS`.
 
 #### evaluate\_condition
 
@@ -67,7 +67,7 @@ Return whether ``name`` is a known comparison operator.
 
 **Returns**:
 
-  ``True`` if the operator exists in :data:`OPERATORS`.
+  ``True`` if the operator exists in `OPERATORS`.
 
 #### registered\_operators
 

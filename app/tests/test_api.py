@@ -4,7 +4,7 @@ CLUSTER_POLICY = {
     "name": "sp-owned",
     "resource_type": "cluster",
     "effect": "deny",
-    "severity": "high",
+    "enforcement_level": "hard",
     "rule": {"attribute": "owner_type", "operator": "not_equals", "value": "service_principal"},
     "remediation": "Reassign to a service principal.",
 }

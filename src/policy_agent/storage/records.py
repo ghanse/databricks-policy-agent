@@ -14,7 +14,7 @@ from typing import Any
 
 from policy_agent.approval.roles import Role
 from policy_agent.approval.workflow import ApprovalEvent
-from policy_agent.policy.model import Effect, Policy, PolicyStatus, ResourceType, Severity
+from policy_agent.policy.model import Effect, EnforcementLevel, Policy, PolicyStatus, ResourceType
 from policy_agent.policy.serialization import (
     condition_from_dict,
     condition_to_dict,
@@ -41,7 +41,7 @@ def policy_to_row(policy: Policy, config: StorageConfig, updated_at: datetime) -
         "name": policy.name,
         "resource_type": policy.resource_type.value,
         "effect": policy.effect.value,
-        "severity": policy.severity.value,
+        "enforcement_level": policy.enforcement_level.value,
         "status": policy.status.value,
         "version": policy.version,
         "description": policy.description,
@@ -69,7 +69,7 @@ def row_to_policy(row: dict[str, Any]) -> Policy:
         effect=Effect(row["effect"]),
         rule=condition_from_dict(_loads(row["rule"])),
         description=_as_str(row.get("description")) or "",
-        severity=Severity(row["severity"]),
+        enforcement_level=EnforcementLevel(row["enforcement_level"]),
         match=condition_from_dict(match) if match is not None else None,
         remediation=_as_str(row.get("remediation")) or "",
         status=PolicyStatus(row["status"]),
@@ -122,7 +122,7 @@ def scan_to_row(
         "violations": summary.violations,
         "summary": json.dumps(
             {
-                "by_severity": dict(summary.violations_by_severity),
+                "by_enforcement_level": dict(summary.violations_by_enforcement_level),
                 "by_resource_type": dict(summary.violations_by_resource_type),
                 "compliance_rate": summary.compliance_rate,
             }
@@ -155,7 +155,7 @@ def finding_to_row(
         "resource_name": finding.resource_name,
         "compliant": finding.compliant,
         "effect": finding.effect.value,
-        "severity": finding.severity.value,
+        "enforcement_level": finding.enforcement_level.value,
         "message": finding.message,
         "remediation": finding.remediation,
         "owner": finding.owner,
@@ -180,7 +180,7 @@ def row_to_finding(row: dict[str, Any]) -> Finding:
         resource_name=_as_str(row.get("resource_name")) or "",
         compliant=_as_bool(row.get("compliant")),
         effect=Effect(row["effect"]),
-        severity=Severity(row["severity"]),
+        enforcement_level=EnforcementLevel(row["enforcement_level"]),
         message=_as_str(row.get("message")) or "",
         remediation=_as_str(row.get("remediation")) or "",
         owner=_as_str(row.get("owner")),
@@ -225,7 +225,7 @@ def remediation_to_row(item: RemediationItem, config: StorageConfig) -> dict[str
         "resource_type": item.resource_type.value,
         "resource_id": item.resource_id,
         "resource_name": item.resource_name,
-        "severity": item.severity.value,
+        "enforcement_level": item.enforcement_level.value,
         "status": item.status.value,
         "assignee": item.assignee,
         "note": item.note,
@@ -250,7 +250,7 @@ def row_to_remediation(row: dict[str, Any]) -> RemediationItem:
         resource_type=ResourceType(row["resource_type"]),
         resource_id=_as_str(row.get("resource_id")) or "",
         resource_name=_as_str(row.get("resource_name")) or "",
-        severity=Severity(row["severity"]),
+        enforcement_level=EnforcementLevel(row["enforcement_level"]),
         status=RemediationStatus(row["status"]),
         scan_id=_as_str(row.get("scan_id")) or "",
         opened_at=_as_datetime(row["opened_at"]),

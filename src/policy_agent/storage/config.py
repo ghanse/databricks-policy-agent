@@ -1,6 +1,6 @@
 """Storage placement configuration for either Unity Catalog Delta or Lakebase Postgres.
 
-A :class:`StorageConfig` says *where* policy-agent state lives and *how objects are tagged*;
+A `StorageConfig` says *where* policy-agent state lives and *how objects are tagged*;
 it does not hold connection credentials — those belong to the executor. The same config type
 drives both backends so the rest of the framework is storage-agnostic.
 """

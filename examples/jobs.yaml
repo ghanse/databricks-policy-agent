@@ -3,7 +3,7 @@ policy: jobs-naming-convention
 description: Job names must be prefixed with an environment (prod_, stg_, or dev_).
 resource_type: job
 effect: allow
-severity: low
+enforcement_level: advisory
 rule:
   all:
     - { attribute: name, operator: matches_regex, value: "^(prod|stg|dev)_[a-z0-9_]+$" }
@@ -13,7 +13,7 @@ policy: production-jobs-need-failure-alerts
 description: Production jobs must configure on-failure email notifications.
 resource_type: job
 effect: allow
-severity: high
+enforcement_level: hard
 match:
   all:
     - { attribute: name, operator: matches_regex, value: "^prod_.+$" }
@@ -26,7 +26,7 @@ policy: jobs-must-be-tagged
 description: Every job must carry at least one tag for cost attribution and ownership.
 resource_type: job
 effect: allow
-severity: medium
+enforcement_level: soft
 rule:
   all:
     - { attribute: tags, operator: not_empty }
@@ -36,7 +36,7 @@ policy: jobs-must-have-retry-policy
 description: Every job task must configure a retry policy so transient failures self-heal.
 resource_type: job
 effect: allow
-severity: medium
+enforcement_level: soft
 rule:
   all:
     - { attribute: has_retry_policy, operator: equals, value: true }
@@ -46,7 +46,7 @@ policy: jobs-should-use-serverless-compute
 description: Jobs should run on serverless compute rather than classic job clusters.
 resource_type: job
 effect: allow
-severity: low
+enforcement_level: advisory
 rule:
   all:
     - { attribute: uses_serverless_compute, operator: equals, value: true }

@@ -1,8 +1,8 @@
 """Fetch workspace resources and normalize them into evaluable snapshots.
 
-Each ``scan_*`` function reads one resource type from a :class:`WorkspaceClient` and maps
+Each ``scan_*`` function reads one resource type from a `WorkspaceClient` and maps
 every resource to the flat attribute set declared in
-:data:`policy_agent.policy.model.RESOURCE_ATTRIBUTES`. Missing SDK attributes degrade to
+`policy_agent.policy.model.RESOURCE_ATTRIBUTES`. Missing SDK attributes degrade to
 ``None`` rather than raising, so a newer or older SDK still produces usable snapshots.
 """
 
@@ -43,7 +43,7 @@ def scan_jobs(
     Args:
         workspace_client: An authenticated Databricks workspace client.
         expand_tasks: Whether to fetch full task definitions. Required to populate the
-            :data:`TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
+            `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
             as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
             to ``True`` so direct and inventory callers get complete snapshots.
 

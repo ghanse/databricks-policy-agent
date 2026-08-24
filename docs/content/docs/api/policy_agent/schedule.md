@@ -5,7 +5,7 @@ title: policy_agent.schedule
 
 Scan schedule model.
 
-A :class:`ScanSchedule` records the intent to run a scan regularly. The Databricks Asset
+A `ScanSchedule` records the intent to run a scan regularly. The Databricks Asset
 Bundle owns the actual cron trigger for the provisioned scheduled job; schedules stored here
 let the app present, pause, and scope those recurring scans.
 

@@ -19,11 +19,11 @@ from policy_agent.policy.model import (
     Comparison,
     Condition,
     Effect,
+    EnforcementLevel,
     Negation,
     Policy,
     PolicyStatus,
     ResourceType,
-    Severity,
     referenced_attributes,
 )
 from policy_agent.policy.python_dsl import (
@@ -54,7 +54,7 @@ __all__ = [
     "Policy",
     "PolicyStatus",
     "ResourceType",
-    "Severity",
+    "EnforcementLevel",
     "all_of",
     "allow",
     "any_of",

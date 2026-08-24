@@ -30,7 +30,7 @@ def build_scan_summary_message(scan_result: ScanResult) -> dict[str, object]:
         "evaluated": summary.evaluated,
         "violations": summary.violations,
         "compliance_rate": round(summary.compliance_rate, 4),
-        "violations_by_severity": dict(summary.violations_by_severity),
+        "violations_by_enforcement_level": dict(summary.violations_by_enforcement_level),
         "policies": list(scan_result.policy_names),
     }
 

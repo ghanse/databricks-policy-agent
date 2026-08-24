@@ -1,7 +1,7 @@
 """Functional constructors for declaring policies and condition trees in Python.
 
 These helpers are thin, keyword-friendly wrappers over the frozen model types. They coerce
-string inputs (resource type, severity) into their enums so callers can write policies
+string inputs (resource type, enforcement_level) into their enums so callers can write policies
 without importing every enum member.
 
 Example:
@@ -21,11 +21,11 @@ from policy_agent.policy.model import (
     Comparison,
     Condition,
     Effect,
+    EnforcementLevel,
     Negation,
     Policy,
     PolicyStatus,
     ResourceType,
-    Severity,
 )
 
 
@@ -35,7 +35,7 @@ def deny(
     rule: Condition,
     *,
     description: str = "",
-    severity: Severity | str = Severity.MEDIUM,
+    enforcement_level: EnforcementLevel | str = EnforcementLevel.ADVISORY,
     match: Condition | None = None,
     remediation: str = "",
     status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -45,17 +45,17 @@ def deny(
 
     Args:
         name: Unique policy identifier.
-        resource_type: Target resource type, as a :class:`ResourceType` or its string value.
+        resource_type: Target resource type, as a `ResourceType` or its string value.
         rule: Condition tree whose match marks a resource as violating.
         description: Free-text explanation of intent.
-        severity: Violation importance, as a :class:`Severity` or its string value.
+        enforcement_level: How strongly the policy is enforced; an EnforcementLevel or its value.
         match: Optional selector limiting which resources the policy applies to.
         remediation: Guidance for bringing a resource into compliance.
         status: Initial approval-lifecycle status.
         version: Initial version number.
 
     Returns:
-        A :class:`Policy` with :attr:`Effect.DENY`.
+        A `Policy` with `Effect.DENY`.
     """
     return policy(
         name=name,
@@ -63,7 +63,7 @@ def deny(
         effect=Effect.DENY,
         rule=rule,
         description=description,
-        severity=severity,
+        enforcement_level=enforcement_level,
         match=match,
         remediation=remediation,
         status=status,
@@ -77,7 +77,7 @@ def allow(
     rule: Condition,
     *,
     description: str = "",
-    severity: Severity | str = Severity.MEDIUM,
+    enforcement_level: EnforcementLevel | str = EnforcementLevel.ADVISORY,
     match: Condition | None = None,
     remediation: str = "",
     status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -87,17 +87,17 @@ def allow(
 
     Args:
         name: Unique policy identifier.
-        resource_type: Target resource type, as a :class:`ResourceType` or its string value.
+        resource_type: Target resource type, as a `ResourceType` or its string value.
         rule: Condition tree a compliant resource must match.
         description: Free-text explanation of intent.
-        severity: Violation importance, as a :class:`Severity` or its string value.
+        enforcement_level: How strongly the policy is enforced; an EnforcementLevel or its value.
         match: Optional selector limiting which resources the policy applies to.
         remediation: Guidance for bringing a resource into compliance.
         status: Initial approval-lifecycle status.
         version: Initial version number.
 
     Returns:
-        A :class:`Policy` with :attr:`Effect.ALLOW`.
+        A `Policy` with `Effect.ALLOW`.
     """
     return policy(
         name=name,
@@ -105,7 +105,7 @@ def allow(
         effect=Effect.ALLOW,
         rule=rule,
         description=description,
-        severity=severity,
+        enforcement_level=enforcement_level,
         match=match,
         remediation=remediation,
         status=status,
@@ -120,7 +120,7 @@ def policy(
     rule: Condition,
     *,
     description: str = "",
-    severity: Severity | str = Severity.MEDIUM,
+    enforcement_level: EnforcementLevel | str = EnforcementLevel.ADVISORY,
     match: Condition | None = None,
     remediation: str = "",
     status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -130,18 +130,18 @@ def policy(
 
     Args:
         name: Unique policy identifier.
-        resource_type: Target resource type, as a :class:`ResourceType` or its string value.
+        resource_type: Target resource type, as a `ResourceType` or its string value.
         effect: Whether a rule match means compliant (``allow``) or violating (``deny``).
         rule: The condition tree evaluated against each resource.
         description: Free-text explanation of intent.
-        severity: Violation importance, as a :class:`Severity` or its string value.
+        enforcement_level: How strongly the policy is enforced; an EnforcementLevel or its value.
         match: Optional selector limiting which resources the policy applies to.
         remediation: Guidance for bringing a resource into compliance.
         status: Initial approval-lifecycle status.
         version: Initial version number.
 
     Returns:
-        The constructed :class:`Policy`.
+        The constructed `Policy`.
     """
     return Policy(
         name=name,
@@ -149,7 +149,7 @@ def policy(
         effect=Effect(effect),
         rule=rule,
         description=description,
-        severity=Severity(severity),
+        enforcement_level=EnforcementLevel(enforcement_level),
         match=match,
         remediation=remediation,
         status=PolicyStatus(status),
@@ -167,7 +167,7 @@ def leaf(attribute: str, operator: str, value: object = None) -> Comparison:
             ``exists`` and ``absent``.
 
     Returns:
-        A :class:`Comparison` node.
+        A `Comparison` node.
     """
     return Comparison(attribute=attribute, operator=operator, value=value)
 
@@ -179,7 +179,7 @@ def all_of(*conditions: Condition) -> AllOf:
         *conditions: Child conditions.
 
     Returns:
-        An :class:`AllOf` node.
+        An `AllOf` node.
     """
     return AllOf(conditions=tuple(conditions))
 
@@ -191,7 +191,7 @@ def any_of(*conditions: Condition) -> AnyOf:
         *conditions: Child conditions.
 
     Returns:
-        An :class:`AnyOf` node.
+        An `AnyOf` node.
     """
     return AnyOf(conditions=tuple(conditions))
 
@@ -203,6 +203,6 @@ def not_(condition: Condition) -> Negation:
         condition: The condition to negate.
 
     Returns:
-        A :class:`Negation` node.
+        A `Negation` node.
     """
     return Negation(condition=condition)

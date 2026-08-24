@@ -6,8 +6,8 @@ title: policy_agent.storage.backend
 High-level persistence functions over a backend-agnostic SQL executor.
 
 These functions are the storage API the rest of the framework calls. Each takes a
-:class:`SqlExecutor` and a :class:`StorageConfig`, builds SQL with :mod:`schema`, and maps
-rows with :mod:`records`. Mutable entities are upserted with delete-then-insert so no
+`SqlExecutor` and a `StorageConfig`, builds SQL with `schema`, and maps
+rows with `records`. Mutable entities are upserted with delete-then-insert so no
 vendor-specific ``MERGE``/``ON CONFLICT`` is required.
 
 ## SqlExecutor Objects
@@ -127,7 +127,7 @@ def write_scan(executor: SqlExecutor,
                triggered_by: str = "system") -> None
 ```
 
-Persist a scan&#x27;s header row and one row per finding.
+Persist a scan's header row and one row per finding.
 
 **Arguments**:
 

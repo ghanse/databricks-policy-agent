@@ -1,0 +1,132 @@
+---
+title: Enforcing Policies
+description: Block deployments with non-compliant resources
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Scanning finds violations on resources that already exist. Enforcement *prevents* non-compliant 
+deployments. Policies can be enforced through GitHub Actions or directly via the CLI.
+
+## Enforcement levels
+Every policy carries an `enforcement_level` that dictates how the policy acts on non-compliant deployments.
+
+| Level      | Effect at the gate                                            |
+|------------|---------------------------------------------------------------|
+| `advisory` | Report only — never blocks (the default).                     |
+| `soft`     | Blocks, but may be overridden with a recorded reason.         |
+| `hard`     | Blocks, and cannot be overridden.                             |
+
+<Callout type="info" title="Default enforcement level">
+Policies use `advisory` as the default enforcement level. Adding a policy never unexpectedly blocks a 
+deployment. Change the enforcement level if you want to block deployments.
+</Callout>
+
+## Enforcing policies for deployments
+Use `policy-agent enforce` to enforce policies on validated resource bundle. Enforce policies for
+automated deployments using the CLI or GitHub Actions.
+
+<Tabs items={['CLI', 'GitHub Actions']}>
+<Tab value='CLI'>
+```bash
+# Validate your bundle's configuration
+databricks bundle validate -t prod
+
+# Enforce policies on validated resources
+policy-agent enforce \
+  --bundle . \
+  --target prod \
+  --policies policies/ \
+  --fail-on hard
+
+# Deploy the compliant bundle
+databricks bundle deploy -t prod
+```
+</Tab>
+<Tab value='GitHub Actions'>
+```yaml
+- uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
+  with:
+    target: prod
+    policies: policies/        # Use "storage" to load approved policies from the configured storage
+    fail-on: soft              # Can be "hard", "soft", or "advisory"
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+    DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+```
+</Tab>
+</Tabs>
+
+<Callout type="warn" title="Handling compliance failures">
+Set `fail-on` to adjust when compliance issues fail deployments. The CLI exits with a non-zero result 
+when any violation meets the `--fail-on` level.
+</Callout>
+
+## Overriding enforcement
+When a `soft` policy blocks a change you knowingly want to ship, override it by policy name with
+a required reason. `hard` policies can never be overridden.
+
+<Tabs items={['CLI', 'GitHub Actions']}>
+<Tab value='CLI'>
+```bash
+policy-agent enforce \
+  --bundle . \
+  --target stg \
+  --override jobs-should-use-serverless-compute \
+  --override-reason "migration tracked in JIRA-123"
+```
+</Tab>
+<Tab value='GitHub Actions'>
+```yaml
+- uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
+  with:
+    target: prod
+    policies: policies/
+    fail-on: soft
+    override: jobs-should-use-serverless-compute        # Pass the overridden policy name
+    override-reason: "migration tracked in JIRA-123"    # Pass the override reason
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+    DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+```
+</Tab>
+</Tabs>
+
+In the GitHub Action, pass `override` (newline-separated policy names) and `override-reason`.
+The override and its reason are recorded in the gate's output so the decision is auditable in
+the pipeline run.
+
+## Suggesting fixes to compliance violations
+Use the `fix` option to include the remediation guidance for each violation in the output.
+
+<Tabs items={['CLI', 'GitHub Actions']}>
+<Tab value='CLI'>
+```bash
+policy-agent enforce \
+  --bundle . \
+  --target stg \
+  --fix
+```
+</Tab>
+<Tab value='GitHub Actions'>
+```yaml
+- uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
+  with:
+    target: prod
+    policies: policies/
+    fail-on: soft
+    fix: true
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+    DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+```
+</Tab>
+</Tabs>
+
+<Callout type="info" title="Implementing suggested fixes">
+Fixes are suggested, not implemented. Update your bundle configuration to implement the suggested changes.
+</Callout>

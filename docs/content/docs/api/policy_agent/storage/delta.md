@@ -6,7 +6,7 @@ title: policy_agent.storage.delta
 Unity Catalog Delta executor backed by the SQL Statement Execution API.
 
 Statements run on a serverless or classic SQL warehouse. Every result value comes back as a
-string; :mod:`policy_agent.storage.records` readers coerce them to their typed form.
+string; `policy_agent.storage.records` readers coerce them to their typed form.
 
 ## DeltaSqlExecutor Objects
 

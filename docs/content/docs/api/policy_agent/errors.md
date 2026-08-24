@@ -5,7 +5,7 @@ title: policy_agent.errors
 
 Exception hierarchy for the policy agent.
 
-All library-raised errors derive from :class:`PolicyAgentError` so callers can catch
+All library-raised errors derive from `PolicyAgentError` so callers can catch
 the whole family with a single ``except`` while still distinguishing specific failures.
 
 ## PolicyAgentError Objects
@@ -55,4 +55,12 @@ class WorkflowError(PolicyAgentError)
 ```
 
 Raised when an approval transition is not legal from the current status.
+
+## EnforcementError Objects
+
+```python
+class EnforcementError(PolicyAgentError)
+```
+
+Raised when a deployment bundle cannot be resolved or gated.
 

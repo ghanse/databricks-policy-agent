@@ -6,9 +6,9 @@ title: policy_agent.remediation.cycle
 Pure functions that drive the remediation cycle.
 
 A violation is tracked by the ``(policy, resource type, resource id)`` it concerns.
-``reconcile`` diffs the currently-open items against a fresh scan&#x27;s violations: new
+``reconcile`` diffs the currently-open items against a fresh scan's violations: new
 violations open items, and open items whose violation has cleared are auto-resolved. The
-manual transitions (:func:`advance`, :func:`resolve`, :func:`waive`, :func:`assign`) let an
+manual transitions (`advance`, `resolve`, `waive`, `assign`) let an
 owner move an item by hand.
 
 #### reconcile
@@ -19,7 +19,7 @@ def reconcile(existing_items: Iterable[RemediationItem],
               now: datetime) -> list[RemediationItem]
 ```
 
-Reconcile open remediation items against a fresh scan&#x27;s violations.
+Reconcile open remediation items against a fresh scan's violations.
 
 **Arguments**:
 

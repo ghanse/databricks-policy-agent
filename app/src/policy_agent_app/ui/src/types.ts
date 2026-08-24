@@ -11,7 +11,7 @@ export interface Policy {
   policy: string;
   resource_type: string;
   effect: string;
-  severity: string;
+  enforcement_level: string;
   status: string;
   version: number;
   description?: string;
@@ -25,7 +25,7 @@ export interface ScanSummary {
   compliant: number;
   violations: number;
   compliance_rate: number;
-  violations_by_severity: Record<string, number>;
+  violations_by_enforcement_level: Record<string, number>;
   violations_by_resource_type: Record<string, number>;
 }
 
@@ -35,7 +35,7 @@ export interface Finding {
   resource_id: string;
   resource_name: string;
   compliant: boolean;
-  severity: string;
+  enforcement_level: string;
   message: string;
   remediation: string;
   owner: string | null;
@@ -55,7 +55,7 @@ export interface Remediation {
   resource_type: string;
   resource_id: string;
   resource_name: string;
-  severity: string;
+  enforcement_level: string;
   status: string;
   assignee: string | null;
   note: string;

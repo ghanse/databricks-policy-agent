@@ -18,7 +18,7 @@ class PolicyRequest(BaseModel):
     effect: str
     rule: dict[str, Any]
     description: str = ""
-    severity: str = "medium"
+    enforcement_level: str = "advisory"
     match: dict[str, Any] | None = None
     remediation: str = ""
 
@@ -34,7 +34,7 @@ class PolicyRequest(BaseModel):
             "effect": self.effect,
             "rule": self.rule,
             "description": self.description,
-            "severity": self.severity,
+            "enforcement_level": self.enforcement_level,
             "remediation": self.remediation,
         }
         if self.match is not None:
@@ -98,7 +98,7 @@ def remediation_to_dict(item: RemediationItem) -> dict[str, Any]:
         "resource_type": item.resource_type.value,
         "resource_id": item.resource_id,
         "resource_name": item.resource_name,
-        "severity": item.severity.value,
+        "enforcement_level": item.enforcement_level.value,
         "status": item.status.value,
         "assignee": item.assignee,
         "note": item.note,
@@ -123,7 +123,7 @@ def finding_to_dict(finding: Finding) -> dict[str, Any]:
         "resource_id": finding.resource_id,
         "resource_name": finding.resource_name,
         "compliant": finding.compliant,
-        "severity": finding.severity.value,
+        "enforcement_level": finding.enforcement_level.value,
         "message": finding.message,
         "remediation": finding.remediation,
         "owner": finding.owner,
@@ -149,7 +149,7 @@ def scan_result_to_dict(result: ScanResult) -> dict[str, Any]:
             "compliant": summary.compliant,
             "violations": summary.violations,
             "compliance_rate": summary.compliance_rate,
-            "violations_by_severity": dict(summary.violations_by_severity),
+            "violations_by_enforcement_level": dict(summary.violations_by_enforcement_level),
             "violations_by_resource_type": dict(summary.violations_by_resource_type),
         },
         "violations": [finding_to_dict(finding) for finding in result.violations],
