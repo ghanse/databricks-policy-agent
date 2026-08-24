@@ -9,8 +9,10 @@ from policy_agent.scan.registry import supported_resource_types
 class _Service:
     def __init__(self, items):
         self._items = items
+        self.list_kwargs = None
 
-    def list(self, **_kwargs):
+    def list(self, **kwargs):
+        self.list_kwargs = kwargs
         return list(self._items)
 
 
@@ -36,6 +38,26 @@ def _ws_with_clusters(clusters):
     return SimpleNamespace(
         jobs=empty,
         clusters=_Service(clusters),
+        warehouses=empty,
+        apps=empty,
+        serving_endpoints=empty,
+    )
+
+
+def _job(job_id, name):
+    return SimpleNamespace(
+        job_id=job_id,
+        created_time=None,
+        creator_user_name="alice@example.com",
+        settings=SimpleNamespace(name=name, tags={}, tasks=[SimpleNamespace(max_retries=3)]),
+    )
+
+
+def _ws_with_jobs(jobs_service):
+    empty = _Service([])
+    return SimpleNamespace(
+        jobs=jobs_service,
+        clusters=empty,
         warehouses=empty,
         apps=empty,
         serving_endpoints=empty,
@@ -88,6 +110,21 @@ def test_run_scan_produces_findings_and_summary():
     assert summary.violations_by_resource_type == {"cluster": 1}
     assert result.violations[0].resource_id == "c1"
     assert 0.0 < summary.compliance_rate < 1.0
+
+
+def test_run_scan_expands_job_tasks_only_when_a_policy_reads_a_task_attribute():
+    # A policy on a non-task attribute should not trigger the expensive task expansion.
+    name_only = _Service([_job("j1", "prod_etl")])
+    run_scan(_ws_with_jobs(name_only), [deny("named", "job", leaf("name", "equals", "adhoc"))])
+    assert name_only.list_kwargs == {"expand_tasks": False}
+
+    # A policy that reads a task-derived attribute must expand tasks.
+    task_aware = _Service([_job("j1", "prod_etl")])
+    run_scan(
+        _ws_with_jobs(task_aware),
+        [deny("no-retry", "job", leaf("has_retry_policy", "equals", False))],
+    )
+    assert task_aware.list_kwargs == {"expand_tasks": True}
 
 
 def test_run_scan_respects_resource_type_restriction():

@@ -154,6 +154,15 @@ def _missing_tag(actual: Any, tag_key: Any) -> bool:
     return not (isinstance(actual, Mapping) and tag_key in actual)
 
 
+def _not_empty(actual: Any, _expected: Any) -> bool:
+    if actual is None:
+        return False
+    try:
+        return len(actual) > 0
+    except TypeError:
+        return False
+
+
 def _owner_is_service_principal(actual: Any, _expected: Any) -> bool:
     return actual == OWNER_TYPE_SERVICE_PRINCIPAL
 
@@ -179,6 +188,7 @@ OPERATORS: dict[str, Operator] = {
     "contains": _contains,
     "has_tag": _has_tag,
     "missing_tag": _missing_tag,
+    "not_empty": _not_empty,
     "owner_is_service_principal": _owner_is_service_principal,
     "ttl_within": _ttl_within,
 }

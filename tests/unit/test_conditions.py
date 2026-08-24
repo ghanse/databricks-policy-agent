@@ -44,6 +44,12 @@ def test_has_and_missing_tag_operate_on_mapping():
     assert evaluate_condition(leaf("tags", "has_tag", "team"), snapshot) is False
 
 
+def test_not_empty_operator():
+    assert evaluate_condition(leaf("tags", "not_empty"), {"tags": {"env": "prod"}}) is True
+    assert evaluate_condition(leaf("tags", "not_empty"), {"tags": {}}) is False
+    assert evaluate_condition(leaf("tags", "not_empty"), {"tags": None}) is False
+
+
 def test_boolean_is_not_treated_as_number():
     assert evaluate_condition(leaf("flag", "less_than", 5), {"flag": True}) is False
 

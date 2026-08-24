@@ -150,6 +150,8 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "timeout_seconds",
         "run_as_type",
         "has_email_notifications",
+        "has_retry_policy",
+        "uses_serverless_compute",
         "format",
     },
     ResourceType.CLUSTER: COMMON_RESOURCE_ATTRIBUTES
@@ -206,3 +208,33 @@ def base_attribute(attribute: str) -> str:
         The portion of ``attribute`` before the first dot.
     """
     return attribute.split(".", 1)[0]
+
+
+def referenced_attributes(policy: Policy) -> frozenset[str]:
+    """Return the base attribute names a policy reads across its rule and match trees.
+
+    Lets a scanner fetch only the data a policy actually inspects — for example, skipping an
+    expensive expansion when no active policy references an attribute derived from it.
+
+    Args:
+        policy: The policy to inspect.
+
+    Returns:
+        The set of top-level attribute names (dotted paths reduced to their base) named by
+        any leaf in the policy's ``rule`` or ``match`` condition trees.
+    """
+    names: set[str] = set()
+    _collect_attributes(policy.rule, names)
+    if policy.match is not None:
+        _collect_attributes(policy.match, names)
+    return frozenset(names)
+
+
+def _collect_attributes(condition: Condition, names: set[str]) -> None:
+    if isinstance(condition, Comparison):
+        names.add(base_attribute(condition.attribute))
+    elif isinstance(condition, AllOf | AnyOf):
+        for child in condition.conditions:
+            _collect_attributes(child, names)
+    elif isinstance(condition, Negation):
+        _collect_attributes(condition.condition, names)

@@ -14,10 +14,11 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
-from policy_agent.policy.model import Policy, ResourceType
+from policy_agent.policy.model import Policy, ResourceType, referenced_attributes
 from policy_agent.policy.validation import validate_policy
 from policy_agent.scan.evaluator import evaluate_resource
 from policy_agent.scan.registry import scanner_for
+from policy_agent.scan.resources import TASK_DERIVED_JOB_ATTRIBUTES, scan_jobs
 from policy_agent.scan.results import Finding, ResourceSnapshot, ScanResult
 
 if TYPE_CHECKING:
@@ -58,7 +59,9 @@ def run_scan(
     started_at = datetime.now(UTC)
     findings: list[Finding] = []
     for resource_type in types_to_scan:
-        snapshots = scanner_for(resource_type)(workspace_client)
+        snapshots = _fetch_snapshots(
+            workspace_client, resource_type, policies_by_type[resource_type]
+        )
         findings.extend(_evaluate_type(policies_by_type[resource_type], snapshots))
     finished_at = datetime.now(UTC)
 
@@ -92,6 +95,26 @@ def collect_snapshots(
         resource_type: scanner_for(resource_type)(workspace_client)
         for resource_type in resource_types
     }
+
+
+def _fetch_snapshots(
+    workspace_client: WorkspaceClient,
+    resource_type: ResourceType,
+    policies: list[Policy],
+) -> list[ResourceSnapshot]:
+    """Fetch snapshots for one resource type, fetching only the data its policies need.
+
+    Jobs are the one type with an expensive optional expansion: task definitions are fetched
+    only when a policy reads a task-derived attribute (retry policy or serverless compute).
+    Every other type has a single, uniform scanner.
+    """
+    if resource_type is ResourceType.JOB:
+        referenced: set[str] = set()
+        for policy in policies:
+            referenced |= referenced_attributes(policy)
+        expand_tasks = bool(referenced & TASK_DERIVED_JOB_ATTRIBUTES)
+        return scan_jobs(workspace_client, expand_tasks=expand_tasks)
+    return scanner_for(resource_type)(workspace_client)
 
 
 def _group_by_resource_type(policies: list[Policy]) -> dict[ResourceType, list[Policy]]:
