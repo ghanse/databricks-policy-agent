@@ -24,6 +24,7 @@ from policy_agent.policy.model import (
     PolicyStatus,
     ResourceType,
     Severity,
+    referenced_attributes,
 )
 from policy_agent.policy.python_dsl import (
     all_of,
@@ -69,6 +70,7 @@ __all__ = [
     "policy",
     "policy_from_dict",
     "policy_to_dict",
+    "referenced_attributes",
     "registered_operators",
     "resolve_attribute",
     "validate_condition",
