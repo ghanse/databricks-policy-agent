@@ -1,0 +1,90 @@
+name: "Databricks Policy Agent — enforce"
+description: >-
+  Gate a Databricks Asset Bundle's declared resources against policy-agent policies before
+  deployment. Resolves the bundle with `databricks bundle validate --output json` and blocks
+  the workflow when a violation meets the fail-on enforcement level.
+
+inputs:
+  target:
+    description: "Bundle target to resolve (e.g. dev, stg, prod)."
+    required: true
+  bundle-path:
+    description: "Path to the bundle directory containing databricks.yml."
+    default: "."
+  policies:
+    description: "Policy YAML file or directory, or 'storage' to use approved policies from storage."
+    default: "storage"
+  fail-on:
+    description: "Minimum enforcement level that blocks the deployment: advisory | soft | hard."
+    default: "hard"
+  override:
+    description: "Newline-separated policy names to override; soft violations only."
+    default: ""
+  override-reason:
+    description: "Reason recorded for overrides; required when 'override' is set."
+    default: ""
+  fix:
+    description: "Include suggested remediations in the output (true/false)."
+    default: "false"
+  ref:
+    description: "Git ref of databricks-policy-agent to install the CLI from."
+    default: "main"
+
+outputs:
+  verdict:
+    description: "Gate verdict: pass | pass_with_warnings | blocked."
+    value: ${{ steps.gate.outputs.verdict }}
+  blocked:
+    description: "Whether the deployment was blocked (true/false)."
+    value: ${{ steps.gate.outputs.blocked }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup uv
+      uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
+      with:
+        version: "0.11.2"
+
+    - name: Install the Databricks CLI
+      shell: bash
+      run: curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+
+    - name: Resolve the bundle
+      shell: bash
+      working-directory: ${{ inputs.bundle-path }}
+      run: databricks bundle validate -t "${{ inputs.target }}" --output json > "$RUNNER_TEMP/resolved-bundle.json"
+
+    - name: Enforce policies
+      id: gate
+      shell: bash
+      run: |
+        set -o pipefail
+        args=(enforce --bundle "$RUNNER_TEMP/resolved-bundle.json" --fail-on "${{ inputs.fail-on }}" --output json)
+        if [ "${{ inputs.policies }}" != "storage" ]; then
+          args+=(--policies "${{ inputs.policies }}")
+        fi
+        if [ "${{ inputs.fix }}" = "true" ]; then
+          args+=(--fix)
+        fi
+        if [ -n "${{ inputs.override-reason }}" ]; then
+          args+=(--override-reason "${{ inputs.override-reason }}")
+        fi
+        while IFS= read -r policy; do
+          [ -n "$policy" ] && args+=(--override "$policy")
+        done <<< "${{ inputs.override }}"
+
+        # Run the gate. A blocking verdict exits non-zero and fails this step (blocks the deploy).
+        set +e
+        uvx --from "git+https://github.com/ghanse/databricks-policy-agent@${{ inputs.ref }}" \
+          policy-agent "${args[@]}" | tee "$RUNNER_TEMP/gate.json"
+        code=${PIPESTATUS[0]}
+        set -e
+
+        python3 - "$RUNNER_TEMP/gate.json" <<'PY' >> "$GITHUB_OUTPUT"
+        import json, sys
+        data = json.load(open(sys.argv[1]))
+        print(f"verdict={data['verdict']}")
+        print(f"blocked={str(data['blocked']).lower()}")
+        PY
+        exit "$code"

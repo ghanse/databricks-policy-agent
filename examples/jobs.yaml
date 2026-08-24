@@ -3,7 +3,7 @@ policy: jobs-naming-convention
 description: Job names must be prefixed with an environment (prod_, stg_, or dev_).
 resource_type: job
 effect: allow
-severity: low
+enforcement: advisory
 rule:
   all:
     - { attribute: name, operator: matches_regex, value: "^(prod|stg|dev)_[a-z0-9_]+$" }
@@ -13,7 +13,7 @@ policy: production-jobs-need-failure-alerts
 description: Production jobs must configure on-failure email notifications.
 resource_type: job
 effect: allow
-severity: high
+enforcement: hard
 match:
   all:
     - { attribute: name, operator: matches_regex, value: "^prod_.+$" }

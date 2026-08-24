@@ -16,11 +16,11 @@ from policy_agent.policy.model import (
     Comparison,
     Condition,
     Effect,
+    EnforcementLevel,
     Negation,
     Policy,
     PolicyStatus,
     ResourceType,
-    Severity,
 )
 
 
@@ -29,7 +29,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
 
     Args:
         data: Mapping with keys ``policy``/``name``, ``resource_type``, ``effect``, and
-            ``rule``, plus optional ``description``, ``severity``, ``match``,
+            ``rule``, plus optional ``description``, ``enforcement``, ``match``,
             ``remediation``, ``status``, and ``version``.
 
     Returns:
@@ -49,7 +49,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
             effect=Effect(_require(data, "effect", name)),
             rule=condition_from_dict(_require(data, "rule", name)),
             description=str(data.get("description", "")),
-            severity=Severity(data.get("severity", Severity.MEDIUM.value)),
+            enforcement=EnforcementLevel(data.get("enforcement", EnforcementLevel.ADVISORY.value)),
             match=condition_from_dict(match) if match is not None else None,
             remediation=str(data.get("remediation", "")),
             status=PolicyStatus(data.get("status", PolicyStatus.DRAFT.value)),
@@ -72,7 +72,7 @@ def policy_to_dict(policy: Policy) -> dict[str, Any]:
         "policy": policy.name,
         "resource_type": policy.resource_type.value,
         "effect": policy.effect.value,
-        "severity": policy.severity.value,
+        "enforcement": policy.enforcement.value,
         "status": policy.status.value,
         "version": policy.version,
         "rule": condition_to_dict(policy.rule),

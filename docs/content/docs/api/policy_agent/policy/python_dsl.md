@@ -6,7 +6,7 @@ title: policy_agent.policy.python_dsl
 Functional constructors for declaring policies and condition trees in Python.
 
 These helpers are thin, keyword-friendly wrappers over the frozen model types. They coerce
-string inputs (resource type, severity) into their enums so callers can write policies
+string inputs (resource type, enforcement) into their enums so callers can write policies
 without importing every enum member.
 
 **Example**:
@@ -26,7 +26,7 @@ def deny(name: str,
          rule: Condition,
          *,
          description: str = "",
-         severity: Severity | str = Severity.MEDIUM,
+         enforcement: EnforcementLevel | str = EnforcementLevel.ADVISORY,
          match: Condition | None = None,
          remediation: str = "",
          status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -41,16 +41,16 @@ Build a deny-list policy: resources whose rule matches are violations.
 - `resource_type` - Target resource type, as a :class:`ResourceType` or its string value.
 - `rule` - Condition tree whose match marks a resource as violating.
 - `description` - Free-text explanation of intent.
-- `severity` - Violation importance, as a :class:`Severity` or its string value.
+- `enforcement` - How strongly the policy is enforced; an EnforcementLevel or its string value.
 - `match` - Optional selector limiting which resources the policy applies to.
 - `remediation` - Guidance for bringing a resource into compliance.
 - `status` - Initial approval-lifecycle status.
-- `resource_type`0 - Initial version number.
+- `version` - Initial version number.
   
 
 **Returns**:
 
-  A :class:`resource_type`1 with :attr:`resource_type`2.
+  A :class:`resource_type`0 with :attr:`resource_type`1.
 
 #### allow
 
@@ -60,7 +60,7 @@ def allow(name: str,
           rule: Condition,
           *,
           description: str = "",
-          severity: Severity | str = Severity.MEDIUM,
+          enforcement: EnforcementLevel | str = EnforcementLevel.ADVISORY,
           match: Condition | None = None,
           remediation: str = "",
           status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -75,16 +75,16 @@ Build an allow-list policy: resources whose rule does not match are violations.
 - `resource_type` - Target resource type, as a :class:`ResourceType` or its string value.
 - `rule` - Condition tree a compliant resource must match.
 - `description` - Free-text explanation of intent.
-- `severity` - Violation importance, as a :class:`Severity` or its string value.
+- `enforcement` - How strongly the policy is enforced; an EnforcementLevel or its string value.
 - `match` - Optional selector limiting which resources the policy applies to.
 - `remediation` - Guidance for bringing a resource into compliance.
 - `status` - Initial approval-lifecycle status.
-- `resource_type`0 - Initial version number.
+- `version` - Initial version number.
   
 
 **Returns**:
 
-  A :class:`resource_type`1 with :attr:`resource_type`2.
+  A :class:`resource_type`0 with :attr:`resource_type`1.
 
 #### policy
 
@@ -95,7 +95,7 @@ def policy(name: str,
            rule: Condition,
            *,
            description: str = "",
-           severity: Severity | str = Severity.MEDIUM,
+           enforcement: EnforcementLevel | str = EnforcementLevel.ADVISORY,
            match: Condition | None = None,
            remediation: str = "",
            status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -111,16 +111,16 @@ Build a policy with an explicit effect, coercing string enum inputs.
 - `effect` - Whether a rule match means compliant (``allow``) or violating (``deny``).
 - `rule` - The condition tree evaluated against each resource.
 - `description` - Free-text explanation of intent.
-- `resource_type`0 - Violation importance, as a :class:`resource_type`1 or its string value.
-- `resource_type`2 - Optional selector limiting which resources the policy applies to.
-- `resource_type`3 - Guidance for bringing a resource into compliance.
-- `resource_type`4 - Initial approval-lifecycle status.
-- `resource_type`5 - Initial version number.
+- `resource_type`0 - How strongly the policy is enforced; an EnforcementLevel or its string value.
+- `resource_type`1 - Optional selector limiting which resources the policy applies to.
+- `resource_type`2 - Guidance for bringing a resource into compliance.
+- `resource_type`3 - Initial approval-lifecycle status.
+- `resource_type`4 - Initial version number.
   
 
 **Returns**:
 
-  The constructed :class:`resource_type`6.
+  The constructed :class:`resource_type`5.
 
 #### leaf
 

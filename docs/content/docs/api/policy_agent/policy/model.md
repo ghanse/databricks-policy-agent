@@ -29,13 +29,39 @@ Whether matching a policy&#x27;s rule means a resource is compliant or violating
 ``ALLOW`` policies are allow-lists: a resource is compliant only when its rule matches.
 ``DENY`` policies are deny-lists: a resource violates the policy when its rule matches.
 
-## Severity Objects
+## EnforcementLevel Objects
 
 ```python
-class Severity(str, Enum)
+class EnforcementLevel(str, Enum)
 ```
 
-Relative importance of a policy violation.
+How strongly a policy is enforced, in increasing order of strictness.
+
+``advisory`` policies only report; ``soft`` policies block a deployment gate but may be
+overridden with a recorded reason; ``hard`` policies block and cannot be overridden.
+
+#### ENFORCEMENT\_ORDER
+
+Enforcement levels from least to most strict.
+
+#### meets\_threshold
+
+```python
+def meets_threshold(level: EnforcementLevel,
+                    threshold: EnforcementLevel) -> bool
+```
+
+Return whether ``level`` is at least as strict as ``threshold``.
+
+**Arguments**:
+
+- `level` - The level to test.
+- `threshold` - The minimum strictness.
+  
+
+**Returns**:
+
+  ``True`` when ``level`` is at or above ``threshold`` in :data:``2.
 
 ## PolicyStatus Objects
 
@@ -125,7 +151,8 @@ An immutable compliance policy over a single resource type.
 - `effect` - Whether a rule match means compliant (``ALLOW``) or violating (``DENY``).
 - `rule` - The condition tree evaluated against each resource snapshot.
 - `description` - Free-text explanation of the policy&#x27;s intent.
-- `severity` - Importance assigned to violations of this policy.
+- `enforcement` - How strongly the policy is enforced (advisory/soft/hard). Governs whether
+  a deployment gate reports, blocks-with-override, or hard-blocks on a violation.
 - `resource_type`0 - Optional selector narrowing which resources the policy applies to; when
   ``None`` the policy applies to every resource of ``resource_type``.
 - `resource_type`5 - Guidance shown to owners on how to bring a resource into compliance.

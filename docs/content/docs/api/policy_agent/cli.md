@@ -3,11 +3,12 @@ sidebar_label: cli
 title: policy_agent.cli
 ---
 
-Command-line interface: ``policy-agent validate`` and ``policy-agent scan``.
+Command-line interface: ``validate``, ``scan``, and ``enforce``.
 
 ``validate`` parses and validates policy YAML files offline. ``scan`` runs a compliance
 scan against a workspace, either using policies from a file/directory or the approved
-policies already in storage, and (unless ``--dry-run``) persists the outcome.
+policies already in storage, and (unless ``--dry-run``) persists the outcome. ``enforce``
+gates a Databricks Asset Bundle&#x27;s *declared* resources before deployment.
 
 #### main
 

@@ -1,7 +1,7 @@
 """Functional constructors for declaring policies and condition trees in Python.
 
 These helpers are thin, keyword-friendly wrappers over the frozen model types. They coerce
-string inputs (resource type, severity) into their enums so callers can write policies
+string inputs (resource type, enforcement) into their enums so callers can write policies
 without importing every enum member.
 
 Example:
@@ -21,11 +21,11 @@ from policy_agent.policy.model import (
     Comparison,
     Condition,
     Effect,
+    EnforcementLevel,
     Negation,
     Policy,
     PolicyStatus,
     ResourceType,
-    Severity,
 )
 
 
@@ -35,7 +35,7 @@ def deny(
     rule: Condition,
     *,
     description: str = "",
-    severity: Severity | str = Severity.MEDIUM,
+    enforcement: EnforcementLevel | str = EnforcementLevel.ADVISORY,
     match: Condition | None = None,
     remediation: str = "",
     status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -48,7 +48,7 @@ def deny(
         resource_type: Target resource type, as a :class:`ResourceType` or its string value.
         rule: Condition tree whose match marks a resource as violating.
         description: Free-text explanation of intent.
-        severity: Violation importance, as a :class:`Severity` or its string value.
+        enforcement: How strongly the policy is enforced; an EnforcementLevel or its string value.
         match: Optional selector limiting which resources the policy applies to.
         remediation: Guidance for bringing a resource into compliance.
         status: Initial approval-lifecycle status.
@@ -63,7 +63,7 @@ def deny(
         effect=Effect.DENY,
         rule=rule,
         description=description,
-        severity=severity,
+        enforcement=enforcement,
         match=match,
         remediation=remediation,
         status=status,
@@ -77,7 +77,7 @@ def allow(
     rule: Condition,
     *,
     description: str = "",
-    severity: Severity | str = Severity.MEDIUM,
+    enforcement: EnforcementLevel | str = EnforcementLevel.ADVISORY,
     match: Condition | None = None,
     remediation: str = "",
     status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -90,7 +90,7 @@ def allow(
         resource_type: Target resource type, as a :class:`ResourceType` or its string value.
         rule: Condition tree a compliant resource must match.
         description: Free-text explanation of intent.
-        severity: Violation importance, as a :class:`Severity` or its string value.
+        enforcement: How strongly the policy is enforced; an EnforcementLevel or its string value.
         match: Optional selector limiting which resources the policy applies to.
         remediation: Guidance for bringing a resource into compliance.
         status: Initial approval-lifecycle status.
@@ -105,7 +105,7 @@ def allow(
         effect=Effect.ALLOW,
         rule=rule,
         description=description,
-        severity=severity,
+        enforcement=enforcement,
         match=match,
         remediation=remediation,
         status=status,
@@ -120,7 +120,7 @@ def policy(
     rule: Condition,
     *,
     description: str = "",
-    severity: Severity | str = Severity.MEDIUM,
+    enforcement: EnforcementLevel | str = EnforcementLevel.ADVISORY,
     match: Condition | None = None,
     remediation: str = "",
     status: PolicyStatus | str = PolicyStatus.DRAFT,
@@ -134,7 +134,7 @@ def policy(
         effect: Whether a rule match means compliant (``allow``) or violating (``deny``).
         rule: The condition tree evaluated against each resource.
         description: Free-text explanation of intent.
-        severity: Violation importance, as a :class:`Severity` or its string value.
+        enforcement: How strongly the policy is enforced; an EnforcementLevel or its string value.
         match: Optional selector limiting which resources the policy applies to.
         remediation: Guidance for bringing a resource into compliance.
         status: Initial approval-lifecycle status.
@@ -149,7 +149,7 @@ def policy(
         effect=Effect(effect),
         rule=rule,
         description=description,
-        severity=Severity(severity),
+        enforcement=EnforcementLevel(enforcement),
         match=match,
         remediation=remediation,
         status=PolicyStatus(status),

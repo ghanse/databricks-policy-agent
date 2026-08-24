@@ -9,10 +9,10 @@ from policy_agent.__about__ import __version__
 from policy_agent.config import PolicyAgentConfig, config_from_env, create_executor
 from policy_agent.policy import (
     Effect,
+    EnforcementLevel,
     Policy,
     PolicyStatus,
     ResourceType,
-    Severity,
     all_of,
     allow,
     any_of,
@@ -32,7 +32,7 @@ __all__ = [
     "PolicyStatus",
     "ResourceType",
     "ScanResult",
-    "Severity",
+    "EnforcementLevel",
     "__version__",
     "all_of",
     "allow",

@@ -14,7 +14,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
   const [name, setName] = useState("");
   const [resourceType, setResourceType] = useState("cluster");
   const [effect, setEffect] = useState("deny");
-  const [severity, setSeverity] = useState("medium");
+  const [enforcement, setEnforcement] = useState("advisory");
   const [remediation, setRemediation] = useState("");
   const [rule, setRule] = useState(EXAMPLE_RULE);
   const [validation, setValidation] = useState("");
@@ -28,7 +28,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
     name,
     resource_type: resourceType,
     effect,
-    severity,
+    enforcement,
     remediation,
     rule: JSON.parse(rule),
   });
@@ -71,9 +71,9 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
             <option value="deny">deny</option>
             <option value="allow">allow</option>
           </select>
-          <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-            {["low", "medium", "high", "critical"].map((s) => (
-              <option key={s}>{s}</option>
+          <select value={enforcement} onChange={(e) => setEnforcement(e.target.value)}>
+            {["advisory", "soft", "hard"].map((level) => (
+              <option key={level}>{level}</option>
             ))}
           </select>
         </div>
@@ -103,7 +103,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
               <th>Name</th>
               <th>Type</th>
               <th>Effect</th>
-              <th>Severity</th>
+              <th>Enforcement</th>
               <th>Status</th>
               <th>Version</th>
               <th></th>
@@ -116,7 +116,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
                 <td>{p.resource_type}</td>
                 <td>{p.effect}</td>
                 <td>
-                  <span className={`badge ${p.severity}`}>{p.severity}</span>
+                  <span className={`badge ${p.enforcement}`}>{p.enforcement}</span>
                 </td>
                 <td>
                   <span className={`badge ${p.status}`}>{p.status}</span>

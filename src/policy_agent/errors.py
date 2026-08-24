@@ -27,3 +27,7 @@ class AuthorizationError(PolicyAgentError):
 
 class WorkflowError(PolicyAgentError):
     """Raised when an approval transition is not legal from the current status."""
+
+
+class EnforcementError(PolicyAgentError):
+    """Raised when a deployment bundle cannot be resolved or gated."""

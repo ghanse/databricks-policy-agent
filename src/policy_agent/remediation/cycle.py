@@ -142,7 +142,7 @@ def _open_item(finding: Finding, scan_id: str, now: datetime) -> RemediationItem
         resource_type=finding.resource_type,
         resource_id=finding.resource_id,
         resource_name=finding.resource_name,
-        severity=finding.severity,
+        enforcement=finding.enforcement,
         status=RemediationStatus.OPEN,
         scan_id=scan_id,
         opened_at=now,

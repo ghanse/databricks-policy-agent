@@ -1,0 +1,90 @@
+---
+title: Enforcing Policies
+description: Block non-compliant Databricks Asset Bundle deployments before they happen.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
+
+Scanning is *detective* — it finds violations on resources that already exist. Enforcement is
+*preventive* — it evaluates the resources a [Databricks Asset Bundle](/docs/deployment)
+*declares* and blocks the deployment before non-compliant resources are created. Both use the
+same policies and the same evaluation engine; only the source of the resources differs.
+
+## Enforcement levels
+Every policy carries an `enforcement` level that decides what the gate does when the policy is
+violated.
+
+| Level      | Effect at the gate                                            |
+|------------|---------------------------------------------------------------|
+| `advisory` | Report only — never blocks (the default).                     |
+| `soft`     | Blocks, but may be overridden with a recorded reason.         |
+| `hard`     | Blocks, and cannot be overridden.                             |
+
+<Callout type="info" title="Advisory by default">
+A policy with no `enforcement` set is `advisory`, so adding a policy never unexpectedly blocks
+a deployment. Promote a policy to `soft` or `hard` when you are ready to enforce it.
+</Callout>
+
+## Gating a bundle
+`policy-agent enforce` resolves a bundle with `databricks bundle validate --output json`,
+snapshots its declared resources, evaluates the policies, and exits non-zero when a violation
+meets the `--fail-on` level.
+
+<Tabs items={['Shell', 'GitHub Action']}>
+<Tab value='Shell'>
+```bash
+# Between `bundle validate` and `bundle deploy` in your pipeline:
+policy-agent enforce --bundle . --target prod --policies policies/ --fail-on hard
+databricks bundle deploy -t prod
+```
+</Tab>
+<Tab value='GitHub Action'>
+```yaml
+- uses: ghanse/databricks-policy-agent/.github/actions/enforce@main
+  with:
+    target: prod
+    policies: policies/        # or "storage" for approved policies
+    fail-on: hard              # advisory | soft | hard
+  env:
+    DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+    DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+    DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+```
+</Tab>
+</Tabs>
+
+<Callout type="warn" title="There is no automatic deploy hook">
+Databricks bundles do not run policy checks automatically during `databricks bundle deploy`.
+Enforcement is a step your CI/CD pipeline sequences before the deploy. Pair it with a scheduled
+[scan](/docs/scanning) to also catch resources deployed outside the pipeline.
+</Callout>
+
+## Overrides
+When a `soft` policy blocks a change you knowingly want to ship, override it by policy name with
+a required reason. `hard` policies can never be overridden.
+
+```bash
+policy-agent enforce --bundle . --target stg \
+  --override jobs-should-use-serverless-compute \
+  --override-reason "migration tracked in JIRA-123"
+```
+
+In the GitHub Action, pass `override` (newline-separated policy names) and `override-reason`.
+The override and its reason are recorded in the gate's output so the decision is auditable in
+the pipeline run.
+
+## Suggested fixes
+Add `--fix` (or `fix: true` in the Action) to include the remediation guidance for each
+violation in the output.
+
+<Callout type="info" title="Suggestions, not auto-edits">
+The gate evaluates the *resolved* bundle, which does not map 1:1 back to your templated
+`databricks.yml`. `--fix` therefore surfaces the changes to make; it does not rewrite your
+source.
+</Callout>
+
+## Rollout
+Roll enforcement out per target: keep policies `advisory` in `dev`, promote to `soft` in
+staging, and reserve `hard` for `prod` and the non-negotiables. The policy definitions are the
+same everywhere — only the `enforcement` level and the `--fail-on` threshold change.

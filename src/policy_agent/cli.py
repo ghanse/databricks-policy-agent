@@ -1,21 +1,25 @@
-"""Command-line interface: ``policy-agent validate`` and ``policy-agent scan``.
+"""Command-line interface: ``validate``, ``scan``, and ``enforce``.
 
 ``validate`` parses and validates policy YAML files offline. ``scan`` runs a compliance
 scan against a workspace, either using policies from a file/directory or the approved
-policies already in storage, and (unless ``--dry-run``) persists the outcome.
+policies already in storage, and (unless ``--dry-run``) persists the outcome. ``enforce``
+gates a Databricks Asset Bundle's *declared* resources before deployment.
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 
 from policy_agent.config import config_from_env, create_executor
+from policy_agent.enforce import load_bundle_config, run_gate, snapshot_bundle
+from policy_agent.enforce.model import GateResult
 from policy_agent.errors import PolicyAgentError
 from policy_agent.jobs.runner import run_policy_scan
-from policy_agent.policy.model import Policy, PolicyStatus, ResourceType
+from policy_agent.policy.model import EnforcementLevel, Policy, PolicyStatus, ResourceType
 from policy_agent.policy.yaml_loader import load_policies_from_yaml
 from policy_agent.scan.engine import run_scan
 from policy_agent.scan.results import ScanResult
@@ -35,6 +39,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.command == "validate":
         return _run_validate(args.paths)
+    if args.command == "enforce":
+        return _run_enforce(args)
     return _run_scan(args)
 
 
@@ -60,6 +66,43 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Comma-separated resource types to restrict the scan to.",
     )
     scan.add_argument("--dry-run", action="store_true", help="Evaluate without writing results.")
+
+    enforce = subparsers.add_parser(
+        "enforce", help="Gate a Databricks Asset Bundle's declared resources against policies."
+    )
+    enforce.add_argument(
+        "--bundle", default=".", help="Bundle directory, or a resolved 'bundle validate' JSON file."
+    )
+    enforce.add_argument("--target", default=None, help="Bundle target to resolve.")
+    enforce.add_argument(
+        "--policies",
+        default=None,
+        help="Policy YAML file or directory; defaults to approved policies in storage.",
+    )
+    enforce.add_argument(
+        "--fail-on",
+        choices=["advisory", "soft", "hard"],
+        default="hard",
+        help="Minimum enforcement level that blocks the deployment (default: hard).",
+    )
+    enforce.add_argument(
+        "--override",
+        action="append",
+        default=[],
+        metavar="POLICY",
+        help="Policy name to override; soft violations only. Repeatable.",
+    )
+    enforce.add_argument(
+        "--override-reason",
+        default="",
+        help="Reason recorded for overrides; required when --override is used.",
+    )
+    enforce.add_argument(
+        "--fix", action="store_true", help="Include suggested remediations for violations."
+    )
+    enforce.add_argument(
+        "--output", choices=["text", "json"], default="text", help="Output format."
+    )
     return parser
 
 
@@ -113,7 +156,66 @@ def _print_summary(result: ScanResult) -> None:
         f"violations {summary.violations}, compliance {summary.compliance_rate:.1%}"
     )
     for finding in result.violations:
-        print(f"  [{finding.severity.value}] {finding.policy_name} -> {finding.resource_name}")
+        print(f"  [{finding.enforcement.value}] {finding.policy_name} -> {finding.resource_name}")
+
+
+def _run_enforce(args: argparse.Namespace) -> int:
+    overrides = frozenset(args.override)
+    if overrides and not args.override_reason:
+        print("ERR --override requires --override-reason.")
+        return 2
+    policies = _resolve_enforce_policies(args)
+    config = load_bundle_config(args.bundle, args.target)
+    snapshots = snapshot_bundle(config)
+    result = run_gate(
+        policies,
+        snapshots,
+        fail_on=EnforcementLevel(args.fail_on),
+        overrides=overrides,
+        override_reason=args.override_reason,
+        suggest_remediations=args.fix,
+    )
+    if args.output == "json":
+        print(json.dumps(result.to_dict(), indent=2))
+    else:
+        _print_gate(result)
+    return 1 if result.blocked else 0
+
+
+def _resolve_enforce_policies(args: argparse.Namespace) -> list[Policy]:
+    if args.policies:
+        return _load_policy_files(args.policies)
+    from databricks.sdk import WorkspaceClient
+
+    config = config_from_env()
+    executor = create_executor(config, WorkspaceClient())
+    return load_policies(executor, config.storage, status=PolicyStatus.APPROVED)
+
+
+def _print_gate(result: GateResult) -> None:
+    print(
+        f"gate: {result.verdict.value} ({len(result.blocking)} blocking, "
+        f"{len(result.overridden)} overridden, {len(result.warnings)} warnings)"
+    )
+    for finding in result.blocking:
+        print(
+            f"  BLOCK    [{finding.enforcement.value}] {finding.policy_name} "
+            f"-> {finding.resource_type.value}:{finding.resource_id}"
+        )
+    for finding in result.overridden:
+        print(
+            f"  OVERRIDE [{finding.enforcement.value}] {finding.policy_name} "
+            f"-> {finding.resource_type.value}:{finding.resource_id}"
+        )
+    for finding in result.warnings:
+        print(
+            f"  WARN     [{finding.enforcement.value}] {finding.policy_name} "
+            f"-> {finding.resource_type.value}:{finding.resource_id}"
+        )
+    for fix in result.fixes:
+        print(f"  FIX      {fix.policy_name} -> {fix.resource_id}: {fix.guidance}")
+    if result.override_reason:
+        print(f"  override reason: {result.override_reason}")
 
 
 def _iter_yaml_files(paths: list[str]) -> list[Path]:

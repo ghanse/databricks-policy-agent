@@ -34,7 +34,7 @@ export function RemediationsTab() {
       <table>
         <thead>
           <tr>
-            <th>Severity</th>
+            <th>Enforcement</th>
             <th>Policy</th>
             <th>Resource</th>
             <th>Status</th>
@@ -45,7 +45,7 @@ export function RemediationsTab() {
           {items.map((item) => (
             <tr key={item.remediation_id}>
               <td>
-                <span className={`badge ${item.severity}`}>{item.severity}</span>
+                <span className={`badge ${item.enforcement}`}>{item.enforcement}</span>
               </td>
               <td>{item.policy_name}</td>
               <td>

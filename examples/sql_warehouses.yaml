@@ -3,7 +3,7 @@ policy: warehouses-must-auto-stop
 description: SQL warehouses must auto-stop within 60 minutes of inactivity.
 resource_type: sql_warehouse
 effect: allow
-severity: medium
+enforcement: soft
 rule:
   all:
     - { attribute: auto_stop_minutes, operator: ttl_within, value: 60 }
@@ -13,7 +13,7 @@ policy: warehouses-should-be-serverless
 description: SQL warehouses should use serverless compute.
 resource_type: sql_warehouse
 effect: allow
-severity: low
+enforcement: advisory
 rule:
   all:
     - { attribute: enable_serverless_compute, operator: equals, value: true }

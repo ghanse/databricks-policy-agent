@@ -33,13 +33,37 @@ class Effect(str, Enum):
     DENY = "deny"
 
 
-class Severity(str, Enum):
-    """Relative importance of a policy violation."""
+class EnforcementLevel(str, Enum):
+    """How strongly a policy is enforced, in increasing order of strictness.
 
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    ``advisory`` policies only report; ``soft`` policies block a deployment gate but may be
+    overridden with a recorded reason; ``hard`` policies block and cannot be overridden.
+    """
+
+    ADVISORY = "advisory"
+    SOFT = "soft"
+    HARD = "hard"
+
+
+ENFORCEMENT_ORDER: tuple[EnforcementLevel, ...] = (
+    EnforcementLevel.ADVISORY,
+    EnforcementLevel.SOFT,
+    EnforcementLevel.HARD,
+)
+"""Enforcement levels from least to most strict."""
+
+
+def meets_threshold(level: EnforcementLevel, threshold: EnforcementLevel) -> bool:
+    """Return whether ``level`` is at least as strict as ``threshold``.
+
+    Args:
+        level: The level to test.
+        threshold: The minimum strictness.
+
+    Returns:
+        ``True`` when ``level`` is at or above ``threshold`` in :data:`ENFORCEMENT_ORDER`.
+    """
+    return ENFORCEMENT_ORDER.index(level) >= ENFORCEMENT_ORDER.index(threshold)
 
 
 class PolicyStatus(str, Enum):
@@ -116,7 +140,8 @@ class Policy:
         effect: Whether a rule match means compliant (``ALLOW``) or violating (``DENY``).
         rule: The condition tree evaluated against each resource snapshot.
         description: Free-text explanation of the policy's intent.
-        severity: Importance assigned to violations of this policy.
+        enforcement: How strongly the policy is enforced (advisory/soft/hard). Governs whether
+            a deployment gate reports, blocks-with-override, or hard-blocks on a violation.
         match: Optional selector narrowing which resources the policy applies to; when
             ``None`` the policy applies to every resource of ``resource_type``.
         remediation: Guidance shown to owners on how to bring a resource into compliance.
@@ -129,7 +154,7 @@ class Policy:
     effect: Effect
     rule: Condition
     description: str = ""
-    severity: Severity = Severity.MEDIUM
+    enforcement: EnforcementLevel = EnforcementLevel.ADVISORY
     match: Condition | None = None
     remediation: str = ""
     status: PolicyStatus = PolicyStatus.DRAFT
