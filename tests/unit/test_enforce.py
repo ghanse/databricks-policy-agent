@@ -110,8 +110,13 @@ def test_load_bundle_config_from_json_file(tmp_path):
     assert load_bundle_config(path)["resources"]["jobs"]["etl"]["name"] == "prod_etl"
 
 
-def test_resolve_bundle_reports_missing_directory_clearly(tmp_path):
-    # A bad bundle path must not be misreported as a missing 'databricks' CLI.
+def test_resolve_bundle_reports_missing_directory(tmp_path):
     missing = tmp_path / "nope"
     with pytest.raises(EnforcementError, match="Bundle directory does not exist"):
         resolve_bundle(missing)
+
+
+def test_resolve_bundle_reports_missing_file(tmp_path):
+    missing = tmp_path / "not_exists.json"
+    with pytest.raises(EnforcementError, match=f"Bundle JSON file does not exist: {missing}"):
+        load_bundle_config(missing)

@@ -30,7 +30,9 @@ def load_bundle_config(source: str | Path, target: str | None = None) -> dict[st
         EnforcementError: If the file cannot be parsed or the bundle cannot be resolved.
     """
     path = Path(source)
-    if path.suffix == ".json" and path.is_file():
+    if path.suffix == ".json":
+        if not path.is_file():
+            raise EnforcementError(f"Bundle JSON file does not exist: {path}")
         try:
             return json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError as error:
