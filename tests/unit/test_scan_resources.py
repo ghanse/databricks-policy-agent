@@ -71,10 +71,13 @@ def _job_with_tasks(tasks):
 def test_scan_jobs_detects_retry_policy_across_tasks():
     retried = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=-1)])
     partial = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=0)])
+    invalid = _job_with_tasks([SimpleNamespace(max_retries=3), SimpleNamespace(max_retries=-2)])
     (retried_snapshot,) = scan_jobs(_ws(jobs=_FakeService([retried])))
     (partial_snapshot,) = scan_jobs(_ws(jobs=_FakeService([partial])))
+    (invalid_snapshot,) = scan_jobs(_ws(jobs=_FakeService([invalid])))
     assert retried_snapshot.attributes["has_retry_policy"] is True
     assert partial_snapshot.attributes["has_retry_policy"] is False
+    assert invalid_snapshot.attributes["has_retry_policy"] is False
 
 
 def test_scan_jobs_detects_serverless_compute():
