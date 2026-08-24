@@ -36,7 +36,7 @@ def test_gate_over_real_resolved_bundle(env_or_skip):
         "jobs-must-be-tagged",
         ResourceType.JOB,
         leaf("tags", "has_tag", "team"),
-        enforcement="hard",
+        enforcement_level="hard",
     )
     result = run_gate([must_be_tagged], list(jobs.values()), fail_on=EnforcementLevel.HARD)
 

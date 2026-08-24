@@ -156,7 +156,8 @@ def _print_summary(result: ScanResult) -> None:
         f"violations {summary.violations}, compliance {summary.compliance_rate:.1%}"
     )
     for finding in result.violations:
-        print(f"  [{finding.enforcement.value}] {finding.policy_name} -> {finding.resource_name}")
+        level = finding.enforcement_level.value
+        print(f"  [{level}] {finding.policy_name} -> {finding.resource_name}")
 
 
 def _run_enforce(args: argparse.Namespace) -> int:
@@ -199,17 +200,17 @@ def _print_gate(result: GateResult) -> None:
     )
     for finding in result.blocking:
         print(
-            f"  BLOCK    [{finding.enforcement.value}] {finding.policy_name} "
+            f"  BLOCK    [{finding.enforcement_level.value}] {finding.policy_name} "
             f"-> {finding.resource_type.value}:{finding.resource_id}"
         )
     for finding in result.overridden:
         print(
-            f"  OVERRIDE [{finding.enforcement.value}] {finding.policy_name} "
+            f"  OVERRIDE [{finding.enforcement_level.value}] {finding.policy_name} "
             f"-> {finding.resource_type.value}:{finding.resource_id}"
         )
     for finding in result.warnings:
         print(
-            f"  WARN     [{finding.enforcement.value}] {finding.policy_name} "
+            f"  WARN     [{finding.enforcement_level.value}] {finding.policy_name} "
             f"-> {finding.resource_type.value}:{finding.resource_id}"
         )
     for fix in result.fixes:

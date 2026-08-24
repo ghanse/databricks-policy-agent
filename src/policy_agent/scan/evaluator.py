@@ -35,7 +35,7 @@ def evaluate_resource(policy: Policy, snapshot: ResourceSnapshot) -> Finding | N
         resource_name=snapshot.name,
         compliant=compliant,
         effect=policy.effect,
-        enforcement=policy.enforcement,
+        enforcement_level=policy.enforcement_level,
         message=_describe(policy, compliant),
         remediation="" if compliant else policy.remediation,
         owner=snapshot.owner,

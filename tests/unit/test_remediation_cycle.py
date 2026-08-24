@@ -23,7 +23,7 @@ def _violation(resource_id, policy_name="sp-owned"):
         resource_name=resource_id,
         compliant=False,
         effect=Effect.DENY,
-        enforcement=EnforcementLevel.HARD,
+        enforcement_level=EnforcementLevel.HARD,
         message="violation",
         remediation="fix it",
     )

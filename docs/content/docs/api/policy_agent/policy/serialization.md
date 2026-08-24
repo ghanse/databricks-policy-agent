@@ -20,7 +20,7 @@ Build a policy from a plain dictionary (e.g. parsed YAML or a JSON request body)
 **Arguments**:
 
 - `data` - Mapping with keys ``policy``/``name``, ``resource_type``, ``effect``, and
-  ``rule``, plus optional ``description``, ``enforcement``, ``match``,
+  ``rule``, plus optional ``description``, ``enforcement_level``, ``match``,
   ``remediation``, ``status``, and ``version``.
   
 

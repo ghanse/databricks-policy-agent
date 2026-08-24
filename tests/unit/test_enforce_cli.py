@@ -21,14 +21,14 @@ policy: jobs-tagged
 description: Jobs must carry a team tag.
 resource_type: job
 effect: allow
-enforcement: hard
+enforcement_level: hard
 rule:
   all:
     - { attribute: tags, operator: has_tag, value: team }
 remediation: Add a team tag to the job.
 """
 
-_ADVISORY_TAGGED = _HARD_TAGGED.replace("enforcement: hard", "enforcement: advisory")
+_ADVISORY_TAGGED = _HARD_TAGGED.replace("enforcement_level: hard", "enforcement_level: advisory")
 
 
 def test_snapshot_parses_resolved_bundle_shape():

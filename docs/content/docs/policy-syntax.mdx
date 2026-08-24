@@ -18,7 +18,7 @@ policy: clusters-owned-by-service-principals
 description: All-purpose clusters created through the UI must be owned by a service principal.
 resource_type: cluster        # job | cluster | sql_warehouse | app | serving_endpoint
 effect: deny                  # allow | deny
-enforcement: hard             # advisory | soft | hard
+enforcement_level: hard       # advisory | soft | hard
 match:                        # optional selector; omit to apply to all resources of the type
   all:
     - { attribute: cluster_source, operator: equals, value: UI }
@@ -76,7 +76,7 @@ from policy_agent.policy import deny, allow, all_of, any_of, leaf, ResourceType
 deny(
     name="clusters-owned-by-service-principals",
     resource_type=ResourceType.CLUSTER,
-    enforcement="hard",
+    enforcement_level="hard",
     match=all_of(leaf("cluster_source", "equals", "UI")),
     rule=any_of(leaf("owner_type", "not_equals", "service_principal")),
     remediation="Recreate the cluster under an approved service principal.",

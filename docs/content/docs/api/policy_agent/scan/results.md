@@ -69,7 +69,7 @@ The outcome of evaluating one policy against one resource.
 - `resource_name` - Display name of the evaluated resource.
 - `compliant` - ``True`` when the resource satisfies the policy.
 - `effect` - The evaluated policy's effect.
-- `enforcement` - The evaluated policy's enforcement level.
+- `enforcement_level` - The evaluated policy's enforcement level.
 - `message` - Human-readable explanation of the outcome.
 - `remediation` - Guidance for resolving a violation (empty when compliant).
 - `owner` - The resource owner principal, if known.
@@ -88,7 +88,7 @@ Aggregated counts derived from a scan's findings.
 - `evaluated` - Total number of (policy, resource) evaluations performed.
 - `compliant` - Number of evaluations that were compliant.
 - `violations` - Number of evaluations that were violations.
-- `violations_by_enforcement` - Violation counts keyed by enforcement level.
+- `violations_by_enforcement_level` - Violation counts keyed by enforcement level.
 - `violations_by_resource_type` - Violation counts keyed by resource-type value.
 
 #### compliance\_rate

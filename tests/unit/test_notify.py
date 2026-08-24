@@ -16,7 +16,7 @@ def _result(*, compliant):
         resource_name="c1",
         compliant=compliant,
         effect=Effect.DENY,
-        enforcement=EnforcementLevel.HARD,
+        enforcement_level=EnforcementLevel.HARD,
         message="msg",
         remediation="fix",
     )
@@ -28,7 +28,7 @@ def test_build_summary_message_counts_violations():
     message = build_scan_summary_message(_result(compliant=False))
     assert message["scan_id"] == "scan-1"
     assert message["violations"] == 1
-    assert message["violations_by_enforcement"] == {"hard": 1}
+    assert message["violations_by_enforcement_level"] == {"hard": 1}
 
 
 def test_notify_skipped_without_webhook():

@@ -25,7 +25,7 @@ policy: only-service-principals-own-compute
 description: All-purpose clusters must be owned by a service principal.
 resource_type: cluster
 effect: deny
-enforcement: hard
+enforcement_level: hard
 match:
   all:
     - { attribute: cluster_source, operator: equals, value: UI }
@@ -37,11 +37,13 @@ remediation: Transfer cluster ownership to an approved service principal.
 
 
 def test_deny_and_allow_set_effect_and_coerce_strings():
-    denied = deny("n", "cluster", any_of(leaf("owner_type", "equals", "user")), enforcement="hard")
+    denied = deny(
+        "n", "cluster", any_of(leaf("owner_type", "equals", "user")), enforcement_level="hard"
+    )
     allowed = allow("m", ResourceType.JOB, leaf("name", "matches_regex", "^prod_.+$"))
     assert denied.effect is Effect.DENY
     assert denied.resource_type is ResourceType.CLUSTER
-    assert denied.enforcement is EnforcementLevel.HARD
+    assert denied.enforcement_level is EnforcementLevel.HARD
     assert denied.status is PolicyStatus.DRAFT
     assert allowed.effect is Effect.ALLOW
 

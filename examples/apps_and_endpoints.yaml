@@ -3,7 +3,7 @@ policy: apps-naming-convention
 description: App names must be lowercase, hyphen-separated identifiers.
 resource_type: app
 effect: allow
-enforcement: advisory
+enforcement_level: advisory
 rule:
   all:
     - { attribute: name, operator: matches_regex, value: "^[a-z][a-z0-9-]+$" }
@@ -14,7 +14,7 @@ policy: endpoints-owned-by-service-principals
 description: Model serving endpoints must be owned by a service principal, not an individual.
 resource_type: serving_endpoint
 effect: deny
-enforcement: hard
+enforcement_level: hard
 rule:
   any:
     - { attribute: owner_type, operator: equals, value: user }
@@ -24,7 +24,7 @@ policy: endpoints-require-budget-policy
 description: Model serving endpoints must be attached to a budget policy for cost attribution.
 resource_type: serving_endpoint
 effect: allow
-enforcement: soft
+enforcement_level: soft
 rule:
   all:
     - { attribute: budget_policy_id, operator: exists }

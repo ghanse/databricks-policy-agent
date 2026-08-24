@@ -140,7 +140,7 @@ class Policy:
         effect: Whether a rule match means compliant (``ALLOW``) or violating (``DENY``).
         rule: The condition tree evaluated against each resource snapshot.
         description: Free-text explanation of the policy's intent.
-        enforcement: How strongly the policy is enforced (advisory/soft/hard). Governs whether
+        enforcement_level: How strongly the policy is enforced (advisory/soft/hard). Governs whether
             a deployment gate reports, blocks-with-override, or hard-blocks on a violation.
         match: Optional selector narrowing which resources the policy applies to; when
             ``None`` the policy applies to every resource of ``resource_type``.
@@ -154,7 +154,7 @@ class Policy:
     effect: Effect
     rule: Condition
     description: str = ""
-    enforcement: EnforcementLevel = EnforcementLevel.ADVISORY
+    enforcement_level: EnforcementLevel = EnforcementLevel.ADVISORY
     match: Condition | None = None
     remediation: str = ""
     status: PolicyStatus = PolicyStatus.DRAFT

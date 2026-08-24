@@ -74,7 +74,7 @@ def test_snapshot_bundle_maps_declared_sql_warehouses():
 
 def test_soft_violation_warns_below_threshold_but_blocks_at_threshold():
     tagged = allow(
-        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement="soft"
+        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement_level="soft"
     )
 
     lenient = run_gate([tagged], _snapshots(), fail_on=EnforcementLevel.HARD)
@@ -89,7 +89,7 @@ def test_soft_violation_warns_below_threshold_but_blocks_at_threshold():
 
 def test_soft_violation_can_be_overridden():
     tagged = allow(
-        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement="soft"
+        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement_level="soft"
     )
     result = run_gate(
         [tagged],
@@ -108,7 +108,7 @@ def test_hard_violation_blocks_and_cannot_be_overridden():
         "jobs-notify",
         ResourceType.JOB,
         leaf("has_email_notifications", "equals", True),
-        enforcement="hard",
+        enforcement_level="hard",
     )
     result = run_gate(
         [must_notify],
@@ -124,7 +124,7 @@ def test_hard_violation_blocks_and_cannot_be_overridden():
 
 def test_clean_bundle_passes_with_fixes_suggested():
     tagged = allow(
-        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement="hard"
+        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement_level="hard"
     )
     result = run_gate(
         [tagged], _snapshots(), fail_on=EnforcementLevel.HARD, suggest_remediations=True

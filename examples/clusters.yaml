@@ -3,7 +3,7 @@ policy: clusters-owned-by-service-principals
 description: All-purpose clusters created through the UI must be owned by a service principal.
 resource_type: cluster
 effect: deny
-enforcement: hard
+enforcement_level: hard
 match:
   all:
     - { attribute: cluster_source, operator: equals, value: UI }
@@ -16,7 +16,7 @@ policy: clusters-must-autoterminate
 description: All-purpose clusters must auto-terminate within two hours to control cost.
 resource_type: cluster
 effect: allow
-enforcement: soft
+enforcement_level: soft
 rule:
   all:
     - { attribute: autotermination_minutes, operator: ttl_within, value: 120 }
@@ -26,7 +26,7 @@ policy: clusters-require-cost-center-tag
 description: Every all-purpose cluster must carry a cost_center tag.
 resource_type: cluster
 effect: allow
-enforcement: soft
+enforcement_level: soft
 rule:
   all:
     - { attribute: tags, operator: has_tag, value: cost_center }

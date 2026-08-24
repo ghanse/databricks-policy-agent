@@ -29,7 +29,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
 
     Args:
         data: Mapping with keys ``policy``/``name``, ``resource_type``, ``effect``, and
-            ``rule``, plus optional ``description``, ``enforcement``, ``match``,
+            ``rule``, plus optional ``description``, ``enforcement_level``, ``match``,
             ``remediation``, ``status``, and ``version``.
 
     Returns:
@@ -49,7 +49,9 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
             effect=Effect(_require(data, "effect", name)),
             rule=condition_from_dict(_require(data, "rule", name)),
             description=str(data.get("description", "")),
-            enforcement=EnforcementLevel(data.get("enforcement", EnforcementLevel.ADVISORY.value)),
+            enforcement_level=EnforcementLevel(
+                data.get("enforcement_level", EnforcementLevel.ADVISORY.value)
+            ),
             match=condition_from_dict(match) if match is not None else None,
             remediation=str(data.get("remediation", "")),
             status=PolicyStatus(data.get("status", PolicyStatus.DRAFT.value)),
@@ -72,7 +74,7 @@ def policy_to_dict(policy: Policy) -> dict[str, Any]:
         "policy": policy.name,
         "resource_type": policy.resource_type.value,
         "effect": policy.effect.value,
-        "enforcement": policy.enforcement.value,
+        "enforcement_level": policy.enforcement_level.value,
         "status": policy.status.value,
         "version": policy.version,
         "rule": condition_to_dict(policy.rule),

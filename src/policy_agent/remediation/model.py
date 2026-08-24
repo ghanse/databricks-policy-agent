@@ -34,7 +34,7 @@ class RemediationItem:
         resource_type: Type of the violating resource.
         resource_id: Identifier of the violating resource.
         resource_name: Display name of the violating resource.
-        enforcement: Enforcement level inherited from the violated policy.
+        enforcement_level: Enforcement level inherited from the violated policy.
         status: Current lifecycle status.
         scan_id: Identifier of the scan that opened the item.
         opened_at: When the item was first opened.
@@ -48,7 +48,7 @@ class RemediationItem:
     resource_type: ResourceType
     resource_id: str
     resource_name: str
-    enforcement: EnforcementLevel
+    enforcement_level: EnforcementLevel
     status: RemediationStatus
     scan_id: str
     opened_at: datetime

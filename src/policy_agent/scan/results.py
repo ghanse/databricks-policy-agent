@@ -58,7 +58,7 @@ class Finding:
         resource_name: Display name of the evaluated resource.
         compliant: ``True`` when the resource satisfies the policy.
         effect: The evaluated policy's effect.
-        enforcement: The evaluated policy's enforcement level.
+        enforcement_level: The evaluated policy's enforcement level.
         message: Human-readable explanation of the outcome.
         remediation: Guidance for resolving a violation (empty when compliant).
         owner: The resource owner principal, if known.
@@ -70,7 +70,7 @@ class Finding:
     resource_name: str
     compliant: bool
     effect: Effect
-    enforcement: EnforcementLevel
+    enforcement_level: EnforcementLevel
     message: str
     remediation: str = ""
     owner: str | None = None
@@ -84,14 +84,14 @@ class ScanSummary:
         evaluated: Total number of (policy, resource) evaluations performed.
         compliant: Number of evaluations that were compliant.
         violations: Number of evaluations that were violations.
-        violations_by_enforcement: Violation counts keyed by enforcement level.
+        violations_by_enforcement_level: Violation counts keyed by enforcement level.
         violations_by_resource_type: Violation counts keyed by resource-type value.
     """
 
     evaluated: int
     compliant: int
     violations: int
-    violations_by_enforcement: Mapping[str, int]
+    violations_by_enforcement_level: Mapping[str, int]
     violations_by_resource_type: Mapping[str, int]
 
     @property
@@ -132,7 +132,9 @@ class ScanResult:
             A `ScanSummary` describing evaluation and violation counts.
         """
         violations = self.violations
-        by_enforcement: Counter[str] = Counter(finding.enforcement.value for finding in violations)
+        by_enforcement_level: Counter[str] = Counter(
+            finding.enforcement_level.value for finding in violations
+        )
         by_resource_type: Counter[str] = Counter(
             finding.resource_type.value for finding in violations
         )
@@ -140,6 +142,6 @@ class ScanResult:
             evaluated=len(self.findings),
             compliant=len(self.findings) - len(violations),
             violations=len(violations),
-            violations_by_enforcement=dict(by_enforcement),
+            violations_by_enforcement_level=dict(by_enforcement_level),
             violations_by_resource_type=dict(by_resource_type),
         )

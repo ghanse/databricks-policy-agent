@@ -100,7 +100,7 @@ class GateResult:
 def _finding_dict(finding: Finding) -> dict[str, object]:
     return {
         "policy": finding.policy_name,
-        "enforcement": finding.enforcement.value,
+        "enforcement_level": finding.enforcement_level.value,
         "resource_type": finding.resource_type.value,
         "resource": finding.resource_id,
         "message": finding.message,

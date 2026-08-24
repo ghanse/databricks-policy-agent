@@ -14,7 +14,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
   const [name, setName] = useState("");
   const [resourceType, setResourceType] = useState("cluster");
   const [effect, setEffect] = useState("deny");
-  const [enforcement, setEnforcement] = useState("advisory");
+  const [enforcementLevel, setEnforcementLevel] = useState("advisory");
   const [remediation, setRemediation] = useState("");
   const [rule, setRule] = useState(EXAMPLE_RULE);
   const [validation, setValidation] = useState("");
@@ -28,7 +28,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
     name,
     resource_type: resourceType,
     effect,
-    enforcement,
+    enforcement_level: enforcementLevel,
     remediation,
     rule: JSON.parse(rule),
   });
@@ -71,7 +71,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
             <option value="deny">deny</option>
             <option value="allow">allow</option>
           </select>
-          <select value={enforcement} onChange={(e) => setEnforcement(e.target.value)}>
+          <select value={enforcementLevel} onChange={(e) => setEnforcementLevel(e.target.value)}>
             {["advisory", "soft", "hard"].map((level) => (
               <option key={level}>{level}</option>
             ))}
@@ -116,7 +116,7 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
                 <td>{p.resource_type}</td>
                 <td>{p.effect}</td>
                 <td>
-                  <span className={`badge ${p.enforcement}`}>{p.enforcement}</span>
+                  <span className={`badge ${p.enforcement_level}`}>{p.enforcement_level}</span>
                 </td>
                 <td>
                   <span className={`badge ${p.status}`}>{p.status}</span>

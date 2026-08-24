@@ -53,9 +53,12 @@ def run_gate(
     overridden = []
     warnings = []
     for violation in violations:
-        if not meets_threshold(violation.enforcement, fail_on):
+        if not meets_threshold(violation.enforcement_level, fail_on):
             warnings.append(violation)
-        elif violation.enforcement is EnforcementLevel.SOFT and violation.policy_name in overrides:
+        elif (
+            violation.enforcement_level is EnforcementLevel.SOFT
+            and violation.policy_name in overrides
+        ):
             overridden.append(violation)
         else:
             blocking.append(violation)
