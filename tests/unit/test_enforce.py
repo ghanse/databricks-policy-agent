@@ -72,6 +72,88 @@ def test_snapshot_bundle_maps_declared_sql_warehouses():
     assert result.blocked
 
 
+def test_snapshot_bundle_maps_declared_clusters():
+    # Clusters use cluster_name and a flat custom_tags mapping, unlike jobs.
+    config = {
+        "resources": {
+            "clusters": {
+                "analytics": {
+                    "cluster_name": "analytics",
+                    "custom_tags": {"team": "data"},
+                    "autotermination_minutes": 0,
+                    "node_type_id": "i3.xlarge",
+                    "spark_version": "14.3.x-scala2.12",
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.CLUSTER
+    attrs = snapshot.attributes
+    assert attrs["name"] == "analytics"
+    assert attrs["tags"] == {"team": "data"}
+    assert attrs["autotermination_minutes"] == 0
+    assert attrs["node_type_id"] == "i3.xlarge"
+
+    # autotermination disabled (0) fails a "must auto-terminate within 120 min" policy.
+    must_autoterminate = allow(
+        "cluster-autoterm", "cluster", leaf("autotermination_minutes", "ttl_within", 120)
+    )
+    result = run_gate(
+        [must_autoterminate], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"analytics"}
+
+
+def test_snapshot_bundle_maps_declared_apps():
+    config = {"resources": {"apps": {"dashboard": {"name": "team_dashboard"}}}}
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.APP
+    attrs = snapshot.attributes
+    assert attrs["name"] == "team_dashboard"
+    assert attrs["tags"] == {}
+    # App status/compute are runtime-only and not declarable, so they stay unknown.
+    assert attrs["app_status"] is None
+
+    prod_only = allow("app-naming", "app", leaf("name", "matches_regex", "^prod_.+$"))
+    result = run_gate([prod_only], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"dashboard"}
+
+
+def test_snapshot_bundle_maps_declared_serving_endpoints():
+    # Declared under the model_serving_endpoints group; distinct scalar fields.
+    config = {
+        "resources": {
+            "model_serving_endpoints": {
+                "llm": {
+                    "name": "llm_gateway",
+                    "endpoint_type": "FOUNDATION_MODEL_API",
+                    "budget_policy_id": "bp-1",
+                    "route_optimized": False,
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.SERVING_ENDPOINT
+    attrs = snapshot.attributes
+    assert attrs["name"] == "llm_gateway"
+    assert attrs["endpoint_type"] == "FOUNDATION_MODEL_API"
+    assert attrs["budget_policy_id"] == "bp-1"
+    assert attrs["route_optimized"] is False
+
+    require_route_optimized = allow(
+        "endpoint-route-optimized", "serving_endpoint", leaf("route_optimized", "equals", True)
+    )
+    result = run_gate(
+        [require_route_optimized], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"llm"}
+
+
 def test_snapshot_bundle_derives_job_task_attributes():
     # has_retry_policy / uses_serverless_compute come from the declared tasks, matching the
     # live scanner; otherwise they default to None and every job falsely violates such policies.
