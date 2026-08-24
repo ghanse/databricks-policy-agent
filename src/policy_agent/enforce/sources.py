@@ -49,6 +49,7 @@ def _job_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     owner, owner_type = _run_as_owner(definition.get("run_as"))
     schedule = definition.get("schedule") or {}
     notifications = definition.get("email_notifications") or {}
+    tasks = definition.get("tasks") or []
     return {
         **_common(key, definition.get("name"), owner, owner_type, definition.get("tags")),
         "schedule_pause_status": schedule.get("pause_status"),
@@ -56,8 +57,36 @@ def _job_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
         "timeout_seconds": definition.get("timeout_seconds"),
         "run_as_type": owner_type,
         "has_email_notifications": bool(notifications.get("on_failure")),
+        "has_retry_policy": _all_tasks(tasks, _task_has_retries),
+        "uses_serverless_compute": _all_tasks(tasks, _task_is_serverless),
         "format": definition.get("format"),
     }
+
+
+def _all_tasks(tasks: Any, predicate: Any) -> bool:
+    # Mirror the live scanner: a job satisfies a per-task property only when it has tasks and
+    # every task satisfies it.
+    return bool(tasks) and all(predicate(task) for task in tasks)
+
+
+def _task_has_retries(task: dict[str, Any]) -> bool:
+    max_retries = task.get("max_retries")
+    # A task retries when max_retries is a nonzero count; -1 means unlimited, 0 means never.
+    return (
+        isinstance(max_retries, int)
+        and not isinstance(max_retries, bool)
+        and (max_retries == -1 or max_retries > 0)
+    )
+
+
+def _task_is_serverless(task: dict[str, Any]) -> bool:
+    # A serverless task references no classic compute: no interactive cluster, no task-defined
+    # job cluster, and no shared job-cluster key.
+    return (
+        task.get("existing_cluster_id") is None
+        and task.get("new_cluster") is None
+        and task.get("job_cluster_key") is None
+    )
 
 
 def _cluster_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:

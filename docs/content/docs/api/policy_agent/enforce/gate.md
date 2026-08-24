@@ -38,4 +38,9 @@ Gate declared resources against policies.
 **Returns**:
 
   The `GateResult` describing the verdict and categorised violations.
+  
+
+**Raises**:
+
+- `EnforcementError` - If ``overrides`` are supplied without a non-empty ``override_reason``.
 

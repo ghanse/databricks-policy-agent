@@ -12,6 +12,7 @@ from collections.abc import Iterable
 
 from policy_agent.enforce.fix import suggest_fixes
 from policy_agent.enforce.model import FixSuggestion, GateResult, GateVerdict
+from policy_agent.errors import EnforcementError
 from policy_agent.policy.model import EnforcementLevel, Policy, meets_threshold
 from policy_agent.scan.evaluator import evaluate_resource
 from policy_agent.scan.results import ResourceSnapshot
@@ -39,7 +40,13 @@ def run_gate(
 
     Returns:
         The `GateResult` describing the verdict and categorised violations.
+
+    Raises:
+        EnforcementError: If ``overrides`` are supplied without a non-empty ``override_reason``.
     """
+    if overrides and not override_reason.strip():
+        raise EnforcementError("An override reason is required when overriding policies.")
+
     policy_list = list(policies)
     snapshot_list = list(snapshots)
     violations = [

@@ -64,9 +64,15 @@ Leaf comparisons use one of these operators (the `operator` field).
 | `allow` | The resource is compliant only when its rule matches (allow-list) |
 | `deny`  | The resource violates the policy when its rule matches (deny-list) |
 
-## Severities
-Violations carry one of these severities (the `severity` field): `low`, `medium`, `high`,
-`critical`. `medium` is the default when unspecified.
+## Enforcement levels
+Each policy carries an `enforcement_level` that governs how a violation is treated. `advisory`
+is the default when unspecified.
+
+| Level      | Effect                                                        |
+|------------|---------------------------------------------------------------|
+| `advisory` | Report only; never blocks a deployment gate                   |
+| `soft`     | Blocks the gate but can be overridden with a recorded reason  |
+| `hard`     | Blocks the gate and cannot be overridden                      |
 
 ## Roles
 Roles are granted to workspace groups; a caller's effective roles are the union of the roles

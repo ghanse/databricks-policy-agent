@@ -72,6 +72,44 @@ def test_snapshot_bundle_maps_declared_sql_warehouses():
     assert result.blocked
 
 
+def test_snapshot_bundle_derives_job_task_attributes():
+    # has_retry_policy / uses_serverless_compute come from the declared tasks, matching the
+    # live scanner; otherwise they default to None and every job falsely violates such policies.
+    config = {
+        "resources": {
+            "jobs": {
+                "serverless_retried": {
+                    "name": "prod_etl",
+                    "tasks": [{"task_key": "main", "max_retries": 3}],
+                },
+                "classic_no_retry": {
+                    "name": "adhoc",
+                    "tasks": [{"task_key": "main", "existing_cluster_id": "c-1"}],
+                },
+            }
+        }
+    }
+    by_id = {s.resource_id: s.attributes for s in snapshot_bundle(config)}
+    assert by_id["serverless_retried"]["has_retry_policy"] is True
+    assert by_id["serverless_retried"]["uses_serverless_compute"] is True
+    assert by_id["classic_no_retry"]["has_retry_policy"] is False
+    assert by_id["classic_no_retry"]["uses_serverless_compute"] is False
+
+
+def test_run_gate_requires_reason_for_overrides():
+    tagged = allow(
+        "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement_level="soft"
+    )
+    with pytest.raises(EnforcementError, match="override reason is required"):
+        run_gate(
+            [tagged],
+            _snapshots(),
+            fail_on=EnforcementLevel.SOFT,
+            overrides=frozenset({"jobs-tagged"}),
+            override_reason="   ",
+        )
+
+
 def test_soft_violation_warns_below_threshold_but_blocks_at_threshold():
     tagged = allow(
         "jobs-tagged", ResourceType.JOB, leaf("tags", "has_tag", "team"), enforcement_level="soft"
