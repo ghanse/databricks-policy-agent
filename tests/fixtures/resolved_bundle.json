@@ -1,0 +1,41 @@
+{
+  "bundle": {
+    "name": "policy-agent-sample",
+    "target": "dev"
+  },
+  "resources": {
+    "jobs": {
+      "compliant_job": {
+        "name": "prod_compliant_scan",
+        "max_concurrent_runs": 1,
+        "tags": {
+          "team": "data-platform"
+        },
+        "email_notifications": {
+          "on_failure": [
+            "oncall@example.com"
+          ]
+        },
+        "tasks": [
+          {
+            "task_key": "main",
+            "notebook_task": {
+              "notebook_path": "/Workspace/Shared/policy-agent-sample/noop"
+            }
+          }
+        ]
+      },
+      "violating_job": {
+        "name": "adhoc_scan",
+        "tasks": [
+          {
+            "task_key": "main",
+            "notebook_task": {
+              "notebook_path": "/Workspace/Shared/policy-agent-sample/noop"
+            }
+          }
+        ]
+      }
+    }
+  }
+}
