@@ -244,7 +244,11 @@ def _has_retry_policy(settings: Any) -> bool:
 def _task_has_retries(task: Any) -> bool:
     max_retries = getattr(task, "max_retries", None)
     # A task retries when max_retries is a nonzero count; -1 means unlimited, 0 means never.
-    return isinstance(max_retries, int) and not isinstance(max_retries, bool) and max_retries != 0
+    return (
+        isinstance(max_retries, int)
+        and not isinstance(max_retries, bool)
+        and (max_retries == -1 or max_retries > 0)
+    )
 
 
 def _uses_serverless_compute(settings: Any) -> bool:
