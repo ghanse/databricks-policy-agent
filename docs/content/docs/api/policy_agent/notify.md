@@ -24,7 +24,7 @@ Build a compact, JSON-serialisable summary message for a scan result.
 
 **Returns**:
 
-  A mapping describing the scan&#x27;s identity and violation counts.
+  A mapping describing the scan's identity and violation counts.
 
 #### notify\_scan\_result
 

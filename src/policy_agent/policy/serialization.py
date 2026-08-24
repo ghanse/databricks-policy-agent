@@ -33,7 +33,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
             ``remediation``, ``status``, and ``version``.
 
     Returns:
-        The constructed :class:`Policy`.
+        The constructed `Policy`.
 
     Raises:
         InvalidPolicyError: If a required key is missing or an enum value is unrecognised.

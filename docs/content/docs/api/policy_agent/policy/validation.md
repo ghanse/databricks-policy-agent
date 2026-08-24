@@ -16,7 +16,7 @@ rather than silently ignored during a scan.
 def validate_policy(policy: Policy) -> None
 ```
 
-Validate a policy&#x27;s identity and both of its condition trees.
+Validate a policy's identity and both of its condition trees.
 
 **Arguments**:
 
@@ -35,7 +35,7 @@ def validate_condition(condition: Condition,
                        resource_type: ResourceType) -> None
 ```
 
-Recursively validate a condition tree against a resource type&#x27;s attributes.
+Recursively validate a condition tree against a resource type's attributes.
 
 **Arguments**:
 

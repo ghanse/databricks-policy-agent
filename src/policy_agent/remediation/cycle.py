@@ -3,7 +3,7 @@
 A violation is tracked by the ``(policy, resource type, resource id)`` it concerns.
 ``reconcile`` diffs the currently-open items against a fresh scan's violations: new
 violations open items, and open items whose violation has cleared are auto-resolved. The
-manual transitions (:func:`advance`, :func:`resolve`, :func:`waive`, :func:`assign`) let an
+manual transitions (`advance`, `resolve`, `waive`, `assign`) let an
 owner move an item by hand.
 """
 

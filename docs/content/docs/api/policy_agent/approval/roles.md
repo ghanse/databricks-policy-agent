@@ -5,7 +5,7 @@ title: policy_agent.approval.roles
 
 Role model and role resolution for the approval workflow.
 
-Roles are granted to workspace groups; a caller&#x27;s effective roles are the union of the roles
+Roles are granted to workspace groups; a caller's effective roles are the union of the roles
 mapped to every group they belong to. The permission predicates below are the single source
 of truth for which role a workflow transition requires.
 
@@ -34,7 +34,7 @@ Resolve the effective roles for a caller from their group memberships.
 
 **Returns**:
 
-  The union of roles granted by the caller&#x27;s groups.
+  The union of roles granted by the caller's groups.
 
 #### can\_author
 
@@ -46,7 +46,7 @@ Whether the roles permit drafting and submitting policies.
 
 **Arguments**:
 
-- `roles` - The caller&#x27;s effective roles.
+- `roles` - The caller's effective roles.
   
 
 **Returns**:
@@ -63,7 +63,7 @@ Whether the roles permit approving or rejecting policies.
 
 **Arguments**:
 
-- `roles` - The caller&#x27;s effective roles.
+- `roles` - The caller's effective roles.
   
 
 **Returns**:
@@ -80,7 +80,7 @@ Whether the roles permit running scans.
 
 **Arguments**:
 
-- `roles` - The caller&#x27;s effective roles.
+- `roles` - The caller's effective roles.
   
 
 **Returns**:
@@ -97,7 +97,7 @@ Whether the roles permit administrative actions such as archiving.
 
 **Arguments**:
 
-- `roles` - The caller&#x27;s effective roles.
+- `roles` - The caller's effective roles.
   
 
 **Returns**:

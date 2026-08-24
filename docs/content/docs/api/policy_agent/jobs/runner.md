@@ -29,14 +29,14 @@ Run a scan and, unless ``dry_run``, persist results and reconcile remediations.
 - `executor` - The storage executor.
 - `config` - The runtime configuration.
 - `policies` - The policies to evaluate.
-- `triggered_by` - Label recorded as the scan&#x27;s initiator.
+- `triggered_by` - Label recorded as the scan's initiator.
 - `resource_types` - Optional restriction on scanned resource types.
 - `dry_run` - When ``True`` the scan runs but nothing is written or notified.
   
 
 **Returns**:
 
-  The completed :class:``1.
+  The completed `ScanResult`.
 
 #### execute\_scan\_job
 
@@ -51,7 +51,7 @@ the Databricks Asset Bundle), scans all approved policies, and persists the outc
 
 **Arguments**:
 
-- `triggered_by` - Label recorded as the scan&#x27;s initiator.
+- `triggered_by` - Label recorded as the scan's initiator.
   
 
 **Returns**:

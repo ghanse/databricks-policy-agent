@@ -25,7 +25,7 @@ def suggest_fixes(
         policies_by_name: Policies keyed by name, used to source remediation guidance.
 
     Returns:
-        One :class:`FixSuggestion` per violation, in order.
+        One `FixSuggestion` per violation, in order.
     """
     suggestions = []
     for violation in violations:

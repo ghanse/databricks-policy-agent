@@ -51,7 +51,7 @@ def run_policy_scan(
         dry_run: When ``True`` the scan runs but nothing is written or notified.
 
     Returns:
-        The completed :class:`ScanResult`.
+        The completed `ScanResult`.
     """
     result = run_scan(workspace_client, policies, resource_types)
     if dry_run:

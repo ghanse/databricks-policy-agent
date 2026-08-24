@@ -45,7 +45,7 @@ def deny(
 
     Args:
         name: Unique policy identifier.
-        resource_type: Target resource type, as a :class:`ResourceType` or its string value.
+        resource_type: Target resource type, as a `ResourceType` or its string value.
         rule: Condition tree whose match marks a resource as violating.
         description: Free-text explanation of intent.
         enforcement: How strongly the policy is enforced; an EnforcementLevel or its string value.
@@ -55,7 +55,7 @@ def deny(
         version: Initial version number.
 
     Returns:
-        A :class:`Policy` with :attr:`Effect.DENY`.
+        A `Policy` with `Effect.DENY`.
     """
     return policy(
         name=name,
@@ -87,7 +87,7 @@ def allow(
 
     Args:
         name: Unique policy identifier.
-        resource_type: Target resource type, as a :class:`ResourceType` or its string value.
+        resource_type: Target resource type, as a `ResourceType` or its string value.
         rule: Condition tree a compliant resource must match.
         description: Free-text explanation of intent.
         enforcement: How strongly the policy is enforced; an EnforcementLevel or its string value.
@@ -97,7 +97,7 @@ def allow(
         version: Initial version number.
 
     Returns:
-        A :class:`Policy` with :attr:`Effect.ALLOW`.
+        A `Policy` with `Effect.ALLOW`.
     """
     return policy(
         name=name,
@@ -130,7 +130,7 @@ def policy(
 
     Args:
         name: Unique policy identifier.
-        resource_type: Target resource type, as a :class:`ResourceType` or its string value.
+        resource_type: Target resource type, as a `ResourceType` or its string value.
         effect: Whether a rule match means compliant (``allow``) or violating (``deny``).
         rule: The condition tree evaluated against each resource.
         description: Free-text explanation of intent.
@@ -141,7 +141,7 @@ def policy(
         version: Initial version number.
 
     Returns:
-        The constructed :class:`Policy`.
+        The constructed `Policy`.
     """
     return Policy(
         name=name,
@@ -167,7 +167,7 @@ def leaf(attribute: str, operator: str, value: object = None) -> Comparison:
             ``exists`` and ``absent``.
 
     Returns:
-        A :class:`Comparison` node.
+        A `Comparison` node.
     """
     return Comparison(attribute=attribute, operator=operator, value=value)
 
@@ -179,7 +179,7 @@ def all_of(*conditions: Condition) -> AllOf:
         *conditions: Child conditions.
 
     Returns:
-        An :class:`AllOf` node.
+        An `AllOf` node.
     """
     return AllOf(conditions=tuple(conditions))
 
@@ -191,7 +191,7 @@ def any_of(*conditions: Condition) -> AnyOf:
         *conditions: Child conditions.
 
     Returns:
-        An :class:`AnyOf` node.
+        An `AnyOf` node.
     """
     return AnyOf(conditions=tuple(conditions))
 
@@ -203,6 +203,6 @@ def not_(condition: Condition) -> Negation:
         condition: The condition to negate.
 
     Returns:
-        A :class:`Negation` node.
+        A `Negation` node.
     """
     return Negation(condition=condition)

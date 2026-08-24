@@ -5,9 +5,9 @@ title: policy_agent.approval.workflow
 
 The policy approval state machine.
 
-Transitions are pure functions: each takes a policy plus the acting principal&#x27;s roles and
-returns a new policy and an audit :class:`ApprovalEvent`. Illegal transitions raise
-:class:`WorkflowError`; insufficient privilege raises :class:`AuthorizationError`. Only an
+Transitions are pure functions: each takes a policy plus the acting principal's roles and
+returns a new policy and an audit `ApprovalEvent`. Illegal transitions raise
+`WorkflowError`; insufficient privilege raises `AuthorizationError`. Only an
 ``APPROVED`` policy is eligible to be run by scans.
 
 ## ApprovalEvent Objects
@@ -44,7 +44,7 @@ Move a draft or rejected policy into review.
 
 - `policy` - The policy to submit.
 - `actor` - The submitting principal.
-- `roles` - The actor&#x27;s effective roles.
+- `roles` - The actor's effective roles.
 - `note` - Optional justification recorded on the event.
   
 
@@ -74,10 +74,10 @@ Approve a policy under review, incrementing its version.
 
 - `policy` - The policy to approve.
 - `actor` - The approving principal.
-- `roles` - The actor&#x27;s effective roles.
+- `roles` - The actor's effective roles.
 - `note` - Optional justification recorded on the event.
 - `author` - When provided, the approver must differ from the author (separation of
-  duties); approving one&#x27;s own submission raises.
+  duties); approving one's own submission raises.
   
 
 **Returns**:
@@ -87,7 +87,7 @@ Approve a policy under review, incrementing its version.
 
 **Raises**:
 
-- `AuthorizationError` - If the actor cannot approve, or is the policy&#x27;s author.
+- `AuthorizationError` - If the actor cannot approve, or is the policy's author.
 - `WorkflowError` - If the policy is not in ``in_review`` status.
 
 #### reject
@@ -105,7 +105,7 @@ Reject a policy under review, returning it to the author.
 
 - `policy` - The policy to reject.
 - `actor` - The rejecting principal.
-- `roles` - The actor&#x27;s effective roles.
+- `roles` - The actor's effective roles.
 - `note` - Optional justification recorded on the event.
   
 
@@ -134,7 +134,7 @@ Archive a policy from any status, retiring it from scans.
 
 - `policy` - The policy to archive.
 - `actor` - The archiving principal.
-- `roles` - The actor&#x27;s effective roles.
+- `roles` - The actor's effective roles.
 - `note` - Optional justification recorded on the event.
   
 

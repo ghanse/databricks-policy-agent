@@ -18,7 +18,7 @@ def evaluate_resource(policy: Policy, snapshot: ResourceSnapshot) -> Finding | N
         snapshot: The resource snapshot to evaluate against.
 
     Returns:
-        A :class:`Finding` describing the outcome, or ``None`` when the policy does not
+        A `Finding` describing the outcome, or ``None`` when the policy does not
         apply to this resource.
     """
     if policy.resource_type is not snapshot.resource_type:

@@ -92,6 +92,9 @@ textarea { min-height: 200px; font-family: ui-monospace, SFMono-Regular, Menlo, 
 .badge.critical, .badge.high { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
 .badge.medium { background: rgba(210, 153, 34, 0.15); color: var(--warn); }
 .badge.low { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
+.badge.hard { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
+.badge.soft { background: rgba(210, 153, 34, 0.15); color: var(--warn); }
+.badge.advisory { background: rgba(47, 129, 247, 0.15); color: var(--accent); }
 .badge.draft { background: rgba(139, 151, 165, 0.15); color: var(--muted); }
 .badge.in_review { background: rgba(47, 129, 247, 0.15); color: var(--accent); }
 .badge.approved, .badge.resolved { background: rgba(63, 185, 80, 0.15); color: var(--ok); }

@@ -6,7 +6,7 @@ title: policy_agent.policy.serialization
 Round-trip conversion between policies and plain dictionaries.
 
 Dictionaries are the interchange format shared by the YAML loader, the storage backends,
-and the app&#x27;s JSON API. Keeping conversion in one module guarantees every surface encodes
+and the app's JSON API. Keeping conversion in one module guarantees every surface encodes
 policies identically.
 
 #### policy\_from\_dict
@@ -26,12 +26,12 @@ Build a policy from a plain dictionary (e.g. parsed YAML or a JSON request body)
 
 **Returns**:
 
-  The constructed :class:``3.
+  The constructed `Policy`.
   
 
 **Raises**:
 
-- ``4 - If a required key is missing or an enum value is unrecognised.
+- `InvalidPolicyError` - If a required key is missing or an enum value is unrecognised.
 
 #### policy\_to\_dict
 
@@ -60,8 +60,8 @@ Parse a condition tree from its dictionary form.
 
 **Arguments**:
 
-- `node` - A mapping shaped as one of ``{&quot;all&quot;: [...]}``, ``{&quot;any&quot;: [...]}``,
-- ```{"not"` - {...}}``, or a leaf ``{&quot;attribute&quot;: ..., &quot;operator&quot;: ..., &quot;value&quot;: ...}``.
+- `node` - A mapping shaped as one of ``{"all": [...]}``, ``{"any": [...]}``,
+- ```{"not"` - {...}}``, or a leaf ``{"attribute": ..., "operator": ..., "value": ...}``.
   
 
 **Returns**:
@@ -71,7 +71,7 @@ Parse a condition tree from its dictionary form.
 
 **Raises**:
 
-- ``0 - If the node shape is not recognised or a leaf omits keys.
+- `InvalidPolicyError` - If the node shape is not recognised or a leaf omits keys.
 
 #### condition\_to\_dict
 

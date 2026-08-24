@@ -51,12 +51,17 @@ def resolve_bundle(bundle_dir: str | Path, target: str | None = None) -> dict[st
     Raises:
         EnforcementError: If the CLI is missing, validation fails, or output is not JSON.
     """
+    directory = Path(bundle_dir)
+    if not directory.is_dir():
+        # Check first so a bad path is not misreported as a missing CLI below: subprocess
+        # raises the same FileNotFoundError whether the program or the cwd is missing.
+        raise EnforcementError(f"Bundle directory does not exist: {directory}")
     command = ["databricks", "bundle", "validate", "--output", "json"]
     if target:
         command += ["-t", target]
     try:
         completed = subprocess.run(
-            command, cwd=str(bundle_dir), capture_output=True, text=True, check=False
+            command, cwd=str(directory), capture_output=True, text=True, check=False
         )
     except FileNotFoundError as error:
         raise EnforcementError("The 'databricks' CLI is required to resolve a bundle.") from error

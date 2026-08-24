@@ -56,5 +56,5 @@ Run ``databricks bundle validate --output json`` and return the parsed config.
 
 **Raises**:
 
-- ``0 - If the CLI is missing, validation fails, or output is not JSON.
+- `EnforcementError` - If the CLI is missing, validation fails, or output is not JSON.
 

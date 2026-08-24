@@ -31,7 +31,7 @@ A suggested remediation for one violating declared resource.
 - `policy_name` - The violated policy.
 - `resource_type` - Type of the declared resource.
 - `resource_id` - Bundle key / name of the declared resource.
-- `guidance` - Human-readable guidance (the policy&#x27;s remediation text when available).
+- `guidance` - Human-readable guidance (the policy's remediation text when available).
 
 ## GateResult Objects
 
@@ -40,7 +40,7 @@ A suggested remediation for one violating declared resource.
 class GateResult()
 ```
 
-The outcome of gating a bundle&#x27;s declared resources against policies.
+The outcome of gating a bundle's declared resources against policies.
 
 **Attributes**:
 

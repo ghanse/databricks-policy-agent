@@ -6,8 +6,8 @@ title: policy_agent.scan.registry
 Registry mapping each resource type to the function that fetches its snapshots.
 
 Adding support for a new resource type is a one-line change here plus a ``scan_*`` function
-in :mod:`policy_agent.scan.resources` and an attribute set in
-:data:`policy_agent.policy.model.RESOURCE_ATTRIBUTES`.
+in `policy_agent.scan.resources` and an attribute set in
+`policy_agent.policy.model.RESOURCE_ATTRIBUTES`.
 
 #### RESOURCE\_SCANNERS
 

@@ -25,6 +25,6 @@ excludes the resource, does not apply and yields no finding.
 
 **Returns**:
 
-  A :class:`Finding` describing the outcome, or ``None`` when the policy does not
+  A `Finding` describing the outcome, or ``None`` when the policy does not
   apply to this resource.
 

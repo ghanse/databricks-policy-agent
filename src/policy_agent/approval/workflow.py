@@ -1,8 +1,8 @@
 """The policy approval state machine.
 
 Transitions are pure functions: each takes a policy plus the acting principal's roles and
-returns a new policy and an audit :class:`ApprovalEvent`. Illegal transitions raise
-:class:`WorkflowError`; insufficient privilege raises :class:`AuthorizationError`. Only an
+returns a new policy and an audit `ApprovalEvent`. Illegal transitions raise
+`WorkflowError`; insufficient privilege raises `AuthorizationError`. Only an
 ``APPROVED`` policy is eligible to be run by scans.
 """
 

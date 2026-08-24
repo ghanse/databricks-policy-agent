@@ -5,7 +5,7 @@ title: policy_agent.storage.schema
 
 Table definitions and dialect-aware SQL builders for both storage backends.
 
-Everything here is a pure function of a :class:`StorageConfig`: it produces SQL text and
+Everything here is a pure function of a `StorageConfig`: it produces SQL text and
 parameter mappings but never executes anything. The same table set is created for Unity
 Catalog Delta and Lakebase Postgres, differing only in type names, tagging syntax, and
 upsert strategy (delete-then-insert, which both dialects support without vendor extensions).
@@ -16,7 +16,7 @@ upsert strategy (delete-then-insert, which both dialects support without vendor 
 class ColumnType(str, Enum)
 ```
 
-A portable column type mapped to each backend&#x27;s concrete SQL type.
+A portable column type mapped to each backend's concrete SQL type.
 
 ## Column Objects
 
@@ -139,7 +139,7 @@ Build a parameterized ``SELECT *`` with an optional equality filter and ordering
 - `config` - The storage configuration.
 - `table_name` - Logical table name.
 - `where` - Optional column-name-to-value equality filter.
-- `order_by` - Optional ``ORDER BY`` clause body (e.g. ``&quot;created_at DESC&quot;``).
+- `order_by` - Optional ``ORDER BY`` clause body (e.g. ``"created_at DESC"``).
   
 
 **Returns**:

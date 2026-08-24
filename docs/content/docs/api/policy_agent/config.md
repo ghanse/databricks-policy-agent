@@ -6,7 +6,7 @@ title: policy_agent.config
 Runtime configuration assembled from environment variables.
 
 The app and the provisioned jobs are configured entirely through environment variables set
-by the Databricks Asset Bundle, so a single :func:`config_from_env` call yields everything
+by the Databricks Asset Bundle, so a single `config_from_env` call yields everything
 needed to build a storage executor and send notifications.
 
 ## PolicyAgentConfig Objects
@@ -33,7 +33,7 @@ def config_from_env(
         environ: Mapping[str, str] | None = None) -> PolicyAgentConfig
 ```
 
-Build a :class:`PolicyAgentConfig` from environment variables.
+Build a `PolicyAgentConfig` from environment variables.
 
 **Arguments**:
 
@@ -61,10 +61,10 @@ Build the SQL executor for the configured storage backend.
 
 **Returns**:
 
-  A :class:`SqlExecutor` for the configured backend.
+  A `SqlExecutor` for the configured backend.
   
 
 **Raises**:
 
-- `StorageError` - If the backend&#x27;s required connection setting is missing.
+- `StorageError` - If the backend's required connection setting is missing.
 

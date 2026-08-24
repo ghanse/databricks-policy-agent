@@ -73,7 +73,7 @@ def scan_to_row(scan_result: ScanResult, config: StorageConfig,
                 triggered_by: str) -> dict[str, Any]
 ```
 
-Serialise a scan result&#x27;s header to a ``scans`` row.
+Serialise a scan result's header to a ``scans`` row.
 
 **Arguments**:
 

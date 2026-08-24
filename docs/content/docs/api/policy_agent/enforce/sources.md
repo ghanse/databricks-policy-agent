@@ -5,8 +5,8 @@ title: policy_agent.enforce.sources
 
 Map a resolved bundle configuration into evaluable resource snapshots.
 
-Each declared resource under ``resources.&lt;group&gt;.&lt;key&gt;`` is normalised into the same
-:class:`ResourceSnapshot` shape produced by a live scan, so the enforcement gate reuses the
+Each declared resource under ``resources.<group>.<key>`` is normalised into the same
+`ResourceSnapshot` shape produced by a live scan, so the enforcement gate reuses the
 existing evaluation engine unchanged. Only *declarable* attributes are populated; attributes
 known only at runtime (for example ``created_time``) are ``None``.
 
@@ -20,7 +20,7 @@ Build resource snapshots from a resolved bundle configuration.
 
 **Arguments**:
 
-- `config` - A resolved bundle configuration (see :func:`load_bundle_config`).
+- `config` - A resolved bundle configuration (see `load_bundle_config`).
   
 
 **Returns**:

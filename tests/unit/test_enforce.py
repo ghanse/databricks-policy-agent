@@ -1,7 +1,11 @@
 import json
 
+import pytest
+
 from policy_agent.enforce import load_bundle_config, run_gate, snapshot_bundle
+from policy_agent.enforce.bundle import resolve_bundle
 from policy_agent.enforce.model import GateVerdict
+from policy_agent.errors import EnforcementError
 from policy_agent.policy import allow, leaf
 from policy_agent.policy.model import EnforcementLevel, ResourceType
 
@@ -104,3 +108,10 @@ def test_load_bundle_config_from_json_file(tmp_path):
     path = tmp_path / "resolved.json"
     path.write_text(json.dumps(BUNDLE), encoding="utf-8")
     assert load_bundle_config(path)["resources"]["jobs"]["etl"]["name"] == "prod_etl"
+
+
+def test_resolve_bundle_reports_missing_directory_clearly(tmp_path):
+    # A bad bundle path must not be misreported as a missing 'databricks' CLI.
+    missing = tmp_path / "nope"
+    with pytest.raises(EnforcementError, match="Bundle directory does not exist"):
+        resolve_bundle(missing)

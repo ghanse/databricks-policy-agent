@@ -5,8 +5,8 @@ title: policy_agent.scan.results
 
 Scan output types: resource snapshots, findings, and aggregated summaries.
 
-A scan produces one :class:`Finding` per applicable (policy, resource) pair. Findings are the
-atomic unit persisted to storage and rendered in the app; :class:`ScanSummary` derives the
+A scan produces one `Finding` per applicable (policy, resource) pair. Findings are the
+atomic unit persisted to storage and rendered in the app; `ScanSummary` derives the
 headline counts a dashboard shows without re-scanning.
 
 ## ResourceSnapshot Objects
@@ -32,7 +32,7 @@ A normalized, evaluable view of one workspace resource.
 def resource_id() -> str
 ```
 
-The resource&#x27;s stable identifier.
+The resource's stable identifier.
 
 #### name
 
@@ -41,7 +41,7 @@ The resource&#x27;s stable identifier.
 def name() -> str
 ```
 
-The resource&#x27;s display name.
+The resource's display name.
 
 #### owner
 
@@ -50,7 +50,7 @@ The resource&#x27;s display name.
 def owner() -> str | None
 ```
 
-The resource&#x27;s owner principal, if known.
+The resource's owner principal, if known.
 
 ## Finding Objects
 
@@ -68,11 +68,11 @@ The outcome of evaluating one policy against one resource.
 - `resource_id` - Identifier of the evaluated resource.
 - `resource_name` - Display name of the evaluated resource.
 - `compliant` - ``True`` when the resource satisfies the policy.
-- `effect` - The evaluated policy&#x27;s effect.
-- `enforcement` - The evaluated policy&#x27;s enforcement level.
+- `effect` - The evaluated policy's effect.
+- `enforcement` - The evaluated policy's enforcement level.
 - `message` - Human-readable explanation of the outcome.
-- `resource_type`0 - Guidance for resolving a violation (empty when compliant).
-- `resource_type`1 - The resource owner principal, if known.
+- `remediation` - Guidance for resolving a violation (empty when compliant).
+- `owner` - The resource owner principal, if known.
 
 ## ScanSummary Objects
 
@@ -81,7 +81,7 @@ The outcome of evaluating one policy against one resource.
 class ScanSummary()
 ```
 
-Aggregated counts derived from a scan&#x27;s findings.
+Aggregated counts derived from a scan's findings.
 
 **Attributes**:
 
@@ -137,5 +137,5 @@ Compute the aggregated summary for this scan.
 
 **Returns**:
 
-  A :class:`ScanSummary` describing evaluation and violation counts.
+  A `ScanSummary` describing evaluation and violation counts.
 

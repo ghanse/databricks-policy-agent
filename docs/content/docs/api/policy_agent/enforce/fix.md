@@ -7,7 +7,7 @@ Suggested remediations for violating declared resources.
 
 Because the gate evaluates the *resolved* bundle (variables and target overrides already
 applied), it cannot always map a change back to the exact line of templated source. So v1
-mutation surfaces the policy&#x27;s authored remediation guidance per violating resource — a
+mutation surfaces the policy's authored remediation guidance per violating resource — a
 suggestion an author applies — rather than silently rewriting ``databricks.yml``.
 
 #### suggest\_fixes
@@ -28,5 +28,5 @@ Build a remediation suggestion for each violation.
 
 **Returns**:
 
-  One :class:`FixSuggestion` per violation, in order.
+  One `FixSuggestion` per violation, in order.
 

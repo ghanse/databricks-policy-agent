@@ -5,7 +5,7 @@ title: policy_agent.errors
 
 Exception hierarchy for the policy agent.
 
-All library-raised errors derive from :class:`PolicyAgentError` so callers can catch
+All library-raised errors derive from `PolicyAgentError` so callers can catch
 the whole family with a single ``except`` while still distinguishing specific failures.
 
 ## PolicyAgentError Objects

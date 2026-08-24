@@ -1,7 +1,7 @@
 """The scan orchestrator — the primary public entry point for running compliance scans.
 
 ``run_scan`` fetches each relevant resource type once, evaluates every applicable policy
-against every resource, and returns an immutable :class:`ScanResult`. It is a pure function
+against every resource, and returns an immutable `ScanResult`. It is a pure function
 of the workspace state and the supplied policies, which makes it equally usable from ad-hoc
 code, a scheduled job, or the app's API.
 """
@@ -42,7 +42,7 @@ def run_scan(
             every resource type referenced by ``policies`` is scanned.
 
     Returns:
-        A :class:`ScanResult` containing one finding per applicable (policy, resource) pair.
+        A `ScanResult` containing one finding per applicable (policy, resource) pair.
 
     Raises:
         InvalidPolicyError: If any supplied policy fails validation.

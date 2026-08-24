@@ -1,7 +1,7 @@
 """Scan output types: resource snapshots, findings, and aggregated summaries.
 
-A scan produces one :class:`Finding` per applicable (policy, resource) pair. Findings are the
-atomic unit persisted to storage and rendered in the app; :class:`ScanSummary` derives the
+A scan produces one `Finding` per applicable (policy, resource) pair. Findings are the
+atomic unit persisted to storage and rendered in the app; `ScanSummary` derives the
 headline counts a dashboard shows without re-scanning.
 """
 
@@ -129,7 +129,7 @@ class ScanResult:
         """Compute the aggregated summary for this scan.
 
         Returns:
-            A :class:`ScanSummary` describing evaluation and violation counts.
+            A `ScanSummary` describing evaluation and violation counts.
         """
         violations = self.violations
         by_enforcement: Counter[str] = Counter(finding.enforcement.value for finding in violations)

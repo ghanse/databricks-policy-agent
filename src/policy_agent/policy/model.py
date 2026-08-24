@@ -1,9 +1,9 @@
 """Core policy data model: resource types, effects, condition trees, and policies.
 
 Policies are immutable, declarative data. A policy pairs a *condition tree* with an
-:class:`Effect` (allow or deny) over one :class:`ResourceType`. Condition trees are built
-from a small set of frozen node types (:class:`Comparison`, :class:`AllOf`, :class:`AnyOf`,
-:class:`Negation`) so evaluation is a pure walk over data with no code execution.
+`Effect` (allow or deny) over one `ResourceType`. Condition trees are built
+from a small set of frozen node types (`Comparison`, `AllOf`, `AnyOf`,
+`Negation`) so evaluation is a pure walk over data with no code execution.
 """
 
 from __future__ import annotations
@@ -61,7 +61,7 @@ def meets_threshold(level: EnforcementLevel, threshold: EnforcementLevel) -> boo
         threshold: The minimum strictness.
 
     Returns:
-        ``True`` when ``level`` is at or above ``threshold`` in :data:`ENFORCEMENT_ORDER`.
+        ``True`` when ``level`` is at or above ``threshold`` in `ENFORCEMENT_ORDER`.
     """
     return ENFORCEMENT_ORDER.index(level) >= ENFORCEMENT_ORDER.index(threshold)
 
@@ -87,7 +87,7 @@ class Comparison(Condition):
     Attributes:
         attribute: Name of the resource-snapshot attribute to read. Dotted paths such as
             ``tags.environment`` index into nested mappings.
-        operator: Name of a registered operator (see :mod:`policy_agent.policy.conditions`).
+        operator: Name of a registered operator (see `policy_agent.policy.conditions`).
         value: The expected value the operator compares the attribute against. Operators
             such as ``exists`` and ``absent`` ignore it.
     """
