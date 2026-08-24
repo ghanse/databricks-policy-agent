@@ -6,9 +6,8 @@ description: Block deployments with non-compliant resources
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Tabs, Tab } from 'fumadocs-ui/components/tabs';
 
-Scanning finds violations on resources that already exist. Enforcement is **preventive**. It evaluates
-configuration and blocks deployments before non-compliant resources are created. Both use the same 
-policies and the same evaluation engine.
+Scanning finds violations on resources that already exist. Enforcement *prevents* non-compliant 
+deployments. Policies can be enforced through GitHub Actions or directly via the CLI.
 
 ## Enforcement levels
 Every policy carries an `enforcement` level that dictates how the policy acts on non-compliant deployments.
