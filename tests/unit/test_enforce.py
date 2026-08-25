@@ -154,6 +154,72 @@ def test_snapshot_bundle_maps_declared_serving_endpoints():
     assert {f.resource_id for f in result.blocking} == {"llm"}
 
 
+def test_snapshot_bundle_maps_declared_uc_objects():
+    config = {
+        "resources": {
+            "catalogs": {"main": {"name": "main", "isolation_mode": "ISOLATED"}},
+            "schemas": {"gold": {"name": "gold", "catalog_name": "main"}},
+            "volumes": {
+                "landing": {
+                    "name": "landing",
+                    "catalog_name": "main",
+                    "schema_name": "gold",
+                    "volume_type": "MANAGED",
+                }
+            },
+            "registered_models": {
+                "churn": {"name": "churn", "catalog_name": "main", "schema_name": "ml"}
+            },
+            "external_locations": {
+                "raw": {"name": "raw", "url": "s3://bucket/raw", "read_only": False}
+            },
+            "secret_scopes": {"prod": {"name": "prod", "backend_type": "DATABRICKS"}},
+        }
+    }
+    by_type = {s.resource_type: s.attributes for s in snapshot_bundle(config)}
+    assert by_type[ResourceType.CATALOG]["isolation_mode"] == "ISOLATED"
+    assert by_type[ResourceType.SCHEMA]["catalog_name"] == "main"
+    assert by_type[ResourceType.VOLUME]["volume_type"] == "MANAGED"
+    assert by_type[ResourceType.REGISTERED_MODEL]["schema_name"] == "ml"
+    assert by_type[ResourceType.EXTERNAL_LOCATION]["url"] == "s3://bucket/raw"
+    assert by_type[ResourceType.SECRET_SCOPE]["backend_type"] == "DATABRICKS"
+    # None of the UC/secret types advertise tags.
+    assert all("tags" not in attrs for attrs in by_type.values())
+
+    # An external location that is not read-only violates a read-only policy at the gate.
+    read_only = allow("el-read-only", "external_location", leaf("read_only", "equals", True))
+    result = run_gate([read_only], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert {f.resource_id for f in result.blocking} == {"raw"}
+
+
+def test_snapshot_bundle_maps_quality_monitors_enforce_only():
+    config = {
+        "resources": {
+            "quality_monitors": {
+                "orders": {
+                    "table_name": "main.gold.orders",
+                    "output_schema_name": "main.monitoring",
+                    "schedule": {"quartz_cron_expression": "0 0 * * * ?"},
+                    "snapshot": {},
+                },
+                "adhoc": {"table_name": "main.gold.adhoc", "inference_log": {}},
+            }
+        }
+    }
+    by_id = {s.resource_id: s for s in snapshot_bundle(config)}
+    assert by_id["orders"].resource_type is ResourceType.QUALITY_MONITOR
+    assert by_id["orders"].attributes["table_name"] == "main.gold.orders"
+    assert by_id["orders"].attributes["monitor_type"] == "snapshot"
+    assert by_id["orders"].attributes["has_schedule"] is True
+    assert by_id["adhoc"].attributes["monitor_type"] == "inference_log"
+    assert by_id["adhoc"].attributes["has_schedule"] is False
+
+    # Monitors must be scheduled; the ad-hoc one violates.
+    scheduled = allow("qm-scheduled", "quality_monitor", leaf("has_schedule", "equals", True))
+    result = run_gate([scheduled], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert {f.resource_id for f in result.blocking} == {"adhoc"}
+
+
 def test_snapshot_bundle_derives_job_task_attributes():
     # has_retry_policy / uses_serverless_compute come from the declared tasks, matching the
     # live scanner; otherwise they default to None and every job falsely violates such policies.

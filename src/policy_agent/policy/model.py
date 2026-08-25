@@ -20,6 +20,13 @@ class ResourceType(str, Enum):
     SQL_WAREHOUSE = "sql_warehouse"
     APP = "app"
     SERVING_ENDPOINT = "serving_endpoint"
+    CATALOG = "catalog"
+    SCHEMA = "schema"
+    VOLUME = "volume"
+    REGISTERED_MODEL = "registered_model"
+    EXTERNAL_LOCATION = "external_location"
+    SECRET_SCOPE = "secret_scope"
+    QUALITY_MONITOR = "quality_monitor"
 
 
 class Effect(str, Enum):
@@ -161,10 +168,31 @@ class Policy:
     version: int = 1
 
 
-COMMON_RESOURCE_ATTRIBUTES: frozenset[str] = frozenset(
-    {"id", "name", "owner", "owner_type", "tags", "created_time"}
+# Building blocks for composing each resource type's attribute set. A type advertises an
+# attribute only when the resource can actually have it, so policy validation rejects, for
+# example, a `tags` comparison against a resource that cannot be tagged.
+_IDENTITY: frozenset[str] = frozenset({"id", "name"})
+_OWNED: frozenset[str] = frozenset({"owner", "owner_type"})
+_TIMESTAMPED: frozenset[str] = frozenset({"created_time"})
+_TAGGABLE: frozenset[str] = frozenset({"tags"})
+
+
+COMMON_RESOURCE_ATTRIBUTES: frozenset[str] = _IDENTITY | _OWNED | _TIMESTAMPED | _TAGGABLE
+"""Attributes an owned, taggable, timestamped resource exposes. Compute and serving types use
+this; UC, secret, and monitor resources compose narrower sets from the building blocks above."""
+
+
+TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
+    {
+        ResourceType.JOB,
+        ResourceType.CLUSTER,
+        ResourceType.SQL_WAREHOUSE,
+        ResourceType.SERVING_ENDPOINT,
+    }
 )
-"""Attributes every resource snapshot exposes, regardless of resource type."""
+"""Resource types that can carry tags. This is the source of truth for the tag-attribute part
+of the validation framework: a `tags` policy on any other resource type is rejected at author
+time because those types do not include `tags` in their attribute set."""
 
 
 RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
@@ -198,7 +226,10 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "min_num_clusters",
         "max_num_clusters",
     },
-    ResourceType.APP: COMMON_RESOURCE_ATTRIBUTES
+    # Apps cannot be tagged, so this composes the owned/timestamped set without `tags`.
+    ResourceType.APP: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
     | {
         "app_status",
         "compute_status",
@@ -211,6 +242,31 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "budget_policy_id",
         "route_optimized",
     },
+    # Unity Catalog objects are owned and timestamped but their tags are not scanned, so they do
+    # not advertise `tags`.
+    ResourceType.CATALOG: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | {"comment", "catalog_type", "isolation_mode", "storage_root"},
+    ResourceType.SCHEMA: _IDENTITY | _OWNED | _TIMESTAMPED | {"comment", "catalog_name"},
+    ResourceType.VOLUME: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | {"comment", "catalog_name", "schema_name", "volume_type"},
+    ResourceType.REGISTERED_MODEL: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | {"comment", "catalog_name", "schema_name"},
+    ResourceType.EXTERNAL_LOCATION: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | {"comment", "url", "credential_name", "read_only", "isolation_mode"},
+    # Secret scopes expose only a name and a backend type: no owner, tags, or timestamp.
+    ResourceType.SECRET_SCOPE: _IDENTITY | {"backend_type"},
+    # Quality monitors have no list API, so they are enforce-only (evaluated from the bundle,
+    # never live-scanned). Attributes come from the declared monitor.
+    ResourceType.QUALITY_MONITOR: _IDENTITY
+    | {"table_name", "output_schema_name", "monitor_type", "has_schedule"},
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""

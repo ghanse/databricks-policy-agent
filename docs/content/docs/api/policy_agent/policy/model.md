@@ -161,7 +161,14 @@ An immutable compliance policy over a single resource type.
 
 #### COMMON\_RESOURCE\_ATTRIBUTES
 
-Attributes every resource snapshot exposes, regardless of resource type.
+Attributes an owned, taggable, timestamped resource exposes. Compute and serving types use
+this; UC, secret, and monitor resources compose narrower sets from the building blocks above.
+
+#### TAGGABLE\_RESOURCE\_TYPES
+
+Resource types that can carry tags. This is the source of truth for the tag-attribute part
+of the validation framework: a `tags` policy on any other resource type is rejected at author
+time because those types do not include `tags` in their attribute set.
 
 #### RESOURCE\_ATTRIBUTES
 

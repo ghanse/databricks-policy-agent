@@ -17,20 +17,36 @@ Policies target one of the following resource types (the `resource_type` field).
 | `sql_warehouse`    | SQL warehouses                       |
 | `app`              | Databricks Apps                      |
 | `serving_endpoint` | Model serving endpoints              |
+| `catalog`          | Unity Catalog catalogs               |
+| `schema`           | Unity Catalog schemas                |
+| `volume`           | Unity Catalog volumes                |
+| `registered_model` | Unity Catalog registered models      |
+| `external_location`| Unity Catalog external locations     |
+| `secret_scope`     | Secret scopes                        |
+| `quality_monitor`  | Lakehouse Monitoring quality monitors (enforce-only) |
 
 ## Resource attributes
-Rules compare these attributes (the `attribute` field of a leaf). Every resource type exposes the
-common attributes; each type adds its own.
-
-**Common (all resource types):** `id`, `name`, `owner`, `owner_type`, `tags`, `created_time`
+Rules compare these attributes (the `attribute` field of a leaf). Each type advertises only the
+attributes it can actually have — so a policy referencing, for example, `tags` on a resource that
+cannot be tagged is rejected at author time. Attribute sets are composed from building blocks:
+every type has `id` and `name`; **owned** types add `owner`/`owner_type`; **taggable** types
+(`job`, `cluster`, `sql_warehouse`, `serving_endpoint`) add `tags`; **timestamped** types add
+`created_time`.
 
 | Resource type      | Additional attributes                                                                                                          |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| `job`              | `schedule_pause_status`, `max_concurrent_runs`, `timeout_seconds`, `run_as_type`, `has_email_notifications`, `has_retry_policy`, `uses_serverless_compute`, `format` |
-| `cluster`          | `cluster_source`, `autotermination_minutes`, `spark_version`, `node_type_id`, `num_workers`, `data_security_mode`, `single_user_name` |
-| `sql_warehouse`    | `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
-| `app`              | `app_status`, `compute_status`, `active_deployment_mode`                                                                       |
-| `serving_endpoint` | `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                                                       |
+| `job`              | owned, taggable, timestamped + `schedule_pause_status`, `max_concurrent_runs`, `timeout_seconds`, `run_as_type`, `has_email_notifications`, `has_retry_policy`, `uses_serverless_compute`, `format` |
+| `cluster`          | owned, taggable, timestamped + `cluster_source`, `autotermination_minutes`, `spark_version`, `node_type_id`, `num_workers`, `data_security_mode`, `single_user_name` |
+| `sql_warehouse`    | owned, taggable, timestamped + `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
+| `app`              | owned, timestamped (not taggable) + `app_status`, `compute_status`, `active_deployment_mode`                                   |
+| `serving_endpoint` | owned, taggable, timestamped + `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                        |
+| `catalog`          | owned, timestamped + `comment`, `catalog_type`, `isolation_mode`, `storage_root`                                              |
+| `schema`           | owned, timestamped + `comment`, `catalog_name`                                                                                 |
+| `volume`           | owned, timestamped + `comment`, `catalog_name`, `schema_name`, `volume_type`                                                   |
+| `registered_model` | owned, timestamped + `comment`, `catalog_name`, `schema_name`                                                                  |
+| `external_location`| owned, timestamped + `comment`, `url`, `credential_name`, `read_only`, `isolation_mode`                                        |
+| `secret_scope`     | `backend_type` (no owner/tags/timestamp)                                                                                        |
+| `quality_monitor`  | `table_name`, `output_schema_name`, `monitor_type`, `has_schedule` (enforce-only)                                              |
 
 Attributes may use dotted paths to index nested mappings, e.g. `tags.environment`. See
 [Running Scans](/docs/scanning) for how to add a new resource type and its attributes.

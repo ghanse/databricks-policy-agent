@@ -109,6 +109,57 @@ Fetch and normalize every model serving endpoint in the workspace.
 
   One snapshot per serving endpoint.
 
+#### scan\_catalogs
+
+```python
+def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every Unity Catalog catalog in the workspace's metastore.
+
+#### scan\_schemas
+
+```python
+def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every schema across every catalog in the metastore.
+
+#### scan\_volumes
+
+```python
+def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every volume across every schema in the metastore.
+
+#### scan\_registered\_models
+
+```python
+def scan_registered_models(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every Unity Catalog registered model in the metastore.
+
+#### scan\_external\_locations
+
+```python
+def scan_external_locations(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every external location in the metastore.
+
+#### scan\_secret\_scopes
+
+```python
+def scan_secret_scopes(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every secret scope in the workspace.
+
 #### classify\_principal
 
 ```python

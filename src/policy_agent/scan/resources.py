@@ -209,6 +209,150 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
     return snapshots
 
 
+def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every Unity Catalog catalog in the workspace's metastore."""
+    snapshots = []
+    for catalog in workspace_client.catalogs.list():
+        owner = getattr(catalog, "owner", None)
+        name = getattr(catalog, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.CATALOG,
+                id=name,
+                name=name,
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_epoch_seconds(getattr(catalog, "created_at", None)),
+                comment=getattr(catalog, "comment", None),
+                catalog_type=_enum_value(getattr(catalog, "catalog_type", None)),
+                isolation_mode=_enum_value(getattr(catalog, "isolation_mode", None)),
+                storage_root=getattr(catalog, "storage_root", None),
+            )
+        )
+    return snapshots
+
+
+def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every schema across every catalog in the metastore."""
+    snapshots = []
+    for catalog in workspace_client.catalogs.list():
+        catalog_name = getattr(catalog, "name", None)
+        if not catalog_name:
+            continue
+        for schema in workspace_client.schemas.list(catalog_name=catalog_name):
+            owner = getattr(schema, "owner", None)
+            name = getattr(schema, "name", "") or ""
+            snapshots.append(
+                _snapshot(
+                    ResourceType.SCHEMA,
+                    id=getattr(schema, "full_name", None) or f"{catalog_name}.{name}",
+                    name=name,
+                    owner=owner,
+                    owner_type=classify_principal(owner),
+                    created_time=_epoch_seconds(getattr(schema, "created_at", None)),
+                    comment=getattr(schema, "comment", None),
+                    catalog_name=catalog_name,
+                )
+            )
+    return snapshots
+
+
+def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every volume across every schema in the metastore."""
+    snapshots = []
+    for catalog in workspace_client.catalogs.list():
+        catalog_name = getattr(catalog, "name", None)
+        if not catalog_name:
+            continue
+        for schema in workspace_client.schemas.list(catalog_name=catalog_name):
+            schema_name = getattr(schema, "name", None)
+            if not schema_name:
+                continue
+            for volume in workspace_client.volumes.list(
+                catalog_name=catalog_name, schema_name=schema_name
+            ):
+                owner = getattr(volume, "owner", None)
+                name = getattr(volume, "name", "") or ""
+                snapshots.append(
+                    _snapshot(
+                        ResourceType.VOLUME,
+                        id=getattr(volume, "full_name", None)
+                        or f"{catalog_name}.{schema_name}.{name}",
+                        name=name,
+                        owner=owner,
+                        owner_type=classify_principal(owner),
+                        created_time=_epoch_seconds(getattr(volume, "created_at", None)),
+                        comment=getattr(volume, "comment", None),
+                        catalog_name=catalog_name,
+                        schema_name=schema_name,
+                        volume_type=_enum_value(getattr(volume, "volume_type", None)),
+                    )
+                )
+    return snapshots
+
+
+def scan_registered_models(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every Unity Catalog registered model in the metastore."""
+    snapshots = []
+    for model in workspace_client.registered_models.list():
+        owner = getattr(model, "owner", None)
+        name = getattr(model, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.REGISTERED_MODEL,
+                id=getattr(model, "full_name", None) or name,
+                name=name,
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_epoch_seconds(getattr(model, "created_at", None)),
+                comment=getattr(model, "comment", None),
+                catalog_name=getattr(model, "catalog_name", None),
+                schema_name=getattr(model, "schema_name", None),
+            )
+        )
+    return snapshots
+
+
+def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every external location in the metastore."""
+    snapshots = []
+    for location in workspace_client.external_locations.list():
+        owner = getattr(location, "owner", None)
+        name = getattr(location, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.EXTERNAL_LOCATION,
+                id=name,
+                name=name,
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_epoch_seconds(getattr(location, "created_at", None)),
+                comment=getattr(location, "comment", None),
+                url=getattr(location, "url", None),
+                credential_name=getattr(location, "credential_name", None),
+                read_only=getattr(location, "read_only", None),
+                isolation_mode=_enum_value(getattr(location, "isolation_mode", None)),
+            )
+        )
+    return snapshots
+
+
+def scan_secret_scopes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every secret scope in the workspace."""
+    snapshots = []
+    for scope in workspace_client.secrets.list_scopes():
+        name = getattr(scope, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.SECRET_SCOPE,
+                id=name,
+                name=name,
+                backend_type=_enum_value(getattr(scope, "backend_type", None)),
+            )
+        )
+    return snapshots
+
+
 def classify_principal(identifier: str | None) -> str:
     """Classify a principal identifier as a service principal, user, or unknown.
 
