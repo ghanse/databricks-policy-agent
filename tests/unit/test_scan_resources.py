@@ -1,8 +1,10 @@
 from types import SimpleNamespace
 
+from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
     scan_clusters,
+    scan_genie_spaces,
     scan_jobs,
     scan_serving_endpoints,
     scan_sql_warehouses,
@@ -172,3 +174,28 @@ def test_scan_serving_endpoints_reads_nested_state():
     assert attrs["endpoint_state"] == "READY"
     assert attrs["tags"] == {"team": "risk"}
     assert attrs["route_optimized"] is False
+
+
+class _FakeGenie:
+    def __init__(self, spaces):
+        self._spaces = spaces
+
+    def list_spaces(self, page_token=None):
+        # Single page; the scanner stops when next_page_token is falsy.
+        return SimpleNamespace(spaces=list(self._spaces), next_page_token=None)
+
+
+def test_scan_genie_spaces_maps_title_and_description():
+    documented = SimpleNamespace(
+        space_id="sp-1", title="Sales Genie", description="Ask about sales", warehouse_id="wh-9"
+    )
+    bare = SimpleNamespace(space_id="sp-2", title="Bare", description=None, warehouse_id=None)
+    by_id = {s.resource_id: s for s in scan_genie_spaces(_ws(genie=_FakeGenie([documented, bare])))}
+    assert set(by_id) == {"sp-1", "sp-2"}
+    assert by_id["sp-1"].resource_type is ResourceType.GENIE_SPACE
+    attrs = by_id["sp-1"].attributes
+    assert attrs["name"] == "Sales Genie"
+    assert attrs["warehouse_id"] == "wh-9"
+    assert attrs["description"] == "Ask about sales"
+    assert attrs["has_description"] is True
+    assert by_id["sp-2"].attributes["has_description"] is False

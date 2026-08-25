@@ -17,12 +17,15 @@ Policies target one of the following resource types (the `resource_type` field).
 | `sql_warehouse`    | SQL warehouses                       |
 | `app`              | Databricks Apps                      |
 | `serving_endpoint` | Model serving endpoints              |
+| `genie_space`      | Genie spaces                         |
 
 ## Resource attributes
-Rules compare these attributes (the `attribute` field of a leaf). Every resource type exposes the
-common attributes; each type adds its own.
+Rules compare these attributes (the `attribute` field of a leaf). Most resource types expose the
+common attributes; each type adds its own. A type only advertises attributes it can actually have,
+so a policy that references, say, `tags` on a resource that cannot be tagged is rejected at author
+time.
 
-**Common (all resource types):** `id`, `name`, `owner`, `owner_type`, `tags`, `created_time`
+**Common (most resource types):** `id`, `name`, `owner`, `owner_type`, `tags`, `created_time`
 
 | Resource type      | Additional attributes                                                                                                          |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------|
@@ -31,6 +34,7 @@ common attributes; each type adds its own.
 | `sql_warehouse`    | `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
 | `app`              | `app_status`, `compute_status`, `active_deployment_mode`                                                                       |
 | `serving_endpoint` | `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                                                       |
+| `genie_space`      | `warehouse_id`, `description`, `has_description` (no `owner`/`tags`/`created_time` — Genie spaces have none) |
 
 Attributes may use dotted paths to index nested mappings, e.g. `tags.environment`. See
 [Running Scans](/docs/scanning) for how to add a new resource type and its attributes.

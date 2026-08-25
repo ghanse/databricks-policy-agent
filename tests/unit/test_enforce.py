@@ -154,6 +154,30 @@ def test_snapshot_bundle_maps_declared_serving_endpoints():
     assert {f.resource_id for f in result.blocking} == {"llm"}
 
 
+def test_snapshot_bundle_maps_declared_genie_spaces():
+    config = {
+        "resources": {
+            "genie_spaces": {
+                "sales": {"title": "Sales", "warehouse_id": "wh-1", "description": "Sales Q&A"},
+                "adhoc": {"title": "Adhoc", "warehouse_id": "wh-2"},
+            }
+        }
+    }
+    by_id = {s.resource_id: s for s in snapshot_bundle(config)}
+    assert set(by_id) == {"sales", "adhoc"}
+    assert by_id["sales"].resource_type is ResourceType.GENIE_SPACE
+    assert by_id["sales"].attributes["name"] == "Sales"
+    assert by_id["sales"].attributes["warehouse_id"] == "wh-1"
+    assert by_id["sales"].attributes["has_description"] is True
+    assert by_id["adhoc"].attributes["has_description"] is False
+
+    # A Genie space without a description violates a "must be documented" policy.
+    documented = allow("genie-documented", "genie_space", leaf("has_description", "equals", True))
+    result = run_gate([documented], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"adhoc"}
+
+
 def test_snapshot_bundle_derives_job_task_attributes():
     # has_retry_policy / uses_serverless_compute come from the declared tasks, matching the
     # live scanner; otherwise they default to None and every job falsely violates such policies.

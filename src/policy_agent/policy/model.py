@@ -20,6 +20,7 @@ class ResourceType(str, Enum):
     SQL_WAREHOUSE = "sql_warehouse"
     APP = "app"
     SERVING_ENDPOINT = "serving_endpoint"
+    GENIE_SPACE = "genie_space"
 
 
 class Effect(str, Enum):
@@ -211,6 +212,18 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "budget_policy_id",
         "route_optimized",
     },
+    # Genie spaces expose neither an owner nor tags, so they intentionally do NOT inherit
+    # COMMON_RESOURCE_ATTRIBUTES; advertising `tags`/`owner` here would let a policy reference
+    # attributes the resource can never have. Only the attributes the Genie API returns are listed.
+    ResourceType.GENIE_SPACE: frozenset(
+        {
+            "id",
+            "name",
+            "warehouse_id",
+            "description",
+            "has_description",
+        }
+    ),
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""

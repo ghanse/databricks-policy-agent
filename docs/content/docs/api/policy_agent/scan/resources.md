@@ -109,6 +109,24 @@ Fetch and normalize every model serving endpoint in the workspace.
 
   One snapshot per serving endpoint.
 
+#### scan\_genie\_spaces
+
+```python
+def scan_genie_spaces(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetch and normalize every Genie space in the workspace.
+
+**Arguments**:
+
+- `workspace_client` - An authenticated Databricks workspace client.
+  
+
+**Returns**:
+
+  One snapshot per Genie space.
+
 #### classify\_principal
 
 ```python

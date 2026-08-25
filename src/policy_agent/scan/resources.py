@@ -209,6 +209,37 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
     return snapshots
 
 
+def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every Genie space in the workspace.
+
+    Args:
+        workspace_client: An authenticated Databricks workspace client.
+
+    Returns:
+        One snapshot per Genie space.
+    """
+    snapshots = []
+    page_token: str | None = None
+    while True:
+        response = workspace_client.genie.list_spaces(page_token=page_token)
+        for space in getattr(response, "spaces", None) or []:
+            title = getattr(space, "title", "") or ""
+            description = getattr(space, "description", None)
+            snapshots.append(
+                _snapshot(
+                    ResourceType.GENIE_SPACE,
+                    id=str(getattr(space, "space_id", "")),
+                    name=title,
+                    warehouse_id=getattr(space, "warehouse_id", None),
+                    description=description,
+                    has_description=bool(description),
+                )
+            )
+        page_token = getattr(response, "next_page_token", None)
+        if not page_token:
+            return snapshots
+
+
 def classify_principal(identifier: str | None) -> str:
     """Classify a principal identifier as a service principal, user, or unknown.
 

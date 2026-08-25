@@ -5,6 +5,7 @@ import pytest
 from policy_agent.policy import allow, leaf
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan import run_scan
+from policy_agent.scan.engine import collect_snapshots
 
 
 @pytest.mark.integration
@@ -131,3 +132,25 @@ def test_scan_flags_job_without_retry_policy_or_serverless_compute(ws, make_job,
     )
     serverless_result = run_scan(ws, [must_be_serverless], [ResourceType.JOB])
     assert str(job.job_id) in {f.resource_id for f in serverless_result.violations}
+
+
+@pytest.mark.integration
+def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
+    """Scanning real Genie spaces produces well-formed snapshots (a schema-drift guard).
+
+    Genie spaces have no pytester fixture and cannot be created programmatically here, so this
+    skips when the workspace has none rather than asserting on a fixture we control.
+    """
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.GENIE_SPACE])[ResourceType.GENIE_SPACE]
+    if not snapshots:
+        pytest.skip("no Genie spaces in the workspace to evaluate")
+
+    documented = allow(
+        "genie-space-documented",
+        ResourceType.GENIE_SPACE,
+        leaf("has_description", "equals", True),
+    )
+    result = run_scan(ws, [documented], [ResourceType.GENIE_SPACE])
+    assert result.summary().evaluated == len(snapshots)
+    assert all(isinstance(s.attributes["has_description"], bool) for s in snapshots)
