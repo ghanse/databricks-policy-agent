@@ -17,6 +17,7 @@ Policies target one of the following resource types (the `resource_type` field).
 | `sql_warehouse`    | SQL warehouses                       |
 | `app`              | Databricks Apps                      |
 | `serving_endpoint` | Model serving endpoints              |
+| `pipeline`         | Lakeflow Spark Declarative Pipelines |
 
 ## Resource attributes
 Rules compare these attributes (the `attribute` field of a leaf). Every resource type exposes the
@@ -31,6 +32,7 @@ common attributes; each type adds its own.
 | `sql_warehouse`    | `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
 | `app`              | `app_status`, `compute_status`, `active_deployment_mode`                                                                       |
 | `serving_endpoint` | `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                                                       |
+| `pipeline`         | `catalog`, `target`, `schema`, `channel`, `edition`, `continuous`, `photon`, `serverless`, `development`                        |
 
 Attributes may use dotted paths to index nested mappings, e.g. `tags.environment`. See
 [Running Scans](/docs/scanning) for how to add a new resource type and its attributes.

@@ -209,6 +209,49 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
     return snapshots
 
 
+def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetch and normalize every Lakeflow (Spark Declarative) pipeline in the workspace.
+
+    ``list_pipelines`` returns only summary fields (name, creator, state); the declarable
+    settings (catalog, edition, continuous, serverless, ...) live on the pipeline spec, so each
+    pipeline is fetched with ``get`` to read them.
+
+    Args:
+        workspace_client: An authenticated Databricks workspace client.
+
+    Returns:
+        One snapshot per pipeline.
+    """
+    snapshots = []
+    for pipeline in workspace_client.pipelines.list_pipelines():
+        pipeline_id = getattr(pipeline, "pipeline_id", "") or ""
+        creator = getattr(pipeline, "creator_user_name", None)
+        spec = None
+        if pipeline_id:
+            spec = getattr(workspace_client.pipelines.get(pipeline_id), "spec", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.PIPELINE,
+                id=str(pipeline_id),
+                name=getattr(pipeline, "name", None) or getattr(spec, "name", "") or "",
+                owner=creator,
+                owner_type=classify_principal(creator),
+                tags=_normalize_tags(getattr(spec, "tags", None)),
+                created_time=None,
+                catalog=getattr(spec, "catalog", None),
+                target=getattr(spec, "target", None),
+                schema=getattr(spec, "schema", None),
+                channel=getattr(spec, "channel", None),
+                edition=getattr(spec, "edition", None),
+                continuous=getattr(spec, "continuous", None),
+                photon=getattr(spec, "photon", None),
+                serverless=getattr(spec, "serverless", None),
+                development=getattr(spec, "development", None),
+            )
+        )
+    return snapshots
+
+
 def classify_principal(identifier: str | None) -> str:
     """Classify a principal identifier as a service principal, user, or unknown.
 

@@ -1,9 +1,11 @@
 from types import SimpleNamespace
 
+from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
     scan_clusters,
     scan_jobs,
+    scan_pipelines,
     scan_serving_endpoints,
     scan_sql_warehouses,
 )
@@ -172,3 +174,46 @@ def test_scan_serving_endpoints_reads_nested_state():
     assert attrs["endpoint_state"] == "READY"
     assert attrs["tags"] == {"team": "risk"}
     assert attrs["route_optimized"] is False
+
+
+class _FakePipelines:
+    def __init__(self, pipelines, specs):
+        self._pipelines = pipelines
+        self._specs = specs
+
+    def list_pipelines(self):
+        return list(self._pipelines)
+
+    def get(self, pipeline_id):
+        # The scanner fetches the full spec per pipeline; return the matching one.
+        return SimpleNamespace(spec=self._specs.get(pipeline_id))
+
+
+def test_scan_pipelines_reads_spec_fields():
+    info = SimpleNamespace(
+        pipeline_id="p-1", name="prod_etl", creator_user_name="alice@example.com"
+    )
+    spec = SimpleNamespace(
+        name="prod_etl",
+        tags={"team": "data"},
+        catalog="main",
+        target=None,
+        schema="analytics",
+        channel="CURRENT",
+        edition="ADVANCED",
+        continuous=False,
+        photon=True,
+        serverless=True,
+        development=False,
+    )
+    (snapshot,) = scan_pipelines(_ws(pipelines=_FakePipelines([info], {"p-1": spec})))
+    assert snapshot.resource_type is ResourceType.PIPELINE
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_etl"
+    assert attrs["owner_type"] == "user"
+    assert attrs["tags"] == {"team": "data"}
+    assert attrs["catalog"] == "main"
+    assert attrs["schema"] == "analytics"
+    assert attrs["edition"] == "ADVANCED"
+    assert attrs["serverless"] is True
+    assert attrs["continuous"] is False

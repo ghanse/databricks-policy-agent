@@ -131,3 +131,20 @@ def test_scan_flags_job_without_retry_policy_or_serverless_compute(ws, make_job,
     )
     serverless_result = run_scan(ws, [must_be_serverless], [ResourceType.JOB])
     assert str(job.job_id) in {f.resource_id for f in serverless_result.violations}
+
+
+@pytest.mark.integration
+def test_scan_evaluates_pipeline_naming_policy(ws, make_pipeline, make_random):
+    """A pipeline created with a conforming name is compliant with a naming policy."""
+    suffix = make_random(6).lower()
+    pipeline = make_pipeline(name=f"dev_{suffix}")
+
+    naming = allow(
+        "pipeline-naming",
+        ResourceType.PIPELINE,
+        leaf("name", "matches_regex", r"^dev_[a-z0-9]+$"),
+    )
+    result = run_scan(ws, [naming], [ResourceType.PIPELINE])
+
+    compliant_ids = {f.resource_id for f in result.findings if f.compliant}
+    assert str(pipeline.pipeline_id) in compliant_ids

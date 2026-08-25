@@ -15,6 +15,7 @@ from policy_agent.scan.resources import (
     scan_apps,
     scan_clusters,
     scan_jobs,
+    scan_pipelines,
     scan_serving_endpoints,
     scan_sql_warehouses,
 )
@@ -31,6 +32,7 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.SQL_WAREHOUSE: scan_sql_warehouses,
     ResourceType.APP: scan_apps,
     ResourceType.SERVING_ENDPOINT: scan_serving_endpoints,
+    ResourceType.PIPELINE: scan_pipelines,
 }
 """The resource types the framework can scan, keyed to their fetch functions."""
 

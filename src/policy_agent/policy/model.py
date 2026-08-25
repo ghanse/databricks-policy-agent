@@ -20,6 +20,7 @@ class ResourceType(str, Enum):
     SQL_WAREHOUSE = "sql_warehouse"
     APP = "app"
     SERVING_ENDPOINT = "serving_endpoint"
+    PIPELINE = "pipeline"
 
 
 class Effect(str, Enum):
@@ -210,6 +211,18 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "endpoint_type",
         "budget_policy_id",
         "route_optimized",
+    },
+    ResourceType.PIPELINE: COMMON_RESOURCE_ATTRIBUTES
+    | {
+        "catalog",
+        "target",
+        "schema",
+        "channel",
+        "edition",
+        "continuous",
+        "photon",
+        "serverless",
+        "development",
     },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
