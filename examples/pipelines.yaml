@@ -1,0 +1,33 @@
+# Lakeflow Spark Declarative Pipeline policies.
+policy: pipelines-must-use-unity-catalog
+description: Pipelines must publish to a Unity Catalog catalog rather than the legacy Hive metastore.
+resource_type: pipeline
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: catalog, operator: exists }
+remediation: Set the pipeline's `catalog` (and `schema`) to publish to Unity Catalog.
+---
+policy: pipelines-should-be-serverless
+description: Pipelines should run on serverless compute.
+resource_type: pipeline
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: serverless, operator: equals, value: true }
+remediation: Enable serverless compute for the pipeline.
+---
+policy: production-pipelines-not-in-development-mode
+description: Production pipelines must not be deployed in development mode.
+resource_type: pipeline
+effect: deny
+enforcement_level: hard
+match:
+  all:
+    - { attribute: name, operator: matches_regex, value: "^prod_.+$" }
+rule:
+  all:
+    - { attribute: development, operator: equals, value: true }
+remediation: "Deploy the pipeline in production mode (development: false)."

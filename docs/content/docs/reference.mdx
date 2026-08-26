@@ -8,34 +8,35 @@ This page provides a reference for the options supported by the policy agent.
 ## Resource types
 Policies target one of the following resource types.
 
-| Resource type      | Description                          |
-|--------------------|--------------------------------------|
-| `job`              | Databricks Lakeflow Jobs             |
-| `cluster`          | All-purpose compute clusters         |
-| `sql_warehouse`    | SQL warehouses                       |
-| `app`              | Databricks Apps                      |
-| `serving_endpoint` | Model serving endpoints              |
-| `genie_space`      | Genie spaces                         |
-
-## Resource attributes
-Rules check that resource attributes comply with a specific policy. Each resource type exposes both 
-common and type-specific attributes. A type only advertises valid resource attributes.
+| Resource type      | Description                  |
+|--------------------|------------------------------|
+| `job`              | Databricks Lakeflow Jobs     |
+| `cluster`          | All-purpose compute clusters |
+| `sql_warehouse`    | SQL warehouses               |
+| `app`              | Databricks Apps              |
+| `serving_endpoint` | Model serving endpoints      |
+| `genie_space`      | Genie spaces                 |
+| `pipeline`         | Spark Declarative Pipelines  |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
 See [Adding a resource type](/docs/scanning#adding-a-resource-type).
 </Callout>
 
+## Resource attributes
+Rules check that resource attributes comply with a specific policy. Each resource type exposes both 
+common and type-specific attributes. A type only advertises valid resource attributes.
+
 ### Common attributes
 
-| Field name     | Description                                                                 |
-|----------------|-----------------------------------------------------------------------------|
-| `id`           | System-assigned resource identifier                                         |
-| `name`         | User-assigned resource identifier                                           |
-| `owner`        | Resource owner principal (e.g. a user or service principal)                 |
+| Field name     | Description                                                                  |
+|----------------|------------------------------------------------------------------------------|
+| `id`           | System-assigned resource identifier                                          |
+| `name`         | User-assigned resource identifier                                            |
+| `owner`        | Resource owner principal (e.g. a user or service principal)                  |
 | `owner_type`   | Resource owner principal type (e.g. "user", "group", or "service_principal") |
-| `created_time` | Date and time when the resource was created                                 |
-| `tags`         | User-assigned key-value pairs                                               |
+| `created_time` | Date and time when the resource was created                                  |
+| `tags`         | User-assigned key-value pairs                                                |
 
 ### Job attributes
 
@@ -102,6 +103,20 @@ See [Adding a resource type](/docs/scanning#adding-a-resource-type).
 <Callout type="warn" title="Unsupported common attributes for Genie spaces">
 Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` attributes.
 </Callout>
+
+### Spark Declarative Pipelines attributes
+
+| Field name    | Description                                                                 |
+|---------------|-----------------------------------------------------------------------------|
+| `catalog`     | Unity Catalog catalog the pipeline publishes tables to                      |
+| `schema`      | Unity Catalog schema the pipeline publishes tables to                       |
+| `target`      | Hive metastore target schema the pipeline publishes tables to (legacy)      |
+| `channel`     | Databricks Runtime release channel (e.g. "CURRENT" or "PREVIEW")            |
+| `edition`     | Product edition of the pipeline (e.g. "CORE", "PRO", "ADVANCED")            |
+| `continuous`  | Whether the pipeline runs continuously rather than on a trigger             |
+| `photon`      | Whether Photon acceleration is enabled                                      |
+| `serverless`  | Whether the pipeline uses serverless compute                                |
+| `development` | Whether the pipeline runs in development mode                               |
 
 ## Operators
 Leaf comparisons use one of the following operators.

@@ -24,6 +24,7 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "sql_warehouses": ResourceType.SQL_WAREHOUSE,
     "apps": ResourceType.APP,
     "model_serving_endpoints": ResourceType.SERVING_ENDPOINT,
+    "pipelines": ResourceType.PIPELINE,
     "genie_spaces": ResourceType.GENIE_SPACE,
 }
 
@@ -140,6 +141,21 @@ def _serving_endpoint_attributes(key: str, definition: dict[str, Any]) -> dict[s
     }
 
 
+def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, definition.get("tags")),
+        "catalog": definition.get("catalog"),
+        "target": definition.get("target"),
+        "schema": definition.get("schema"),
+        "channel": definition.get("channel"),
+        "edition": definition.get("edition"),
+        "continuous": definition.get("continuous"),
+        "photon": definition.get("photon"),
+        "serverless": definition.get("serverless"),
+        "development": definition.get("development"),
+    }
+
+
 def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     # NOTE: Genie spaces have no owner or tags, so this does not use _common
     description = definition.get("description")
@@ -202,5 +218,6 @@ _COMMON = {
     ResourceType.SQL_WAREHOUSE: _sql_warehouse_attributes,
     ResourceType.APP: _app_attributes,
     ResourceType.SERVING_ENDPOINT: _serving_endpoint_attributes,
+    ResourceType.PIPELINE: _pipeline_attributes,
     ResourceType.GENIE_SPACE: _genie_space_attributes,
 }

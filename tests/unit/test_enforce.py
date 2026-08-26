@@ -154,6 +154,43 @@ def test_snapshot_bundle_maps_declared_serving_endpoints():
     assert {f.resource_id for f in result.blocking} == {"llm"}
 
 
+def test_snapshot_bundle_maps_declared_pipelines():
+    config = {
+        "resources": {
+            "pipelines": {
+                "ingest": {
+                    "name": "prod_ingest",
+                    "catalog": "main",
+                    "schema": "bronze",
+                    "edition": "ADVANCED",
+                    "serverless": True,
+                    "continuous": False,
+                    "tags": {"team": "data"},
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.PIPELINE
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_ingest"
+    assert attrs["catalog"] == "main"
+    assert attrs["schema"] == "bronze"
+    assert attrs["serverless"] is True
+    assert attrs["tags"] == {"team": "data"}
+
+    # A non-serverless pipeline violates a "must be serverless" policy.
+    must_be_serverless = allow(
+        "pipeline-serverless", "pipeline", leaf("serverless", "equals", True)
+    )
+    classic = {"resources": {"pipelines": {"legacy": {"name": "legacy", "serverless": False}}}}
+    result = run_gate(
+        [must_be_serverless], snapshot_bundle(classic), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"legacy"}
+
+
 def test_snapshot_bundle_maps_declared_genie_spaces():
     config = {
         "resources": {

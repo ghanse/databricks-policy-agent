@@ -75,6 +75,7 @@ def test_supported_resource_types_match_registry():
         ResourceType.SQL_WAREHOUSE,
         ResourceType.APP,
         ResourceType.SERVING_ENDPOINT,
+        ResourceType.PIPELINE,
         ResourceType.GENIE_SPACE,
     }
 

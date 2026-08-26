@@ -135,6 +135,27 @@ def test_scan_flags_job_without_retry_policy_or_serverless_compute(ws, make_job,
 
 
 @pytest.mark.integration
+def test_scan_evaluates_pipeline_naming_policy(
+    ws, make_catalog, make_schema, make_pipeline, make_random
+):
+    """A pipeline created with a conforming name is compliant with a naming policy."""
+    suffix = make_random(6).lower()
+    catalog = make_catalog(name="test")
+    schema = make_schema(catalog_name=catalog.name)
+    pipeline = make_pipeline(name=f"dev_{suffix}", catalog=catalog.name, schema=schema.name)
+
+    naming = allow(
+        "pipeline-naming",
+        ResourceType.PIPELINE,
+        leaf("name", "matches_regex", r"^dev_[a-z0-9]+$"),
+    )
+    result = run_scan(ws, [naming], [ResourceType.PIPELINE])
+
+    compliant_ids = {f.resource_id for f in result.findings if f.compliant}
+    assert str(pipeline.pipeline_id) in compliant_ids
+
+
+@pytest.mark.integration
 def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     """Scanning real Genie spaces produces well-formed snapshots (a schema-drift guard)."""
     env_or_skip("DATABRICKS_HOST")

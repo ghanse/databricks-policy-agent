@@ -44,9 +44,9 @@ def scan_jobs(
     Args:
         workspace_client: Databricks workspace client.
         expand_tasks: Whether to fetch full task definitions. Required to populate the
-            `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
-            as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
-            to ``True`` so direct and inventory callers get complete snapshots.
+            `TASK_DERIVED_JOB_ATTRIBUTES`; when *False* those attributes are reported
+            as *None* rather than a value guessed from tasks that were not fetched. Defaults
+            to *True* so direct and inventory callers get complete snapshots.
 
     Returns:
         A list of *ResourceSnapshots* for each job.
@@ -205,6 +205,50 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
                 endpoint_type=_enum_value(getattr(endpoint, "endpoint_type", None)),
                 budget_policy_id=getattr(endpoint, "budget_policy_id", None),
                 route_optimized=getattr(endpoint, "route_optimized", None),
+            )
+        )
+    return snapshots
+
+
+def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every Spark Declarative pipeline in the workspace.
+
+    Note:
+        *list_pipelines* returns only summary attributes (e.g. name, creator, state). Because
+        some attributes (e.g. catalog, edition, continuous, serverless) are part of the pipeline
+        spec, each pipeline is fetched with *get* to read its attributes.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each serving endpoint.
+    """
+    snapshots = []
+    for pipeline in workspace_client.pipelines.list_pipelines():
+        pipeline_id = getattr(pipeline, "pipeline_id", "") or ""
+        creator = getattr(pipeline, "creator_user_name", None)
+        spec = None
+        if pipeline_id:
+            spec = getattr(workspace_client.pipelines.get(pipeline_id), "spec", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.PIPELINE,
+                id=str(pipeline_id),
+                name=getattr(pipeline, "name", None) or getattr(spec, "name", "") or "",
+                owner=creator,
+                owner_type=classify_principal(creator),
+                tags=_normalize_tags(getattr(spec, "tags", None)),
+                created_time=None,
+                catalog=getattr(spec, "catalog", None),
+                target=getattr(spec, "target", None),
+                schema=getattr(spec, "schema", None),
+                channel=getattr(spec, "channel", None),
+                edition=getattr(spec, "edition", None),
+                continuous=getattr(spec, "continuous", None),
+                photon=getattr(spec, "photon", None),
+                serverless=getattr(spec, "serverless", None),
+                development=getattr(spec, "development", None),
             )
         )
     return snapshots

@@ -20,6 +20,7 @@ class ResourceType(str, Enum):
     SQL_WAREHOUSE = "sql_warehouse"
     APP = "app"
     SERVING_ENDPOINT = "serving_endpoint"
+    PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
 
 
@@ -211,6 +212,18 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "endpoint_type",
         "budget_policy_id",
         "route_optimized",
+    },
+    ResourceType.PIPELINE: COMMON_RESOURCE_ATTRIBUTES
+    | {
+        "catalog",
+        "target",
+        "schema",
+        "channel",
+        "edition",
+        "continuous",
+        "photon",
+        "serverless",
+        "development",
     },
     # NOTE: Genie spaces have neither an owner nor tags, so they intentionally do NOT inherit
     # COMMON_RESOURCE_ATTRIBUTES.
