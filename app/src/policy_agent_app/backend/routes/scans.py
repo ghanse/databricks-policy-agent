@@ -1,4 +1,4 @@
-"""Scan trigger and result endpoints."""
+"""Scans trigger and result endpoints."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def trigger_scan(
     config: PolicyAgentConfig = Depends(get_config),
     workspace_client=Depends(get_workspace_client),
 ) -> dict[str, Any]:
-    """Run a scan of the approved policies (optionally a subset) and return its summary."""
+    """Runs a scan of the approved policies (optionally a subset) and return its summary."""
     policies = load_policies(executor, config.storage, status=PolicyStatus.APPROVED)
     if body.policy_names:
         wanted = set(body.policy_names)
@@ -60,7 +60,7 @@ def list_scans(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """List scan header rows, most recent first."""
+    """Lists scan header rows, most recent first."""
     return read_scans(executor, config.storage)
 
 
@@ -71,7 +71,7 @@ def scan_findings(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """Return the findings for a single scan."""
+    """Returns the findings for a single scan."""
     return [
         finding_to_dict(finding) for finding in read_findings(executor, config.storage, scan_id)
     ]

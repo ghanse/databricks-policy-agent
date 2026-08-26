@@ -3,7 +3,7 @@ sidebar_label: resources
 title: policy_agent.scan.resources
 ---
 
-Fetch workspace resources and normalize them into evaluable snapshots.
+Fetches workspace resources and normalizes them into evaluable snapshots.
 
 Each ``scan_*`` function reads one resource type from a `WorkspaceClient` and maps
 every resource to the flat attribute set declared in
@@ -24,11 +24,11 @@ def scan_jobs(workspace_client: WorkspaceClient,
               expand_tasks: bool = True) -> list[ResourceSnapshot]
 ```
 
-Fetch and normalize every job in the workspace.
+Fetches and normalizes every job in the workspace.
 
 **Arguments**:
 
-- `workspace_client` - An authenticated Databricks workspace client.
+- `workspace_client` - Databricks workspace client.
 - `expand_tasks` - Whether to fetch full task definitions. Required to populate the
   `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
   as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
@@ -37,7 +37,7 @@ Fetch and normalize every job in the workspace.
 
 **Returns**:
 
-  One snapshot per job.
+  A list of *ResourceSnapshots* for each job.
 
 #### scan\_clusters
 
@@ -45,16 +45,16 @@ Fetch and normalize every job in the workspace.
 def scan_clusters(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
 ```
 
-Fetch and normalize every all-purpose cluster in the workspace.
+Fetches and normalizes every all-purpose cluster in the workspace.
 
 **Arguments**:
 
-- `workspace_client` - An authenticated Databricks workspace client.
+- `workspace_client` - Databricks workspace client.
   
 
 **Returns**:
 
-  One snapshot per cluster.
+  A list of *ResourceSnapshots* for each cluster.
 
 #### scan\_sql\_warehouses
 
@@ -63,16 +63,16 @@ def scan_sql_warehouses(
         workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
 ```
 
-Fetch and normalize every SQL warehouse in the workspace.
+Fetches and normalizes every SQL warehouse in the workspace.
 
 **Arguments**:
 
-- `workspace_client` - An authenticated Databricks workspace client.
+- `workspace_client` - Databricks workspace client.
   
 
 **Returns**:
 
-  One snapshot per SQL warehouse.
+  A list of *ResourceSnapshots* for each SQL warehouse.
 
 #### scan\_apps
 
@@ -80,16 +80,16 @@ Fetch and normalize every SQL warehouse in the workspace.
 def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
 ```
 
-Fetch and normalize every Databricks App in the workspace.
+Fetches and normalizes every Databricks App in the workspace.
 
 **Arguments**:
 
-- `workspace_client` - An authenticated Databricks workspace client.
+- `workspace_client` - Databricks workspace client.
   
 
 **Returns**:
 
-  One snapshot per app.
+  A list of *ResourceSnapshots* for each app.
 
 #### scan\_serving\_endpoints
 
@@ -98,16 +98,16 @@ def scan_serving_endpoints(
         workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
 ```
 
-Fetch and normalize every model serving endpoint in the workspace.
+Fetches and normalizes every model serving endpoint in the workspace.
 
 **Arguments**:
 
-- `workspace_client` - An authenticated Databricks workspace client.
+- `workspace_client` - Databricks workspace client.
   
 
 **Returns**:
 
-  One snapshot per serving endpoint.
+  A list of *ResourceSnapshots* for each serving endpoint.
 
 #### scan\_genie\_spaces
 
@@ -116,16 +116,16 @@ def scan_genie_spaces(
         workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
 ```
 
-Fetch and normalize every Genie space in the workspace.
+Fetches and normalizes every Genie space in the workspace.
 
 **Arguments**:
 
-- `workspace_client` - An authenticated Databricks workspace client.
+- `workspace_client` - Databricks workspace client.
   
 
 **Returns**:
 
-  One snapshot per Genie space.
+  A list of *ResourceSnapshots* for each Genie space.
 
 #### classify\_principal
 
@@ -133,11 +133,11 @@ Fetch and normalize every Genie space in the workspace.
 def classify_principal(identifier: str | None) -> str
 ```
 
-Classify a principal identifier as a service principal, user, or unknown.
+Classifies a principal identifier as a service principal or user.
 
 **Arguments**:
 
-- `identifier` - A principal identifier such as a user email or SP application id.
+- `identifier` - A principal identifier such as a user email or application id.
   
 
 **Returns**:

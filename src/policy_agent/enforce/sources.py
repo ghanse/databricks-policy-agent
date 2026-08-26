@@ -1,4 +1,4 @@
-"""Map a resolved bundle configuration into evaluable resource snapshots.
+"""Maps a resolved bundle configuration into evaluable resource snapshots.
 
 Each declared resource under ``resources.<group>.<key>`` is normalised into the same
 `ResourceSnapshot` shape produced by a live scan, so the enforcement gate reuses the
@@ -29,7 +29,7 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
 
 
 def snapshot_bundle(config: dict[str, Any]) -> list[ResourceSnapshot]:
-    """Build resource snapshots from a resolved bundle configuration.
+    """Builds resource snapshots from a resolved bundle configuration.
 
     Args:
         config: A resolved bundle configuration (see `load_bundle_config`).
@@ -141,8 +141,7 @@ def _serving_endpoint_attributes(key: str, definition: dict[str, Any]) -> dict[s
 
 
 def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
-    # Genie spaces have no owner or tags, so this does not use _common; it returns exactly the
-    # attributes the GENIE_SPACE type declares.
+    # NOTE: Genie spaces have no owner or tags, so this does not use _common
     description = definition.get("description")
     return {
         "id": key,

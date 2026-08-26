@@ -1,6 +1,10 @@
 import pytest
 
-from policy_agent.errors import InvalidPolicyError, UnknownConditionError
+from policy_agent.errors import (
+    InvalidPolicyError,
+    UnknownConditionError,
+    UnsupportedResourceException,
+)
 from policy_agent.policy import (
     Effect,
     EnforcementLevel,
@@ -122,7 +126,7 @@ def test_load_rejects_missing_required_key():
 
 
 def test_load_rejects_unknown_resource_type():
-    with pytest.raises(InvalidPolicyError):
+    with pytest.raises(UnsupportedResourceException):
         policy_from_dict(
             {
                 "policy": "x",

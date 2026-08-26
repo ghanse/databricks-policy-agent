@@ -54,7 +54,7 @@ A logical table definition shared by both backends.
 def create_namespace_statements(config: StorageConfig) -> list[str]
 ```
 
-Build the statements that create the catalog/schema and apply object tags.
+Builds the statements that create the catalog/schema and apply object tags.
 
 **Arguments**:
 
@@ -71,7 +71,7 @@ Build the statements that create the catalog/schema and apply object tags.
 def create_table_statements(config: StorageConfig) -> list[str]
 ```
 
-Build ``CREATE TABLE`` (and tag) statements for every table.
+Builds ``CREATE TABLE`` (and tag) statements for every table.
 
 **Arguments**:
 
@@ -89,7 +89,7 @@ def insert_statement(config: StorageConfig, table_name: str,
                      row: dict[str, Any]) -> tuple[str, dict[str, Any]]
 ```
 
-Build a parameterized ``INSERT`` for one row.
+Builds a parameterized ``INSERT`` for one row.
 
 **Arguments**:
 
@@ -109,7 +109,7 @@ def delete_statement(config: StorageConfig, table_name: str,
                      key: dict[str, Any]) -> tuple[str, dict[str, Any]]
 ```
 
-Build a parameterized ``DELETE`` matching the given key columns.
+Builds a parameterized ``DELETE`` matching the given key columns.
 
 **Arguments**:
 
@@ -132,7 +132,7 @@ def select_statement(
         order_by: str | None = None) -> tuple[str, dict[str, Any]]
 ```
 
-Build a parameterized ``SELECT *`` with an optional equality filter and ordering.
+Builds a parameterized ``SELECT *`` with an optional equality filter and ordering.
 
 **Arguments**:
 

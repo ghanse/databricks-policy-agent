@@ -14,5 +14,5 @@ schedule. The only difference is the recorded trigger label.
 def main() -> None
 ```
 
-Run the scheduled scan of every approved policy and exit with its status code.
+Runs the scheduled scan of every approved policy and exits with its status code.
 

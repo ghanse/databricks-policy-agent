@@ -133,7 +133,7 @@ The subset of findings that are violations.
 def summary() -> ScanSummary
 ```
 
-Compute the aggregated summary for this scan.
+Computes the aggregated summary for this scan.
 
 **Returns**:
 

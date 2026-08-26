@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 
 
 def get_config(request: Request) -> PolicyAgentConfig:
-    """Return the runtime configuration built at startup.
+    """Returns the runtime configuration built at startup.
 
     Args:
         request: The incoming request.
@@ -30,7 +30,7 @@ def get_config(request: Request) -> PolicyAgentConfig:
 
 
 def get_executor(request: Request) -> SqlExecutor:
-    """Return the storage executor built at startup.
+    """Returns the storage executor built at startup.
 
     Args:
         request: The incoming request.
@@ -42,7 +42,7 @@ def get_executor(request: Request) -> SqlExecutor:
 
 
 def get_workspace_client(request: Request) -> WorkspaceClient:
-    """Return the workspace client built at startup.
+    """Returns the workspace client built at startup.
 
     Args:
         request: The incoming request.

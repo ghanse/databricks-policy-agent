@@ -36,7 +36,7 @@ _LOCAL_DEV_USER = "local-dev@databricks.com"
 
 
 def current_user(request: Request) -> str:
-    """Return the signed-in user's email from the forwarded identity header.
+    """Returns the signed-in user's email from the forwarded identity header.
 
     Args:
         request: The incoming request.
@@ -53,7 +53,7 @@ def current_roles(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> set[Role]:
-    """Resolve the caller's effective roles from their group memberships.
+    """Resolves the caller's effective roles from their group memberships.
 
     Args:
         user: The caller's email.
@@ -71,7 +71,7 @@ def current_roles(
 
 
 def resolve_caller_roles(groups: Collection[str], role_mappings: dict[str, set[Role]]) -> set[Role]:
-    """Resolve roles for a caller, granting admin when no mappings are configured.
+    """Resolves roles for a caller, granting admin when no mappings are configured.
 
     Args:
         groups: The caller's workspace groups.
@@ -88,7 +88,7 @@ def resolve_caller_roles(groups: Collection[str], role_mappings: dict[str, set[R
 def require(
     predicate: Callable[[Collection[Role]], bool], action: str
 ) -> Callable[[set[Role]], set[Role]]:
-    """Build a dependency that authorizes a request against a permission predicate.
+    """Builds a dependency that authorizes a request against a permission predicate.
 
     Args:
         predicate: Returns whether a set of roles permits the action.

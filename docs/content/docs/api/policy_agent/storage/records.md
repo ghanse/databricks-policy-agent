@@ -16,7 +16,7 @@ def policy_to_row(policy: Policy, config: StorageConfig,
                   updated_at: datetime) -> dict[str, Any]
 ```
 
-Serialise a policy to a ``policies`` row.
+Serialises a policy to a ``policies`` row.
 
 **Arguments**:
 
@@ -35,7 +35,7 @@ Serialise a policy to a ``policies`` row.
 def row_to_policy(row: dict[str, Any]) -> Policy
 ```
 
-Deserialise a ``policies`` row into a policy.
+Deserialises a ``policies`` row into a policy.
 
 **Arguments**:
 
@@ -53,7 +53,7 @@ def policy_version_to_row(policy: Policy, actor: str,
                           created_at: datetime) -> dict[str, Any]
 ```
 
-Serialise a snapshot of a policy to a ``policy_versions`` row.
+Serialises a snapshot of a policy to a ``policy_versions`` row.
 
 **Arguments**:
 
@@ -73,7 +73,7 @@ def scan_to_row(scan_result: ScanResult, config: StorageConfig,
                 triggered_by: str) -> dict[str, Any]
 ```
 
-Serialise a scan result's header to a ``scans`` row.
+Serialises a scan result's header to a ``scans`` row.
 
 **Arguments**:
 
@@ -93,7 +93,7 @@ def finding_to_row(finding: Finding, scan_id: str, config: StorageConfig,
                    created_at: datetime) -> dict[str, Any]
 ```
 
-Serialise a finding to a ``findings`` row.
+Serialises a finding to a ``findings`` row.
 
 **Arguments**:
 
@@ -113,7 +113,7 @@ Serialise a finding to a ``findings`` row.
 def row_to_finding(row: dict[str, Any]) -> Finding
 ```
 
-Deserialise a ``findings`` row into a finding.
+Deserialises a ``findings`` row into a finding.
 
 **Arguments**:
 
@@ -130,7 +130,7 @@ Deserialise a ``findings`` row into a finding.
 def approval_event_to_row(event: ApprovalEvent) -> dict[str, Any]
 ```
 
-Serialise an approval event to an ``approval_events`` row.
+Serialises an approval event to an ``approval_events`` row.
 
 **Arguments**:
 
@@ -148,7 +148,7 @@ def remediation_to_row(item: RemediationItem,
                        config: StorageConfig) -> dict[str, Any]
 ```
 
-Serialise a remediation item to a ``remediations`` row.
+Serialises a remediation item to a ``remediations`` row.
 
 **Arguments**:
 
@@ -166,7 +166,7 @@ Serialise a remediation item to a ``remediations`` row.
 def row_to_remediation(row: dict[str, Any]) -> RemediationItem
 ```
 
-Deserialise a ``remediations`` row into a remediation item.
+Deserialises a ``remediations`` row into a remediation item.
 
 **Arguments**:
 
@@ -184,7 +184,7 @@ def schedule_to_row(schedule: ScanSchedule, config: StorageConfig,
                     updated_at: datetime) -> dict[str, Any]
 ```
 
-Serialise a scan schedule to a ``schedules`` row.
+Serialises a scan schedule to a ``schedules`` row.
 
 **Arguments**:
 
@@ -203,7 +203,7 @@ Serialise a scan schedule to a ``schedules`` row.
 def row_to_schedule(row: dict[str, Any]) -> ScanSchedule
 ```
 
-Deserialise a ``schedules`` row into a scan schedule.
+Deserialises a ``schedules`` row into a scan schedule.
 
 **Arguments**:
 
@@ -221,7 +221,7 @@ def role_mapping_to_row(group_name: str, role: Role, config: StorageConfig,
                         updated_at: datetime) -> dict[str, Any]
 ```
 
-Serialise a group-to-role grant to a ``role_mappings`` row.
+Serialises a group-to-role grant to a ``role_mappings`` row.
 
 **Arguments**:
 

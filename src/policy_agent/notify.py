@@ -15,7 +15,7 @@ from policy_agent.scan.results import ScanResult
 
 
 def build_scan_summary_message(scan_result: ScanResult) -> dict[str, object]:
-    """Build a compact, JSON-serialisable summary message for a scan result.
+    """Builds a compact, JSON-serialisable summary message for a scan result.
 
     Args:
         scan_result: The completed scan result.
@@ -41,7 +41,7 @@ def notify_scan_result(
     emails: Iterable[str] = (),
     timeout_seconds: float = 10.0,
 ) -> bool:
-    """Post a scan summary to the webhook when there are violations to report.
+    """Posts a scan summary to the webhook when there are violations to report.
 
     Args:
         scan_result: The completed scan result.

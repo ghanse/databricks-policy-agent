@@ -15,7 +15,7 @@ policies identically.
 def policy_from_dict(data: dict[str, Any]) -> Policy
 ```
 
-Build a policy from a plain dictionary (e.g. parsed YAML or a JSON request body).
+Builds a policy from a plain dictionary (e.g. parsed YAML or a JSON request body).
 
 **Arguments**:
 
@@ -32,6 +32,7 @@ Build a policy from a plain dictionary (e.g. parsed YAML or a JSON request body)
 **Raises**:
 
 - `InvalidPolicyError` - If a required key is missing or an enum value is unrecognised.
+- `UnsupportedResourceException` - If ``resource_type`` names a type the agent does not support.
 
 #### policy\_to\_dict
 
@@ -39,7 +40,7 @@ Build a policy from a plain dictionary (e.g. parsed YAML or a JSON request body)
 def policy_to_dict(policy: Policy) -> dict[str, Any]
 ```
 
-Serialise a policy to a plain dictionary with enum values rendered as strings.
+Serialises a policy to a plain dictionary with enum values rendered as strings.
 
 **Arguments**:
 
@@ -56,7 +57,7 @@ Serialise a policy to a plain dictionary with enum values rendered as strings.
 def condition_from_dict(node: dict[str, Any]) -> Condition
 ```
 
-Parse a condition tree from its dictionary form.
+Parses a condition tree from its dictionary form.
 
 **Arguments**:
 
@@ -79,7 +80,7 @@ Parse a condition tree from its dictionary form.
 def condition_to_dict(condition: Condition) -> dict[str, Any]
 ```
 
-Serialise a condition tree to its dictionary form.
+Serialises a condition tree to its dictionary form.
 
 **Arguments**:
 

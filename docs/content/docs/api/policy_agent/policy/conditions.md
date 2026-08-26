@@ -16,7 +16,7 @@ functions in `OPERATORS`.
 def evaluate_condition(condition: Condition, snapshot: Snapshot) -> bool
 ```
 
-Evaluate a condition tree against a single resource snapshot.
+Evaluates a condition tree against a single resource snapshot.
 
 **Arguments**:
 
@@ -40,7 +40,7 @@ Evaluate a condition tree against a single resource snapshot.
 def resolve_attribute(snapshot: Snapshot, attribute: str) -> Any
 ```
 
-Read an attribute from a snapshot, following dotted paths into nested mappings.
+Reads an attribute from a snapshot, following dotted paths into nested mappings.
 
 **Arguments**:
 
@@ -58,7 +58,7 @@ Read an attribute from a snapshot, following dotted paths into nested mappings.
 def is_registered_operator(name: str) -> bool
 ```
 
-Return whether ``name`` is a known comparison operator.
+Returns whether ``name`` is a known comparison operator.
 
 **Arguments**:
 
@@ -75,7 +75,7 @@ Return whether ``name`` is a known comparison operator.
 def registered_operators() -> tuple[str, ...]
 ```
 
-Return the sorted names of every registered comparison operator.
+Returns the sorted names of every registered comparison operator.
 
 **Returns**:
 

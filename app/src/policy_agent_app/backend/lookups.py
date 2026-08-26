@@ -10,7 +10,7 @@ from policy_agent.storage.backend import SqlExecutor, load_policies, read_remedi
 
 
 def find_policy(executor: SqlExecutor, config: PolicyAgentConfig, name: str) -> Policy:
-    """Return a policy by name or raise ``404``.
+    """Returns a policy by name or raise ``404``.
 
     Args:
         executor: The storage executor.
@@ -32,7 +32,7 @@ def find_policy(executor: SqlExecutor, config: PolicyAgentConfig, name: str) -> 
 def find_remediation(
     executor: SqlExecutor, config: PolicyAgentConfig, remediation_id: str
 ) -> RemediationItem:
-    """Return a remediation item by id or raise ``404``.
+    """Returns a remediation item by id or raise ``404``.
 
     Args:
         executor: The storage executor.

@@ -19,7 +19,7 @@ def run_scan(
         resource_types: Iterable[ResourceType] | None = None) -> ScanResult
 ```
 
-Scan the workspace for compliance with the given policies.
+Scans the workspace for compliance with the given policies.
 
 Only resource types that both appear in ``policies`` and (when provided) in
 ``resource_types`` are fetched, so a scan never calls an API it does not need.
@@ -50,7 +50,7 @@ def collect_snapshots(
 ) -> dict[ResourceType, list[ResourceSnapshot]]
 ```
 
-Fetch resource snapshots without evaluating any policy.
+Fetches resource snapshots without evaluating any policy.
 
 Useful for inventory views and dry runs where only the normalized resource attributes
 are needed.

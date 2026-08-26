@@ -1,4 +1,4 @@
-"""Assemble the deployable Databricks App source tree under ``app/.build``.
+"""Assembles the deployable Databricks App source tree under ``app/.build``.
 
 Steps:
     1. Build the React SPA (``npm install`` + ``npm run build``) into ``ui/dist``.
@@ -23,7 +23,7 @@ BUILD_DIR = APP_DIR / ".build"
 
 
 def main() -> None:
-    """Build the SPA and library wheel, then assemble the deployable source tree."""
+    """Builds the SPA and library wheel, then assemble the deployable source tree."""
     _run(["npm", "install"], cwd=UI_DIR)
     _run(["npm", "run", "build"], cwd=UI_DIR)
     _run(["uv", "build", "--wheel", "--out-dir", str(APP_DIR / ".wheels")], cwd=REPO_ROOT)

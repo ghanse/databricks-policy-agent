@@ -44,7 +44,7 @@ class ApprovalEvent:
 def submit_for_review(
     policy: Policy, actor: str, roles: Collection[Role], note: str = ""
 ) -> tuple[Policy, ApprovalEvent]:
-    """Move a draft or rejected policy into review.
+    """Moves a draft or rejected policy into review.
 
     Args:
         policy: The policy to submit.
@@ -71,7 +71,7 @@ def approve(
     note: str = "",
     author: str | None = None,
 ) -> tuple[Policy, ApprovalEvent]:
-    """Approve a policy under review, incrementing its version.
+    """Approves a policy under review, incrementing its version.
 
     Args:
         policy: The policy to approve.
@@ -99,7 +99,7 @@ def approve(
 def reject(
     policy: Policy, actor: str, roles: Collection[Role], note: str = ""
 ) -> tuple[Policy, ApprovalEvent]:
-    """Reject a policy under review, returning it to the author.
+    """Rejects a policy under review, returning it to the author.
 
     Args:
         policy: The policy to reject.
@@ -122,7 +122,7 @@ def reject(
 def archive(
     policy: Policy, actor: str, roles: Collection[Role], note: str = ""
 ) -> tuple[Policy, ApprovalEvent]:
-    """Archive a policy from any status, retiring it from scans.
+    """Archives a policy from any status, retiring it from scans.
 
     Args:
         policy: The policy to archive.

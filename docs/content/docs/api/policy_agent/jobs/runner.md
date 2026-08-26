@@ -21,7 +21,7 @@ def run_policy_scan(workspace_client: WorkspaceClient,
                     dry_run: bool = False) -> ScanResult
 ```
 
-Run a scan and, unless ``dry_run``, persist results and reconcile remediations.
+Runs a scan and, unless ``dry_run``, persists results and reconciles remediations.
 
 **Arguments**:
 
@@ -44,7 +44,7 @@ Run a scan and, unless ``dry_run``, persist results and reconcile remediations.
 def execute_scan_job(triggered_by: str) -> int
 ```
 
-Run a full scan of every approved policy from the environment configuration.
+Runs a full scan of every approved policy from the environment configuration.
 
 Builds the workspace client and storage executor from the ambient environment (as set by
 the Databricks Asset Bundle), scans all approved policies, and persists the outcome.

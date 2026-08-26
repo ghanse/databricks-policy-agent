@@ -19,7 +19,7 @@ def reconcile(existing_items: Iterable[RemediationItem],
               now: datetime) -> list[RemediationItem]
 ```
 
-Reconcile open remediation items against a fresh scan's violations.
+Reconciles open remediation items against a fresh scan's violations.
 
 **Arguments**:
 
@@ -41,7 +41,7 @@ def open_items_from_findings(violations: Iterable[Finding], scan_id: str,
                              now: datetime) -> list[RemediationItem]
 ```
 
-Open a fresh remediation item for every violation.
+Opens a fresh remediation item for every violation.
 
 **Arguments**:
 
@@ -62,7 +62,7 @@ def advance(item: RemediationItem,
             note: str = "") -> RemediationItem
 ```
 
-Mark an item as in progress.
+Marks an item as in progress.
 
 **Arguments**:
 
@@ -83,7 +83,7 @@ def resolve(item: RemediationItem,
             note: str = "") -> RemediationItem
 ```
 
-Mark an item as resolved.
+Marks an item as resolved.
 
 **Arguments**:
 
@@ -104,7 +104,7 @@ def waive(item: RemediationItem,
           note: str = "") -> RemediationItem
 ```
 
-Waive an item, accepting the violation without changing the resource.
+Waives an item, accepting the violation without changing the resource.
 
 **Arguments**:
 
@@ -124,7 +124,7 @@ def assign(item: RemediationItem, assignee: str,
            now: datetime) -> RemediationItem
 ```
 
-Assign an item to a principal responsible for resolving it.
+Assigns an item to a principal responsible for resolving it.
 
 **Arguments**:
 

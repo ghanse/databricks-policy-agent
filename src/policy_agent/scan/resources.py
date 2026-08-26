@@ -1,4 +1,4 @@
-"""Fetch workspace resources and normalize them into evaluable snapshots.
+"""Fetches workspace resources and normalizes them into evaluable snapshots.
 
 Each ``scan_*`` function reads one resource type from a `WorkspaceClient` and maps
 every resource to the flat attribute set declared in
@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from policy_agent.errors import UnsupportedResourceException
 from policy_agent.policy.model import (
     OWNER_TYPE_SERVICE_PRINCIPAL,
     OWNER_TYPE_UNKNOWN,
@@ -38,17 +39,17 @@ workspaces — so callers should expand only when a policy actually reads one of
 def scan_jobs(
     workspace_client: WorkspaceClient, *, expand_tasks: bool = True
 ) -> list[ResourceSnapshot]:
-    """Fetch and normalize every job in the workspace.
+    """Fetches and normalizes every job in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
         expand_tasks: Whether to fetch full task definitions. Required to populate the
             `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
             as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
             to ``True`` so direct and inventory callers get complete snapshots.
 
     Returns:
-        One snapshot per job.
+        A list of *ResourceSnapshots* for each job.
     """
     snapshots = []
     for job in workspace_client.jobs.list(expand_tasks=expand_tasks):
@@ -80,13 +81,13 @@ def scan_jobs(
 
 
 def scan_clusters(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every all-purpose cluster in the workspace.
+    """Fetches and normalizes every all-purpose cluster in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per cluster.
+        A list of *ResourceSnapshots* for each cluster.
     """
     snapshots = []
     for cluster in workspace_client.clusters.list():
@@ -113,13 +114,13 @@ def scan_clusters(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_sql_warehouses(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every SQL warehouse in the workspace.
+    """Fetches and normalizes every SQL warehouse in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per SQL warehouse.
+        A list of *ResourceSnapshots* for each SQL warehouse.
     """
     snapshots = []
     for warehouse in workspace_client.warehouses.list():
@@ -145,13 +146,13 @@ def scan_sql_warehouses(workspace_client: WorkspaceClient) -> list[ResourceSnaps
 
 
 def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every Databricks App in the workspace.
+    """Fetches and normalizes every Databricks App in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per app.
+        A list of *ResourceSnapshots* for each app.
     """
     snapshots = []
     for app in workspace_client.apps.list():
@@ -178,13 +179,13 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every model serving endpoint in the workspace.
+    """Fetches and normalizes every model serving endpoint in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per serving endpoint.
+        A list of *ResourceSnapshots* for each serving endpoint.
     """
     snapshots = []
     for endpoint in workspace_client.serving_endpoints.list():
@@ -210,18 +211,26 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
 
 
 def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every Genie space in the workspace.
+    """Fetches and normalizes every Genie space in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per Genie space.
+        A list of *ResourceSnapshots* for each Genie space.
     """
     snapshots = []
     page_token: str | None = None
+    genie_client = getattr(workspace_client, "genie", None)
+    if not genie_client:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceException(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'genie' API. Upgrade the Databricks SDK to scan Genie spaces."
+        )
     while True:
-        response = workspace_client.genie.list_spaces(page_token=page_token)
+        response = genie_client.list_spaces(page_token=page_token)
         for space in getattr(response, "spaces", None) or []:
             title = getattr(space, "title", "") or ""
             description = getattr(space, "description", None)
@@ -241,10 +250,10 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
 
 
 def classify_principal(identifier: str | None) -> str:
-    """Classify a principal identifier as a service principal, user, or unknown.
+    """Classifies a principal identifier as a service principal or user.
 
     Args:
-        identifier: A principal identifier such as a user email or SP application id.
+        identifier: A principal identifier such as a user email or application id.
 
     Returns:
         One of the ``OWNER_TYPE_*`` constants.

@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from policy_agent.errors import InvalidPolicyError
+from policy_agent.errors import InvalidPolicyError, UnsupportedResourceException
 from policy_agent.policy.model import (
     AllOf,
     AnyOf,
@@ -25,7 +25,7 @@ from policy_agent.policy.model import (
 
 
 def policy_from_dict(data: dict[str, Any]) -> Policy:
-    """Build a policy from a plain dictionary (e.g. parsed YAML or a JSON request body).
+    """Builds a policy from a plain dictionary (e.g. parsed YAML or a JSON request body).
 
     Args:
         data: Mapping with keys ``policy``/``name``, ``resource_type``, ``effect``, and
@@ -37,15 +37,23 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
 
     Raises:
         InvalidPolicyError: If a required key is missing or an enum value is unrecognised.
+        UnsupportedResourceException: If ``resource_type`` names a type the agent does not support.
     """
     name = data.get("policy") or data.get("name")
     if not name:
         raise InvalidPolicyError("Policy dictionary must include a 'policy' (or 'name') key.")
+    resource_type_value = _require(data, "resource_type", name)
+    try:
+        resource_type = ResourceType(resource_type_value)
+    except ValueError as error:
+        raise UnsupportedResourceException(
+            f"Policy {name!r} references unsupported resource type {str(resource_type_value)!r}."
+        ) from error
     match = data.get("match")
     try:
         return Policy(
             name=str(name),
-            resource_type=ResourceType(_require(data, "resource_type", name)),
+            resource_type=resource_type,
             effect=Effect(_require(data, "effect", name)),
             rule=condition_from_dict(_require(data, "rule", name)),
             description=str(data.get("description", "")),
@@ -62,7 +70,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
 
 
 def policy_to_dict(policy: Policy) -> dict[str, Any]:
-    """Serialise a policy to a plain dictionary with enum values rendered as strings.
+    """Serialises a policy to a plain dictionary with enum values rendered as strings.
 
     Args:
         policy: The policy to serialise.
@@ -89,7 +97,7 @@ def policy_to_dict(policy: Policy) -> dict[str, Any]:
 
 
 def condition_from_dict(node: dict[str, Any]) -> Condition:
-    """Parse a condition tree from its dictionary form.
+    """Parses a condition tree from its dictionary form.
 
     Args:
         node: A mapping shaped as one of ``{"all": [...]}``, ``{"any": [...]}``,
@@ -118,7 +126,7 @@ def condition_from_dict(node: dict[str, Any]) -> Condition:
 
 
 def condition_to_dict(condition: Condition) -> dict[str, Any]:
-    """Serialise a condition tree to its dictionary form.
+    """Serialises a condition tree to its dictionary form.
 
     Args:
         condition: The condition node to serialise.

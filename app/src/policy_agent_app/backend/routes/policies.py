@@ -33,14 +33,14 @@ def list_policies(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """List policies, optionally filtered by approval status."""
+    """Lists policies, optionally filtered by approval status."""
     parsed = PolicyStatus(status_filter) if status_filter else None
     return [policy_to_dict(policy) for policy in load_policies(executor, config.storage, parsed)]
 
 
 @router.post("/validate")
 def validate_policy_request(body: PolicyRequest) -> dict[str, Any]:
-    """Validate a policy definition without persisting it."""
+    """Validates a policy definition without persisting it."""
     try:
         validate_policy(policy_from_dict(body.to_policy_dict()))
     except PolicyAgentError as error:
@@ -55,7 +55,7 @@ def get_policy(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> dict[str, Any]:
-    """Return a single policy by name."""
+    """Returns a single policy by name."""
     return policy_to_dict(find_policy(executor, config, name))
 
 
@@ -66,7 +66,7 @@ def policy_history(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """Return the approval-event history for a policy, most recent first."""
+    """Returns the approval-event history for a policy, most recent first."""
     return read_approval_events(executor, config.storage, policy_name=name)
 
 
@@ -78,7 +78,7 @@ def upsert_policy(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Create or update a policy (saved in draft status by the author)."""
+    """Creates or update a policy (saved in draft status by the author)."""
     policy = policy_from_dict(body.to_policy_dict())
     validate_policy(policy)
     save_policy(executor, config.storage, policy, actor=user)
@@ -92,5 +92,5 @@ def remove_policy(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> None:
-    """Delete a policy by name."""
+    """Deletes a policy by name."""
     delete_policy(executor, config.storage, name)

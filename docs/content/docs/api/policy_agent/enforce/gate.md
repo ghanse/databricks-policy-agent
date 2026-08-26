@@ -3,7 +3,7 @@ sidebar_label: gate
 title: policy_agent.enforce.gate
 ---
 
-Evaluate declared bundle resources against policies and decide a gate verdict.
+Evaluates declared bundle resources against policies and decides a gate verdict.
 
 The gate reuses the scan evaluator (`evaluate_resource`) — the only difference from a
 live scan is the source of the snapshots. Enforcement levels decide the verdict: ``advisory``

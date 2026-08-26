@@ -26,7 +26,7 @@ def my_roles(
     user: str = Depends(current_user),
     roles: set[Role] = Depends(current_roles),
 ) -> dict[str, Any]:
-    """Return the caller's identity and effective roles."""
+    """Returns the caller's identity and effective roles."""
     return {"user": user, "roles": sorted(role.value for role in roles)}
 
 
@@ -36,7 +36,7 @@ def list_role_mappings(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, list[str]]:
-    """Return every group-to-role grant."""
+    """Returns every group-to-role grant."""
     mappings = read_role_mappings(executor, config.storage)
     return {group: sorted(role.value for role in roles) for group, roles in mappings.items()}
 
@@ -48,7 +48,7 @@ def grant_role(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, str]:
-    """Grant a role to a workspace group."""
+    """Grants a role to a workspace group."""
     save_role_mapping(executor, config.storage, body.group_name, Role(body.role))
     return {"group_name": body.group_name, "role": body.role}
 
@@ -60,5 +60,5 @@ def revoke_role(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> None:
-    """Revoke a role from a workspace group."""
+    """Revokes a role from a workspace group."""
     delete_role_mapping(executor, config.storage, body.group_name, Role(body.role))

@@ -57,7 +57,7 @@ class StorageConfig:
         return self.schema
 
     def table_identifier(self, logical_name: str) -> str:
-        """Return the fully qualified identifier for a logical table name.
+        """Returns the fully qualified identifier for a logical table name.
 
         Args:
             logical_name: The table's logical name (e.g. ``policies``).

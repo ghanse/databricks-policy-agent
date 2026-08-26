@@ -30,7 +30,7 @@ _UI_DIST = Path(__file__).resolve().parent.parent / "ui" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Build process-wide state at startup and expose it on ``app.state``."""
+    """Builds process-wide state at startup and expose it on ``app.state``."""
     from databricks.sdk import WorkspaceClient
 
     config = config_from_env()
@@ -42,7 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    """Build and configure the FastAPI application.
+    """Builds and configure the FastAPI application.
 
     Returns:
         The configured application.
