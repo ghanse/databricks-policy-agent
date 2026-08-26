@@ -154,8 +154,8 @@ def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]
         "serverless": definition.get("serverless"),
         "development": definition.get("development"),
     }
-  
-  
+
+
 def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     # NOTE: Genie spaces have no owner or tags, so this does not use _common
     description = definition.get("description")

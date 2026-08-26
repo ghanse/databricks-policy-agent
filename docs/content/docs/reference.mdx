@@ -8,32 +8,106 @@ This page provides a reference for the options supported by the policy agent.
 ## Resource types
 Policies target one of the following resource types.
 
-| Resource type      | Description                          |
-|--------------------|--------------------------------------|
-| `job`              | Databricks Lakeflow Jobs             |
-| `cluster`          | All-purpose compute clusters         |
-| `sql_warehouse`    | SQL warehouses                       |
-| `app`              | Databricks Apps                      |
-| `serving_endpoint` | Model serving endpoints              |
-| `pipeline`         | Lakeflow Spark Declarative Pipelines |
+| Resource type      | Description                  |
+|--------------------|------------------------------|
+| `job`              | Databricks Lakeflow Jobs     |
+| `cluster`          | All-purpose compute clusters |
+| `sql_warehouse`    | SQL warehouses               |
+| `app`              | Databricks Apps              |
+| `serving_endpoint` | Model serving endpoints      |
+| `genie_space`      | Genie spaces                 |
+| `pipeline`         | Spark Declarative Pipelines  |
 
-## Resource attributes
-Rules compare these attributes (the `attribute` field of a leaf). Every resource type exposes the
-common attributes; each type adds its own.
+## Common attributes
 
-**Common (all resource types):** `id`, `name`, `owner`, `owner_type`, `tags`, `created_time`
+| Field name     | Description                                                                  |
+|----------------|------------------------------------------------------------------------------|
+| `id`           | System-assigned resource identifier                                          |
+| `name`         | User-assigned resource identifier                                            |
+| `owner`        | Resource owner principal (e.g. a user or service principal)                  |
+| `owner_type`   | Resource owner principal type (e.g. "user", "group", or "service_principal") |
+| `created_time` | Date and time when the resource was created                                  |
+| `tags`         | User-assigned key-value pairs                                                |
 
-| Resource type      | Additional attributes                                                                                                          |
-|--------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| `job`              | `schedule_pause_status`, `max_concurrent_runs`, `timeout_seconds`, `run_as_type`, `has_email_notifications`, `has_retry_policy`, `uses_serverless_compute`, `format` |
-| `cluster`          | `cluster_source`, `autotermination_minutes`, `spark_version`, `node_type_id`, `num_workers`, `data_security_mode`, `single_user_name` |
-| `sql_warehouse`    | `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
-| `app`              | `app_status`, `compute_status`, `active_deployment_mode`                                                                       |
-| `serving_endpoint` | `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                                                       |
-| `pipeline`         | `catalog`, `target`, `schema`, `channel`, `edition`, `continuous`, `photon`, `serverless`, `development`                        |
+### Job attributes
 
-Attributes may use dotted paths to index nested mappings, e.g. `tags.environment`. See
-[Running Scans](/docs/scanning) for how to add a new resource type and its attributes.
+| Field name                | Description                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| `schedule_pause_status`   | Indicates that the job's schedule is currently active or paused             |
+| `max_concurrent_runs`     | Maximum number of concurrent runs of the job                                |
+| `timeout_seconds`         | Maximum job run duration in seconds before the job is failed due to timeout |
+| `run_as_type`             | Run-as principal type (e.g. "user" or "service_principal")                  |
+| `has_email_notifications` | Whether the job specifies notifications on start, completion, failure, etc. |
+| `has_retry_policy`        | Whether the job specifies a number of retries                               |
+| `uses_serverless_compute` | Whether the job tasks use Databricks serverless compute                     |
+| `format`                  | The job definition format (e.g. "SINGLE_TASK" or "MULTI_TASK")              |
+
+
+### Cluster attributes
+
+| Field name                | Description                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| `cluster_source`          | How the cluster was created (e.g. "UI", "JOB", "API")                       |
+| `autotermination_minutes` | Minutes of inactivity after which the cluster auto-terminates (0 disables)  |
+| `spark_version`           | Databricks Runtime version running on the cluster                           |
+| `node_type_id`            | Cloud instance type of the cluster's nodes                                  |
+| `num_workers`             | Number of worker nodes                                                      |
+| `data_security_mode`      | Cluster access mode (e.g. "SINGLE_USER", "USER_ISOLATION")                  |
+| `single_user_name`        | Principal a single-user cluster runs as                                     |
+
+### SQL warehouse attributes
+
+| Field name                  | Description                                                               |
+|-----------------------------|---------------------------------------------------------------------------|
+| `warehouse_type`            | Warehouse type (e.g. "PRO", "CLASSIC")                                    |
+| `cluster_size`              | Warehouse size (e.g. "2X-Small", "Small", "Medium")                       |
+| `auto_stop_minutes`         | Minutes of inactivity before the warehouse stops (0 disables)             |
+| `enable_serverless_compute` | Whether the warehouse uses serverless compute                             |
+| `min_num_clusters`          | Minimum number of clusters the warehouse scales down to                   |
+| `max_num_clusters`          | Maximum number of clusters the warehouse scales up to                     |
+
+### App attributes
+
+| Field name               | Description                                          |
+|--------------------------|------------------------------------------------------|
+| `app_status`             | Current application state                            |
+| `compute_status`         | Current state of the app's compute                   |
+| `active_deployment_mode` | Deployment mode of the app's active deployment       |
+
+### Serving endpoint attributes
+
+| Field name         | Description                                                        |
+|--------------------|--------------------------------------------------------------------|
+| `endpoint_state`   | Readiness state of the endpoint                                    |
+| `endpoint_type`    | Type of the serving endpoint                                       |
+| `budget_policy_id` | Budget policy attached to the endpoint for cost attribution        |
+| `route_optimized`  | Whether the endpoint is route-optimized                            |
+
+### Genie space attributes
+
+| Field name        | Description                                          |
+|-------------------|------------------------------------------------------|
+| `warehouse_id`    | SQL warehouse the space runs its queries on          |
+| `description`     | Free-text description of the space                   |
+| `has_description` | Whether the space has a non-empty description        |
+
+<Callout type="warn" title="Unsupported common attributes for Genie spaces">
+Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` attributes.
+</Callout>
+
+### Spark Declarative Pipelines attributes
+
+| Field name    | Description                                                                 |
+|---------------|-----------------------------------------------------------------------------|
+| `catalog`     | Unity Catalog catalog the pipeline publishes tables to                      |
+| `schema`      | Unity Catalog schema the pipeline publishes tables to                       |
+| `target`      | Hive metastore target schema the pipeline publishes tables to (legacy)      |
+| `channel`     | Databricks Runtime release channel (e.g. "CURRENT" or "PREVIEW")            |
+| `edition`     | Product edition of the pipeline (e.g. "CORE", "PRO", "ADVANCED")            |
+| `continuous`  | Whether the pipeline runs continuously rather than on a trigger             |
+| `photon`      | Whether Photon acceleration is enabled                                      |
+| `serverless`  | Whether the pipeline uses serverless compute                                |
+| `development` | Whether the pipeline runs in development mode                               |
 
 ## Operators
 Leaf comparisons use one of the following operators.

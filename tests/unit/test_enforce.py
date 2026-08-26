@@ -189,8 +189,8 @@ def test_snapshot_bundle_maps_declared_pipelines():
     )
     assert result.blocked
     assert {f.resource_id for f in result.blocking} == {"legacy"}
-    
-    
+
+
 def test_snapshot_bundle_maps_declared_genie_spaces():
     config = {
         "resources": {

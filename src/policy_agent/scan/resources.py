@@ -251,8 +251,8 @@ def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
             )
         )
     return snapshots
-  
-  
+
+
 def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     """Fetches and normalizes every Genie space in the workspace.
 

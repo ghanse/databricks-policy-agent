@@ -221,8 +221,8 @@ def test_scan_pipelines_reads_spec_fields():
     assert attrs["edition"] == "ADVANCED"
     assert attrs["serverless"] is True
     assert attrs["continuous"] is False
-    
-    
+
+
 class _FakeGenie:
     def __init__(self, spaces):
         self._spaces = spaces
