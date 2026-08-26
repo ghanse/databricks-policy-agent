@@ -85,9 +85,5 @@ def test_unknown_policy_returns_404(client):
 
 
 def test_unknown_resource_type_returns_400(client):
-    # A typo in resource_type is an authoring mistake, so it should be a client error (400),
-    # not an internal server error (500).
-    response = client.post(
-        "/api/v1/policies", json={**CLUSTER_POLICY, "resource_type": "clusterr"}
-    )
+    response = client.post("/api/v1/policies", json={**CLUSTER_POLICY, "resource_type": "INVALID"})
     assert response.status_code == 400
