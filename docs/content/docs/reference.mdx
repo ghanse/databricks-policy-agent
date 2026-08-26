@@ -18,7 +18,16 @@ Policies target one of the following resource types.
 | `genie_space`      | Genie spaces                 |
 | `pipeline`         | Spark Declarative Pipelines  |
 
-## Common attributes
+<Callout type="info" title="Adding new resource types">
+You can add custom resource types for any resources that aren't supported.
+See [Adding a resource type](/docs/scanning#adding-a-resource-type).
+</Callout>
+
+## Resource attributes
+Rules check that resource attributes comply with a specific policy. Each resource type exposes both 
+common and type-specific attributes. A type only advertises valid resource attributes.
+
+### Common attributes
 
 | Field name     | Description                                                                  |
 |----------------|------------------------------------------------------------------------------|

@@ -109,6 +109,31 @@ Fetches and normalizes every model serving endpoint in the workspace.
 
   A list of *ResourceSnapshots* for each serving endpoint.
 
+#### scan\_pipelines
+
+```python
+def scan_pipelines(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every Spark Declarative pipeline in the workspace.
+
+**Notes**:
+
+  *list_pipelines* returns only summary attributes (e.g. name, creator, state). Because
+  some attributes (e.g. catalog, edition, continuous, serverless) are part of the pipeline
+  spec, each pipeline is fetched with *get()* to read its attributes.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each serving endpoint.
+
 #### scan\_genie\_spaces
 
 ```python

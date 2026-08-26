@@ -211,17 +211,18 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
 
 
 def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every Lakeflow (Spark Declarative) pipeline in the workspace.
+    """Fetches and normalizes every Spark Declarative pipeline in the workspace.
 
-    ``list_pipelines`` returns only summary fields (name, creator, state); the declarable
-    settings (catalog, edition, continuous, serverless, ...) live on the pipeline spec, so each
-    pipeline is fetched with ``get`` to read them.
+    Note:
+        *list_pipelines* returns only summary attributes (e.g. name, creator, state). Because
+        some attributes (e.g. catalog, edition, continuous, serverless) are part of the pipeline
+        spec, each pipeline is fetched with *get* to read its attributes.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per pipeline.
+        A list of *ResourceSnapshots* for each serving endpoint.
     """
     snapshots = []
     for pipeline in workspace_client.pipelines.list_pipelines():
