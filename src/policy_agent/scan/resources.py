@@ -44,9 +44,9 @@ def scan_jobs(
     Args:
         workspace_client: Databricks workspace client.
         expand_tasks: Whether to fetch full task definitions. Required to populate the
-            `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
-            as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
-            to ``True`` so direct and inventory callers get complete snapshots.
+            `TASK_DERIVED_JOB_ATTRIBUTES`; when *False* those attributes are reported
+            as *None* rather than a value guessed from tasks that were not fetched. Defaults
+            to *True* so direct and inventory callers get complete snapshots.
 
     Returns:
         A list of *ResourceSnapshots* for each job.

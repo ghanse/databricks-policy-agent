@@ -30,9 +30,9 @@ Fetches and normalizes every job in the workspace.
 
 - `workspace_client` - Databricks workspace client.
 - `expand_tasks` - Whether to fetch full task definitions. Required to populate the
-  `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
-  as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
-  to ``True`` so direct and inventory callers get complete snapshots.
+  `TASK_DERIVED_JOB_ATTRIBUTES`; when *False* those attributes are reported
+  as *None* rather than a value guessed from tasks that were not fetched. Defaults
+  to *True* so direct and inventory callers get complete snapshots.
   
 
 **Returns**:
@@ -122,7 +122,7 @@ Fetches and normalizes every Spark Declarative pipeline in the workspace.
 
   *list_pipelines* returns only summary attributes (e.g. name, creator, state). Because
   some attributes (e.g. catalog, edition, continuous, serverless) are part of the pipeline
-  spec, each pipeline is fetched with *get()* to read its attributes.
+  spec, each pipeline is fetched with *get* to read its attributes.
   
 
 **Arguments**:
