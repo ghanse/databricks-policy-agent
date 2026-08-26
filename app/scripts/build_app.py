@@ -23,7 +23,7 @@ BUILD_DIR = APP_DIR / ".build"
 
 
 def main() -> None:
-    """Builds the SPA and library wheel, then assemble the deployable source tree."""
+    """Builds the SPA and library wheel, then assembles the deployable source tree."""
     _run(["npm", "install"], cwd=UI_DIR)
     _run(["npm", "run", "build"], cwd=UI_DIR)
     _run(["uv", "build", "--wheel", "--out-dir", str(APP_DIR / ".wheels")], cwd=REPO_ROOT)

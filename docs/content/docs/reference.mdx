@@ -18,7 +18,7 @@ Policies target one of the following resource types.
 | `genie_space`      | Genie spaces                         |
 
 ## Resource attributes
-Rules check that resource attributes comply with a specific policy. Each resource types exposes both 
+Rules check that resource attributes comply with a specific policy. Each resource type exposes both 
 common and type-specific attributes. A type only advertises valid resource attributes.
 
 <Callout type="info" title="Adding new resource types">
@@ -48,6 +48,7 @@ See [Adding a resource type](/docs/scanning#adding-a-resource-type).
 | `has_email_notifications` | Whether the job specifies notifications on start, completion, failure, etc. |
 | `has_retry_policy`        | Whether the job specifies a number of retries                               |
 | `uses_serverless_compute` | Whether the job tasks use Databricks serverless compute                     |
+| `format`                  | The job definition format (e.g. "SINGLE_TASK" or "MULTI_TASK")              |
 
 
 ### Cluster attributes
@@ -124,7 +125,7 @@ Leaf comparisons use one of the following operators.
 | `ttl_within`                 | Numeric attribute is greater than 0 and at most the value (e.g. auto-stop minutes) |
 
 ## Policy effects
-Policies can have one of the following affects on resources.
+Policies can have one of the following effects on resources.
 
 | Effect  | Meaning                                                            |
 |---------|--------------------------------------------------------------------|

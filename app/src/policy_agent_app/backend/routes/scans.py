@@ -1,4 +1,4 @@
-"""Scans trigger and result endpoints."""
+"""Scan trigger and result endpoints."""
 
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ def trigger_scan(
     config: PolicyAgentConfig = Depends(get_config),
     workspace_client=Depends(get_workspace_client),
 ) -> dict[str, Any]:
-    """Runs a scan of the approved policies (optionally a subset) and return its summary."""
+    """Runs a scan of the approved policies (optionally a subset) and returns its summary."""
     policies = load_policies(executor, config.storage, status=PolicyStatus.APPROVED)
     if body.policy_names:
         wanted = set(body.policy_names)

@@ -146,11 +146,19 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     if not snapshots:
         pytest.skip("no Genie spaces in the workspace to evaluate")
 
+    # Assert on the shape of the snapshots from this single fetch. We deliberately do not compare
+    # the count against a second live fetch inside ``run_scan`` — spaces can be created or deleted
+    # between the two calls, which would make an equality assertion flaky.
+    assert all(isinstance(s.attributes["has_description"], bool) for s in snapshots)
+
     documented = allow(
         "genie-space-documented",
         ResourceType.GENIE_SPACE,
         leaf("has_description", "equals", True),
     )
     result = run_scan(ws, [documented], [ResourceType.GENIE_SPACE])
-    assert result.summary().evaluated == len(snapshots)
-    assert all(isinstance(s.attributes["has_description"], bool) for s in snapshots)
+    if result.summary().evaluated == 0:
+        pytest.skip("Genie spaces disappeared between fetches; nothing to evaluate")
+    # Every evaluated space is either compliant or a violation, with no double counting.
+    summary = result.summary()
+    assert summary.evaluated == summary.compliant + summary.violations

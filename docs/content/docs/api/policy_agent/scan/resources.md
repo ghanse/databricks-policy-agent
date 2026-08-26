@@ -133,7 +133,7 @@ Fetches and normalizes every Genie space in the workspace.
 def classify_principal(identifier: str | None) -> str
 ```
 
-Classifies a principal identifier as a service principal or user.
+Classifies a principal identifier as a service principal, user, or unknown.
 
 **Arguments**:
 
@@ -142,5 +142,6 @@ Classifies a principal identifier as a service principal or user.
 
 **Returns**:
 
-  One of the ``OWNER_TYPE_*`` constants.
+  One of the ``OWNER_TYPE_*`` constants: ``service_principal`` for a UUID, ``user`` for an
+  email-shaped value, and ``unknown`` for an empty identifier or any other value.
 

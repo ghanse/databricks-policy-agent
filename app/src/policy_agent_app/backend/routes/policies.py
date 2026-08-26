@@ -78,7 +78,7 @@ def upsert_policy(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Creates or update a policy (saved in draft status by the author)."""
+    """Creates or updates a policy (saved in draft status by the author)."""
     policy = policy_from_dict(body.to_policy_dict())
     validate_policy(policy)
     save_policy(executor, config.storage, policy, actor=user)

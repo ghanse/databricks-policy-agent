@@ -250,13 +250,14 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
 
 
 def classify_principal(identifier: str | None) -> str:
-    """Classifies a principal identifier as a service principal or user.
+    """Classifies a principal identifier as a service principal, user, or unknown.
 
     Args:
         identifier: A principal identifier such as a user email or application id.
 
     Returns:
-        One of the ``OWNER_TYPE_*`` constants.
+        One of the ``OWNER_TYPE_*`` constants: ``service_principal`` for a UUID, ``user`` for an
+        email-shaped value, and ``unknown`` for an empty identifier or any other value.
     """
     if not identifier:
         return OWNER_TYPE_UNKNOWN
