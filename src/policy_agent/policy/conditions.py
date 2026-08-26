@@ -27,7 +27,7 @@ Operator = Callable[[Any, Any], bool]
 
 
 def evaluate_condition(condition: Condition, snapshot: Snapshot) -> bool:
-    """Evaluate a condition tree against a single resource snapshot.
+    """Evaluates a condition tree against a single resource snapshot.
 
     Args:
         condition: The condition tree to evaluate.
@@ -54,7 +54,7 @@ def evaluate_condition(condition: Condition, snapshot: Snapshot) -> bool:
 
 
 def resolve_attribute(snapshot: Snapshot, attribute: str) -> Any:
-    """Read an attribute from a snapshot, following dotted paths into nested mappings.
+    """Reads an attribute from a snapshot, following dotted paths into nested mappings.
 
     Args:
         snapshot: The resource snapshot.
@@ -72,7 +72,7 @@ def resolve_attribute(snapshot: Snapshot, attribute: str) -> Any:
 
 
 def is_registered_operator(name: str) -> bool:
-    """Return whether ``name`` is a known comparison operator.
+    """Returns whether ``name`` is a known comparison operator.
 
     Args:
         name: Candidate operator name.
@@ -84,7 +84,7 @@ def is_registered_operator(name: str) -> bool:
 
 
 def registered_operators() -> tuple[str, ...]:
-    """Return the sorted names of every registered comparison operator.
+    """Returns the sorted names of every registered comparison operator.
 
     Returns:
         A tuple of operator names.

@@ -51,7 +51,7 @@ def meets_threshold(level: EnforcementLevel,
                     threshold: EnforcementLevel) -> bool
 ```
 
-Return whether ``level`` is at least as strict as ``threshold``.
+Returns whether ``level`` is at least as strict as ``threshold``.
 
 **Arguments**:
 
@@ -174,7 +174,7 @@ policy validation checks attribute names against.
 def base_attribute(attribute: str) -> str
 ```
 
-Return the top-level attribute name from a possibly dotted attribute path.
+Returns the top-level attribute name from a possibly dotted attribute path.
 
 **Arguments**:
 
@@ -192,7 +192,7 @@ Return the top-level attribute name from a possibly dotted attribute path.
 def referenced_attributes(policy: Policy) -> frozenset[str]
 ```
 
-Return the base attribute names a policy reads across its rule and match trees.
+Returns the base attribute names a policy reads across its rule and match trees.
 
 Lets a scanner fetch only the data a policy actually inspects — for example, skipping an
 expensive expansion when no active policy references an attribute derived from it.

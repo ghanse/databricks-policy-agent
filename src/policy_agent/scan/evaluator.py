@@ -8,7 +8,7 @@ from policy_agent.scan.results import Finding, ResourceSnapshot
 
 
 def evaluate_resource(policy: Policy, snapshot: ResourceSnapshot) -> Finding | None:
-    """Evaluate one policy against one resource snapshot.
+    """Evaluates one policy against one resource snapshot.
 
     A policy that targets a different resource type, or whose optional ``match`` selector
     excludes the resource, does not apply and yields no finding.

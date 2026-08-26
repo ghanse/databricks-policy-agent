@@ -13,7 +13,7 @@ MANAGED_BY_VALUE = "policy-agent"
 
 
 def managed_tags(extra_tags: dict[str, str] | None = None) -> dict[str, str]:
-    """Return the managed marker tag merged with any extra tags.
+    """Returns the managed marker tag merged with any extra tags.
 
     Args:
         extra_tags: Additional tags to apply; these override the marker on key collision.
@@ -25,7 +25,7 @@ def managed_tags(extra_tags: dict[str, str] | None = None) -> dict[str, str]:
 
 
 def parse_tags(raw: str) -> dict[str, str]:
-    """Parse tags from a string in either JSON object or ``key=value,key=value`` form.
+    """Parses tags from a string in either JSON object or ``key=value,key=value`` form.
 
     Args:
         raw: The raw tag string; an empty string yields no tags.

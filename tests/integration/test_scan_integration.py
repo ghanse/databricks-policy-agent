@@ -5,6 +5,7 @@ import pytest
 from policy_agent.policy import allow, leaf
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan import run_scan
+from policy_agent.scan.engine import collect_snapshots
 
 
 @pytest.mark.integration
@@ -148,3 +149,28 @@ def test_scan_evaluates_pipeline_naming_policy(ws, make_pipeline, make_random):
 
     compliant_ids = {f.resource_id for f in result.findings if f.compliant}
     assert str(pipeline.pipeline_id) in compliant_ids
+    
+    
+@pytest.mark.integration
+def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
+    """Scanning real Genie spaces produces well-formed snapshots (a schema-drift guard)."""
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.GENIE_SPACE])[ResourceType.GENIE_SPACE]
+    if not snapshots:
+        pytest.skip("no Genie spaces in the workspace to evaluate")
+
+    assert all(s.resource_id for s in snapshots)
+    assert all(s.name for s in snapshots)
+    assert all(isinstance(s.attributes["has_description"], bool) for s in snapshots)
+
+    documented = allow(
+        "genie-space-documented",
+        ResourceType.GENIE_SPACE,
+        leaf("has_description", "equals", True),
+    )
+    result = run_scan(ws, [documented], [ResourceType.GENIE_SPACE])
+    if result.summary().evaluated == 0:
+        pytest.skip("Genie spaces disappeared between fetches; nothing to evaluate")
+    # Every evaluated space is either compliant or a violation, with no double counting.
+    summary = result.summary()
+    assert summary.evaluated == summary.compliant + summary.violations

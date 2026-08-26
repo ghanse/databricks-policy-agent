@@ -1,4 +1,4 @@
-"""Map a resolved bundle configuration into evaluable resource snapshots.
+"""Maps a resolved bundle configuration into evaluable resource snapshots.
 
 Each declared resource under ``resources.<group>.<key>`` is normalised into the same
 `ResourceSnapshot` shape produced by a live scan, so the enforcement gate reuses the
@@ -25,11 +25,12 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "apps": ResourceType.APP,
     "model_serving_endpoints": ResourceType.SERVING_ENDPOINT,
     "pipelines": ResourceType.PIPELINE,
+    "genie_spaces": ResourceType.GENIE_SPACE,
 }
 
 
 def snapshot_bundle(config: dict[str, Any]) -> list[ResourceSnapshot]:
-    """Build resource snapshots from a resolved bundle configuration.
+    """Builds resource snapshots from a resolved bundle configuration.
 
     Args:
         config: A resolved bundle configuration (see `load_bundle_config`).
@@ -153,6 +154,18 @@ def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]
         "serverless": definition.get("serverless"),
         "development": definition.get("development"),
     }
+  
+  
+def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    # NOTE: Genie spaces have no owner or tags, so this does not use _common
+    description = definition.get("description")
+    return {
+        "id": key,
+        "name": definition.get("title") or definition.get("name") or key,
+        "warehouse_id": definition.get("warehouse_id"),
+        "description": description,
+        "has_description": bool(description),
+    }
 
 
 def _common(
@@ -206,4 +219,5 @@ _COMMON = {
     ResourceType.APP: _app_attributes,
     ResourceType.SERVING_ENDPOINT: _serving_endpoint_attributes,
     ResourceType.PIPELINE: _pipeline_attributes,
+    ResourceType.GENIE_SPACE: _genie_space_attributes,
 }

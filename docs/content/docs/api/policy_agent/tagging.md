@@ -14,7 +14,7 @@ objects; user-supplied tags are merged on top.
 def managed_tags(extra_tags: dict[str, str] | None = None) -> dict[str, str]
 ```
 
-Return the managed marker tag merged with any extra tags.
+Returns the managed marker tag merged with any extra tags.
 
 **Arguments**:
 
@@ -31,7 +31,7 @@ Return the managed marker tag merged with any extra tags.
 def parse_tags(raw: str) -> dict[str, str]
 ```
 
-Parse tags from a string in either JSON object or ``key=value,key=value`` form.
+Parses tags from a string in either JSON object or ``key=value,key=value`` form.
 
 **Arguments**:
 

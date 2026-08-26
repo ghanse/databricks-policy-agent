@@ -1,14 +1,12 @@
 ---
 title: Reference
-description: Supported resource types, attributes, operators, roles, and lifecycle statuses.
+description: Understand the policy agent options
 ---
 
-A quick reference for the values the policy agent supports. These are the source of truth that
-policy validation checks against — a policy referencing anything outside these sets is rejected
-at author time.
+This page provides a reference for the options supported by the policy agent.
 
 ## Resource types
-Policies target one of the following resource types (the `resource_type` field).
+Policies target one of the following resource types.
 
 | Resource type      | Description                          |
 |--------------------|--------------------------------------|
@@ -38,32 +36,32 @@ Attributes may use dotted paths to index nested mappings, e.g. `tags.environment
 [Running Scans](/docs/scanning) for how to add a new resource type and its attributes.
 
 ## Operators
-Leaf comparisons use one of these operators (the `operator` field).
+Leaf comparisons use one of the following operators.
 
-| Operator                     | Usage                                                                        |
-|------------------------------|------------------------------------------------------------------------------|
-| `equals`                     | Strict equality                                                              |
-| `not_equals`                 | Strict inequality                                                            |
-| `matches_regex`              | Regular-expression match against a text value                               |
-| `in`                         | Membership in a list of values                                              |
-| `not_in`                     | Not a member of a list of values                                            |
-| `exists`                     | The attribute is present (not null)                                         |
-| `absent`                     | The attribute is absent (null)                                              |
-| `less_than`                  | Numeric attribute is less than the value                                    |
-| `greater_than`               | Numeric attribute is greater than the value                                 |
-| `contains`                   | The attribute contains the value                                            |
-| `has_tag`                    | The `tags` mapping contains the given tag key                               |
-| `missing_tag`                | The `tags` mapping does not contain the given tag key                       |
-| `not_empty`                  | The collection or mapping (e.g. `tags`) has at least one entry              |
-| `owner_is_service_principal` | The owner is a service principal                                            |
+| Operator                     | Usage                                                                              |
+|------------------------------|------------------------------------------------------------------------------------|
+| `equals`                     | Strict equality                                                                    |
+| `not_equals`                 | Strict inequality                                                                  |
+| `matches_regex`              | Regular-expression match against a text value                                      |
+| `in`                         | Membership in a list of values                                                     |
+| `not_in`                     | Not a member of a list of values                                                   |
+| `exists`                     | The attribute is present (not null); The attribute value is ignored                |
+| `absent`                     | The attribute is absent (null); The attribute value is ignored                     |
+| `less_than`                  | Numeric attribute is less than the value                                           |
+| `greater_than`               | Numeric attribute is greater than the value                                        |
+| `contains`                   | The attribute contains the value                                                   |
+| `has_tag`                    | The `tags` mapping contains the given tag key                                      |
+| `missing_tag`                | The `tags` mapping does not contain the given tag key                              |
+| `not_empty`                  | The collection or mapping (e.g. `tags`) has at least one entry                     |
+| `owner_is_service_principal` | The owner is a service principal; The attribute value is ignored                   |
 | `ttl_within`                 | Numeric attribute is greater than 0 and at most the value (e.g. auto-stop minutes) |
 
-`exists`, `absent`, `not_empty`, and `owner_is_service_principal` ignore the `value` field.
-
 ## Policy effects
-| Effect  | Meaning                                                        |
-|---------|----------------------------------------------------------------|
-| `allow` | The resource is compliant only when its rule matches (allow-list) |
+Policies can have one of the following effects on resources.
+
+| Effect  | Meaning                                                            |
+|---------|--------------------------------------------------------------------|
+| `allow` | The resource is compliant only when its rule matches (allow-list)  |
 | `deny`  | The resource violates the policy when its rule matches (deny-list) |
 
 ## Enforcement levels
@@ -77,20 +75,20 @@ is the default when unspecified.
 | `hard`     | Blocks the gate and cannot be overridden                      |
 
 ## Roles
-Roles are granted to workspace groups; a caller's effective roles are the union of the roles
-mapped to their groups. See [Managing Policies](/docs/approvals) for the full lifecycle.
+Roles are granted to workspace groups. A user's effective roles are the union of the roles
+mapped to their groups.
 
-| Role              | Privileges                                                     |
-|-------------------|----------------------------------------------------------------|
-| `admin`           | All privileges, including archiving policies and managing roles |
-| `policy_author`   | Draft and submit policies for review                           |
-| `policy_approver` | Approve or reject policies under review                        |
-| `scan_runner`     | Run scans                                                      |
-| `viewer`          | Read-only access                                               |
+| Role              | Privileges                                                       |
+|-------------------|------------------------------------------------------------------|
+| `admin`           | All privileges, including archiving policies and managing roles  |
+| `policy_author`   | Draft and submit policies for review                             |
+| `policy_approver` | Approve or reject policies under review                          |
+| `scan_runner`     | Run scans                                                        |
+| `viewer`          | Read-only access                                                 |
 
 ## Policy lifecycle statuses
-Policies move through these statuses (the `status` field). Only `approved` policies are run by
-scans.
+Policies move through the following statuses. Only `approved` policies are run by scans. See 
+[Managing Policies](/docs/approvals) for more information about the policy lifecycle.
 
 | Status      | Description                                              |
 |-------------|----------------------------------------------------------|
@@ -102,7 +100,7 @@ scans.
 
 ## Remediation statuses
 Each tracked violation is a remediation item in one of these statuses. See
-[Tracking Violations](/docs/remediation) for the reconciliation rules.
+[Tracking Violations](/docs/remediation) for complete information about reconciliation.
 
 | Status        | Description                                                        |
 |---------------|--------------------------------------------------------------------|

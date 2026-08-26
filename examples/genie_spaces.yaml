@@ -1,0 +1,20 @@
+# Genie space policies.
+policy: genie-spaces-must-be-documented
+description: Every Genie space must have a description so users understand its scope.
+resource_type: genie_space
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: has_description, operator: equals, value: true }
+remediation: Add a description to the Genie space.
+---
+policy: genie-spaces-need-a-warehouse
+description: Genie spaces must be attached to a SQL warehouse.
+resource_type: genie_space
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: warehouse_id, operator: exists }
+remediation: Attach a SQL warehouse to the Genie space.

@@ -21,6 +21,7 @@ class ResourceType(str, Enum):
     APP = "app"
     SERVING_ENDPOINT = "serving_endpoint"
     PIPELINE = "pipeline"
+    GENIE_SPACE = "genie_space"
 
 
 class Effect(str, Enum):
@@ -55,7 +56,7 @@ ENFORCEMENT_ORDER: tuple[EnforcementLevel, ...] = (
 
 
 def meets_threshold(level: EnforcementLevel, threshold: EnforcementLevel) -> bool:
-    """Return whether ``level`` is at least as strict as ``threshold``.
+    """Returns whether ``level`` is at least as strict as ``threshold``.
 
     Args:
         level: The level to test.
@@ -224,6 +225,17 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "serverless",
         "development",
     },
+    # NOTE: Genie spaces have neither an owner nor tags, so they intentionally do NOT inherit
+    # COMMON_RESOURCE_ATTRIBUTES.
+    ResourceType.GENIE_SPACE: frozenset(
+        {
+            "id",
+            "name",
+            "warehouse_id",
+            "description",
+            "has_description",
+        }
+    ),
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""
@@ -236,7 +248,7 @@ OWNER_TYPE_UNKNOWN: str = "unknown"
 
 
 def base_attribute(attribute: str) -> str:
-    """Return the top-level attribute name from a possibly dotted attribute path.
+    """Returns the top-level attribute name from a possibly dotted attribute path.
 
     Args:
         attribute: An attribute name such as ``tags`` or a dotted path such as
@@ -249,7 +261,7 @@ def base_attribute(attribute: str) -> str:
 
 
 def referenced_attributes(policy: Policy) -> frozenset[str]:
-    """Return the base attribute names a policy reads across its rule and match trees.
+    """Returns the base attribute names a policy reads across its rule and match trees.
 
     Lets a scanner fetch only the data a policy actually inspects — for example, skipping an
     expensive expansion when no active policy references an attribute derived from it.

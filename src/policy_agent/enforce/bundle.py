@@ -1,4 +1,4 @@
-"""Resolve a Databricks Asset Bundle to its fully-substituted configuration.
+"""Resolves a Databricks Asset Bundle to its fully-substituted configuration.
 
 ``databricks bundle validate --output json`` emits the resolved bundle (all variables and
 target overrides applied). That JSON is the desired-state manifest the enforcement gate
@@ -16,7 +16,7 @@ from policy_agent.errors import EnforcementError
 
 
 def load_bundle_config(source: str | Path, target: str | None = None) -> dict[str, Any]:
-    """Load a resolved bundle configuration from a JSON file or by resolving a bundle dir.
+    """Loads a resolved bundle configuration from a JSON file or by resolving a bundle dir.
 
     Args:
         source: Either a path to a ``bundle validate --output json`` file, or a bundle
@@ -41,7 +41,7 @@ def load_bundle_config(source: str | Path, target: str | None = None) -> dict[st
 
 
 def resolve_bundle(bundle_dir: str | Path, target: str | None = None) -> dict[str, Any]:
-    """Run ``databricks bundle validate --output json`` and return the parsed config.
+    """Runs ``databricks bundle validate --output json`` and returns the parsed config.
 
     Args:
         bundle_dir: Directory containing ``databricks.yml``.

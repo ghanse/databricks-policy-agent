@@ -20,7 +20,7 @@ class LakebaseSqlExecutor:
     """Runs SQL against a Lakebase Postgres database through a SQLAlchemy engine."""
 
     def __init__(self, engine: Engine) -> None:
-        """Initialise the executor.
+        """Initialises the executor.
 
         Args:
             engine: A SQLAlchemy engine connected to the target Postgres database.
@@ -28,7 +28,7 @@ class LakebaseSqlExecutor:
         self._engine = engine
 
     def execute(self, statement: str, parameters: Mapping[str, Any] | None = None) -> None:
-        """Execute a statement that returns no rows.
+        """Executes a statement that returns no rows.
 
         Args:
             statement: SQL text with ``:name`` parameter markers.
@@ -40,7 +40,7 @@ class LakebaseSqlExecutor:
     def query(
         self, statement: str, parameters: Mapping[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """Execute a query and return its rows as column-keyed mappings.
+        """Executes a query and returns its rows as column-keyed mappings.
 
         Args:
             statement: SQL text with ``:name`` parameter markers.

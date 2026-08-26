@@ -1,12 +1,12 @@
 """Exception hierarchy for the policy agent.
 
-All library-raised errors derive from `PolicyAgentError` so callers can catch
-the whole family with a single ``except`` while still distinguishing specific failures.
+All library-raised exceptions derive from `PolicyAgentError` so callers can catch the whole
+family with a single ``except`` while still distinguishing specific failures.
 """
 
 
 class PolicyAgentError(Exception):
-    """Base class for every error raised by the policy agent."""
+    """Base class for every exception raised by the policy agent."""
 
 
 class InvalidPolicyError(PolicyAgentError):
@@ -15,6 +15,10 @@ class InvalidPolicyError(PolicyAgentError):
 
 class UnknownConditionError(InvalidPolicyError):
     """Raised when a policy references an operator or attribute that is not registered."""
+
+
+class UnsupportedResourceError(InvalidPolicyError):
+    """Raised when a resource type is not supported by the requested operation."""
 
 
 class StorageError(PolicyAgentError):
