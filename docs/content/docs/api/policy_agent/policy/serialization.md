@@ -32,7 +32,7 @@ Builds a policy from a plain dictionary (e.g. parsed YAML or a JSON request body
 **Raises**:
 
 - `InvalidPolicyError` - If a required key is missing or an enum value is unrecognised.
-- `UnsupportedResourceException` - If ``resource_type`` names a type the agent does not support.
+- `UnsupportedResourceError` - If ``resource_type`` names a type the agent does not support.
 
 #### policy\_to\_dict
 

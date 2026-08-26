@@ -45,5 +45,5 @@ Returns the scanner function registered for a resource type.
 
 **Raises**:
 
-- `UnsupportedResourceException` - If no scanner is registered for the resource type.
+- `UnsupportedResourceError` - If no scanner is registered for the resource type.
 

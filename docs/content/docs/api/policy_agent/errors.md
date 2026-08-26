@@ -5,13 +5,13 @@ title: policy_agent.errors
 
 Exception hierarchy for the policy agent.
 
-All library-raised exceptions derive from `PolicyAgentException` so callers can catch the whole
+All library-raised exceptions derive from `PolicyAgentError` so callers can catch the whole
 family with a single ``except`` while still distinguishing specific failures.
 
-## PolicyAgentException Objects
+## PolicyAgentError Objects
 
 ```python
-class PolicyAgentException(Exception)
+class PolicyAgentError(Exception)
 ```
 
 Base class for every exception raised by the policy agent.
@@ -19,7 +19,7 @@ Base class for every exception raised by the policy agent.
 ## InvalidPolicyError Objects
 
 ```python
-class InvalidPolicyError(PolicyAgentException)
+class InvalidPolicyError(PolicyAgentError)
 ```
 
 Raised when a policy is structurally invalid or fails validation.
@@ -32,10 +32,10 @@ class UnknownConditionError(InvalidPolicyError)
 
 Raised when a policy references an operator or attribute that is not registered.
 
-## UnsupportedResourceException Objects
+## UnsupportedResourceError Objects
 
 ```python
-class UnsupportedResourceException(PolicyAgentException)
+class UnsupportedResourceError(InvalidPolicyError)
 ```
 
 Raised when a resource type is not supported by the requested operation.
@@ -43,7 +43,7 @@ Raised when a resource type is not supported by the requested operation.
 ## StorageError Objects
 
 ```python
-class StorageError(PolicyAgentException)
+class StorageError(PolicyAgentError)
 ```
 
 Raised when a storage backend cannot read or write policy-agent state.
@@ -51,7 +51,7 @@ Raised when a storage backend cannot read or write policy-agent state.
 ## AuthorizationError Objects
 
 ```python
-class AuthorizationError(PolicyAgentException)
+class AuthorizationError(PolicyAgentError)
 ```
 
 Raised when a caller lacks the role required for a workflow transition.
@@ -59,7 +59,7 @@ Raised when a caller lacks the role required for a workflow transition.
 ## WorkflowError Objects
 
 ```python
-class WorkflowError(PolicyAgentException)
+class WorkflowError(PolicyAgentError)
 ```
 
 Raised when an approval transition is not legal from the current status.
@@ -67,7 +67,7 @@ Raised when an approval transition is not legal from the current status.
 ## EnforcementError Objects
 
 ```python
-class EnforcementError(PolicyAgentException)
+class EnforcementError(PolicyAgentError)
 ```
 
 Raised when a deployment bundle cannot be resolved or gated.
