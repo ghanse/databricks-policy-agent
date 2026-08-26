@@ -20,7 +20,7 @@ from policy_agent.errors import (
     AuthorizationError,
     InvalidPolicyError,
     PolicyAgentError,
-    UnsupportedResourceException,
+    UnsupportedResourceError,
     WorkflowError,
 )
 
@@ -64,7 +64,7 @@ def create_app() -> FastAPI:
 def _register_exception_handlers(app: FastAPI) -> None:
     handlers = {
         InvalidPolicyError: 400,
-        UnsupportedResourceException: 400,
+        UnsupportedResourceError: 400,
         AuthorizationError: 403,
         WorkflowError: 409,
         PolicyAgentError: 500,

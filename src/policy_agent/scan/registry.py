@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from policy_agent.errors import UnsupportedResourceException
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     scan_apps,
@@ -57,11 +57,11 @@ def scanner_for(resource_type: ResourceType) -> ResourceScanner:
         The function that fetches snapshots for the resource type.
 
     Raises:
-        UnsupportedResourceException: If no scanner is registered for the resource type.
+        UnsupportedResourceError: If no scanner is registered for the resource type.
     """
     try:
         return RESOURCE_SCANNERS[resource_type]
     except KeyError as error:
-        raise UnsupportedResourceException(
+        raise UnsupportedResourceError(
             f"No scanner is registered for resource type {resource_type.value!r}."
         ) from error

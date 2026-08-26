@@ -136,19 +136,14 @@ def test_scan_flags_job_without_retry_policy_or_serverless_compute(ws, make_job,
 
 @pytest.mark.integration
 def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
-    """Scanning real Genie spaces produces well-formed snapshots (a schema-drift guard).
-
-    Genie spaces have no pytester fixture and cannot be created programmatically here, so this
-    skips when the workspace has none rather than asserting on a fixture we control.
-    """
+    """Scanning real Genie spaces produces well-formed snapshots (a schema-drift guard)."""
     env_or_skip("DATABRICKS_HOST")
     snapshots = collect_snapshots(ws, [ResourceType.GENIE_SPACE])[ResourceType.GENIE_SPACE]
     if not snapshots:
         pytest.skip("no Genie spaces in the workspace to evaluate")
 
-    # Assert on the shape of the snapshots from this single fetch. We deliberately do not compare
-    # the count against a second live fetch inside ``run_scan`` — spaces can be created or deleted
-    # between the two calls, which would make an equality assertion flaky.
+    assert all(s.resource_id for s in snapshots)
+    assert all(s.name for s in snapshots)
     assert all(isinstance(s.attributes["has_description"], bool) for s in snapshots)
 
     documented = allow(

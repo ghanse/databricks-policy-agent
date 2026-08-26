@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from policy_agent.errors import UnsupportedResourceException
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
@@ -236,5 +236,5 @@ def test_scan_genie_spaces_follows_pagination():
 def test_scan_genie_spaces_without_genie_service_raises():
     # A workspace client from an older SDK has no ``genie`` attribute; the scanner should fail
     # with a clear, actionable error rather than an opaque AttributeError.
-    with pytest.raises(UnsupportedResourceException):
+    with pytest.raises(UnsupportedResourceError):
         scan_genie_spaces(_ws())

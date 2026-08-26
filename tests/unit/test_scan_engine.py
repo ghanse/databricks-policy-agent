@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from policy_agent.errors import UnsupportedResourceException
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy import deny, leaf
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan import registry
@@ -81,7 +81,7 @@ def test_supported_resource_types_match_registry():
 
 def test_scanner_for_unregistered_type_raises_unsupported_resource(monkeypatch):
     monkeypatch.delitem(registry.RESOURCE_SCANNERS, ResourceType.GENIE_SPACE)
-    with pytest.raises(UnsupportedResourceException):
+    with pytest.raises(UnsupportedResourceError):
         scanner_for(ResourceType.GENIE_SPACE)
 
 

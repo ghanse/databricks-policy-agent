@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from policy_agent.errors import InvalidPolicyError, UnsupportedResourceException
+from policy_agent.errors import InvalidPolicyError, UnsupportedResourceError
 from policy_agent.policy.model import (
     AllOf,
     AnyOf,
@@ -37,7 +37,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
 
     Raises:
         InvalidPolicyError: If a required key is missing or an enum value is unrecognised.
-        UnsupportedResourceException: If ``resource_type`` names a type the agent does not support.
+        UnsupportedResourceError: If ``resource_type`` names a type the agent does not support.
     """
     name = data.get("policy") or data.get("name")
     if not name:
@@ -46,7 +46,7 @@ def policy_from_dict(data: dict[str, Any]) -> Policy:
     try:
         resource_type = ResourceType(resource_type_value)
     except ValueError as error:
-        raise UnsupportedResourceException(
+        raise UnsupportedResourceError(
             f"Policy {name!r} references unsupported resource type {str(resource_type_value)!r}."
         ) from error
     match = data.get("match")

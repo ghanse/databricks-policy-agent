@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from policy_agent.errors import UnsupportedResourceException
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import (
     OWNER_TYPE_SERVICE_PRINCIPAL,
     OWNER_TYPE_UNKNOWN,
@@ -225,7 +225,7 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
     if not genie_client:
         from databricks.sdk import version as databricks_sdk_version
 
-        raise UnsupportedResourceException(
+        raise UnsupportedResourceError(
             f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
             "'genie' API. Upgrade the Databricks SDK to scan Genie spaces."
         )
