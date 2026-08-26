@@ -16,7 +16,7 @@ gates a Databricks Asset Bundle's *declared* resources before deployment.
 def main(argv: Sequence[str] | None = None) -> int
 ```
 
-Run the CLI.
+Runs the CLI.
 
 **Arguments**:
 

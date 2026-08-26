@@ -25,7 +25,7 @@ def execute(statement: str,
             parameters: Mapping[str, Any] | None = None) -> None
 ```
 
-Execute a statement that returns no rows.
+Executes a statement that returns no rows.
 
 **Arguments**:
 
@@ -39,7 +39,7 @@ def query(statement: str,
           parameters: Mapping[str, Any] | None = None) -> list[dict[str, Any]]
 ```
 
-Execute a query and return its rows as column-keyed mappings.
+Executes a query and returns its rows as column-keyed mappings.
 
 **Arguments**:
 
@@ -57,7 +57,7 @@ Execute a query and return its rows as column-keyed mappings.
 def ensure_storage(executor: SqlExecutor, config: StorageConfig) -> None
 ```
 
-Create the namespace and every table if they do not already exist.
+Creates the namespace and every table if they do not already exist.
 
 **Arguments**:
 
@@ -73,7 +73,7 @@ def save_policy(executor: SqlExecutor,
                 actor: str = "system") -> None
 ```
 
-Upsert a policy and append a version snapshot.
+Upserts a policy and appends a version snapshot.
 
 **Arguments**:
 
@@ -90,7 +90,7 @@ def load_policies(executor: SqlExecutor,
                   status: PolicyStatus | None = None) -> list[Policy]
 ```
 
-Load policies, optionally filtered by approval status.
+Loads policies, optionally filtered by approval status.
 
 **Arguments**:
 
@@ -110,7 +110,7 @@ def delete_policy(executor: SqlExecutor, config: StorageConfig,
                   name: str) -> None
 ```
 
-Delete a policy by name.
+Deletes a policy by name.
 
 **Arguments**:
 
@@ -127,7 +127,7 @@ def write_scan(executor: SqlExecutor,
                triggered_by: str = "system") -> None
 ```
 
-Persist a scan's header row and one row per finding.
+Persists a scan's header row and one row per finding.
 
 **Arguments**:
 
@@ -144,7 +144,7 @@ def read_findings(executor: SqlExecutor,
                   scan_id: str | None = None) -> list[Finding]
 ```
 
-Read findings, optionally restricted to a single scan.
+Reads findings, optionally restricted to a single scan.
 
 **Arguments**:
 
@@ -164,7 +164,7 @@ def read_scans(executor: SqlExecutor,
                config: StorageConfig) -> list[dict[str, Any]]
 ```
 
-Read scan header rows, most recent first.
+Reads scan header rows, most recent first.
 
 **Arguments**:
 
@@ -183,7 +183,7 @@ def save_approval_event(executor: SqlExecutor, config: StorageConfig,
                         event: ApprovalEvent) -> None
 ```
 
-Append an approval-workflow audit event.
+Appends an approval-workflow audit event.
 
 **Arguments**:
 
@@ -200,7 +200,7 @@ def read_approval_events(
         policy_name: str | None = None) -> list[dict[str, Any]]
 ```
 
-Read approval events, optionally for a single policy, most recent first.
+Reads approval events, optionally for a single policy, most recent first.
 
 **Arguments**:
 
@@ -220,7 +220,7 @@ def save_remediation(executor: SqlExecutor, config: StorageConfig,
                      item: RemediationItem) -> None
 ```
 
-Upsert a remediation item.
+Upserts a remediation item.
 
 **Arguments**:
 
@@ -235,7 +235,7 @@ def read_remediations(executor: SqlExecutor,
                       config: StorageConfig) -> list[RemediationItem]
 ```
 
-Read every remediation item.
+Reads every remediation item.
 
 **Arguments**:
 
@@ -254,7 +254,7 @@ def save_schedule(executor: SqlExecutor, config: StorageConfig,
                   schedule: ScanSchedule) -> None
 ```
 
-Upsert a scan schedule.
+Upserts a scan schedule.
 
 **Arguments**:
 
@@ -269,7 +269,7 @@ def read_schedules(executor: SqlExecutor,
                    config: StorageConfig) -> list[ScanSchedule]
 ```
 
-Read every scan schedule.
+Reads every scan schedule.
 
 **Arguments**:
 
@@ -288,7 +288,7 @@ def delete_schedule(executor: SqlExecutor, config: StorageConfig,
                     schedule_id: str) -> None
 ```
 
-Delete a scan schedule by id.
+Deletes a scan schedule by id.
 
 **Arguments**:
 
@@ -303,7 +303,7 @@ def save_role_mapping(executor: SqlExecutor, config: StorageConfig,
                       group_name: str, role: Role) -> None
 ```
 
-Grant a role to a workspace group (idempotent).
+Grants a role to a workspace group (idempotent).
 
 **Arguments**:
 
@@ -319,7 +319,7 @@ def delete_role_mapping(executor: SqlExecutor, config: StorageConfig,
                         group_name: str, role: Role) -> None
 ```
 
-Revoke a role from a workspace group.
+Revokes a role from a workspace group.
 
 **Arguments**:
 
@@ -335,7 +335,7 @@ def read_role_mappings(executor: SqlExecutor,
                        config: StorageConfig) -> dict[str, set[Role]]
 ```
 
-Read all group-to-role grants.
+Reads all group-to-role grants.
 
 **Arguments**:
 

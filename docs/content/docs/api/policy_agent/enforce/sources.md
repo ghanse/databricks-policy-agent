@@ -3,7 +3,7 @@ sidebar_label: sources
 title: policy_agent.enforce.sources
 ---
 
-Map a resolved bundle configuration into evaluable resource snapshots.
+Maps a resolved bundle configuration into evaluable resource snapshots.
 
 Each declared resource under ``resources.<group>.<key>`` is normalised into the same
 `ResourceSnapshot` shape produced by a live scan, so the enforcement gate reuses the
@@ -16,7 +16,7 @@ known only at runtime (for example ``created_time``) are ``None``.
 def snapshot_bundle(config: dict[str, Any]) -> list[ResourceSnapshot]
 ```
 
-Build resource snapshots from a resolved bundle configuration.
+Builds resource snapshots from a resolved bundle configuration.
 
 **Arguments**:
 

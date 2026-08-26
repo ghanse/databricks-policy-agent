@@ -19,7 +19,7 @@ The resource types the framework can scan, keyed to their fetch functions.
 def supported_resource_types() -> tuple[ResourceType, ...]
 ```
 
-Return every resource type that has a registered scanner.
+Returns every resource type that has a registered scanner.
 
 **Returns**:
 
@@ -31,7 +31,7 @@ Return every resource type that has a registered scanner.
 def scanner_for(resource_type: ResourceType) -> ResourceScanner
 ```
 
-Return the scanner function registered for a resource type.
+Returns the scanner function registered for a resource type.
 
 **Arguments**:
 
@@ -45,5 +45,5 @@ Return the scanner function registered for a resource type.
 
 **Raises**:
 
-- `KeyError` - If no scanner is registered for the resource type.
+- `UnsupportedResourceError` - If no scanner is registered for the resource type.
 

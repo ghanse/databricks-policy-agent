@@ -67,7 +67,7 @@ class GateResult:
         return self.verdict is GateVerdict.BLOCKED
 
     def to_dict(self) -> dict[str, object]:
-        """Render a JSON-serialisable summary of the gate result.
+        """Renders a JSON-serialisable summary of the gate result.
 
         Returns:
             A mapping suitable for machine-readable gate output.

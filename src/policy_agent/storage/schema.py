@@ -207,7 +207,7 @@ _POSTGRES_TYPES = {
 
 
 def create_namespace_statements(config: StorageConfig) -> list[str]:
-    """Build the statements that create the catalog/schema and apply object tags.
+    """Builds the statements that create the catalog/schema and apply object tags.
 
     Args:
         config: The storage configuration.
@@ -231,7 +231,7 @@ def create_namespace_statements(config: StorageConfig) -> list[str]:
 
 
 def create_table_statements(config: StorageConfig) -> list[str]:
-    """Build ``CREATE TABLE`` (and tag) statements for every table.
+    """Builds ``CREATE TABLE`` (and tag) statements for every table.
 
     Args:
         config: The storage configuration.
@@ -245,7 +245,7 @@ def create_table_statements(config: StorageConfig) -> list[str]:
 def insert_statement(
     config: StorageConfig, table_name: str, row: dict[str, Any]
 ) -> tuple[str, dict[str, Any]]:
-    """Build a parameterized ``INSERT`` for one row.
+    """Builds a parameterized ``INSERT`` for one row.
 
     Args:
         config: The storage configuration.
@@ -265,7 +265,7 @@ def insert_statement(
 def delete_statement(
     config: StorageConfig, table_name: str, key: dict[str, Any]
 ) -> tuple[str, dict[str, Any]]:
-    """Build a parameterized ``DELETE`` matching the given key columns.
+    """Builds a parameterized ``DELETE`` matching the given key columns.
 
     Args:
         config: The storage configuration.
@@ -286,7 +286,7 @@ def select_statement(
     where: dict[str, Any] | None = None,
     order_by: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
-    """Build a parameterized ``SELECT *`` with an optional equality filter and ordering.
+    """Builds a parameterized ``SELECT *`` with an optional equality filter and ordering.
 
     Args:
         config: The storage configuration.

@@ -30,7 +30,7 @@ def run_scan(
     policies: Iterable[Policy],
     resource_types: Iterable[ResourceType] | None = None,
 ) -> ScanResult:
-    """Scan the workspace for compliance with the given policies.
+    """Scans the workspace for compliance with the given policies.
 
     Only resource types that both appear in ``policies`` and (when provided) in
     ``resource_types`` are fetched, so a scan never calls an API it does not need.
@@ -79,7 +79,7 @@ def collect_snapshots(
     workspace_client: WorkspaceClient,
     resource_types: Iterable[ResourceType],
 ) -> dict[ResourceType, list[ResourceSnapshot]]:
-    """Fetch resource snapshots without evaluating any policy.
+    """Fetches resource snapshots without evaluating any policy.
 
     Useful for inventory views and dry runs where only the normalized resource attributes
     are needed.
@@ -102,7 +102,7 @@ def _fetch_snapshots(
     resource_type: ResourceType,
     policies: list[Policy],
 ) -> list[ResourceSnapshot]:
-    """Fetch snapshots for one resource type, fetching only the data its policies need.
+    """Fetches snapshots for one resource type, fetching only the data its policies need.
 
     Jobs are the one type with an expensive optional expansion: task definitions are fetched
     only when a policy reads a task-derived attribute (retry policy or serverless compute).

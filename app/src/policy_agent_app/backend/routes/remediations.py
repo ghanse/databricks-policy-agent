@@ -26,7 +26,7 @@ def list_remediations(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """List remediation items, most recently opened first."""
+    """Lists remediation items, most recently opened first."""
     return [remediation_to_dict(item) for item in read_remediations(executor, config.storage)]
 
 

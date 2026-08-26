@@ -1,8 +1,13 @@
 from types import SimpleNamespace
 
+import pytest
+
+from policy_agent.errors import UnsupportedResourceError
+from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
     scan_clusters,
+    scan_genie_spaces,
     scan_jobs,
     scan_serving_endpoints,
     scan_sql_warehouses,
@@ -172,3 +177,64 @@ def test_scan_serving_endpoints_reads_nested_state():
     assert attrs["endpoint_state"] == "READY"
     assert attrs["tags"] == {"team": "risk"}
     assert attrs["route_optimized"] is False
+
+
+class _FakeGenie:
+    def __init__(self, spaces):
+        self._spaces = spaces
+
+    def list_spaces(self, page_token=None):
+        # Single page; the scanner stops when next_page_token is falsy.
+        return SimpleNamespace(spaces=list(self._spaces), next_page_token=None)
+
+
+def test_scan_genie_spaces_maps_title_and_description():
+    documented = SimpleNamespace(
+        space_id="sp-1", title="Sales Genie", description="Ask about sales", warehouse_id="wh-9"
+    )
+    bare = SimpleNamespace(space_id="sp-2", title="Bare", description=None, warehouse_id=None)
+    by_id = {s.resource_id: s for s in scan_genie_spaces(_ws(genie=_FakeGenie([documented, bare])))}
+    assert set(by_id) == {"sp-1", "sp-2"}
+    assert by_id["sp-1"].resource_type is ResourceType.GENIE_SPACE
+    attrs = by_id["sp-1"].attributes
+    assert attrs["name"] == "Sales Genie"
+    assert attrs["warehouse_id"] == "wh-9"
+    assert attrs["description"] == "Ask about sales"
+    assert attrs["has_description"] is True
+    assert by_id["sp-2"].attributes["has_description"] is False
+
+
+class _PagingGenie:
+    """A fake Genie service that serves spaces across multiple pages and records the tokens
+    it was called with, so the scanner's pagination loop is exercised end to end."""
+
+    def __init__(self, pages):
+        self._pages = pages
+        self.seen_tokens = []
+
+    def list_spaces(self, page_token=None):
+        self.seen_tokens.append(page_token)
+        spaces, next_token = self._pages[page_token]
+        return SimpleNamespace(spaces=spaces, next_page_token=next_token)
+
+
+def test_scan_genie_spaces_follows_pagination():
+    page1 = SimpleNamespace(space_id="sp-1", title="One", description="d", warehouse_id="wh-1")
+    page2 = SimpleNamespace(space_id="sp-2", title="Two", description=None, warehouse_id="wh-2")
+    genie = _PagingGenie(
+        {
+            None: ([page1], "token-2"),
+            "token-2": ([page2], None),
+        }
+    )
+    snapshots = scan_genie_spaces(_ws(genie=genie))
+    assert {s.resource_id for s in snapshots} == {"sp-1", "sp-2"}
+    # Both pages were fetched, following the token from the first response into the second call.
+    assert genie.seen_tokens == [None, "token-2"]
+
+
+def test_scan_genie_spaces_without_genie_service_raises():
+    # A workspace client from an older SDK has no ``genie`` attribute; the scanner should fail
+    # with a clear, actionable error rather than an opaque AttributeError.
+    with pytest.raises(UnsupportedResourceError):
+        scan_genie_spaces(_ws())

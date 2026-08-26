@@ -15,7 +15,7 @@ example a Slack or Teams incoming webhook) using only the standard library.
 def build_scan_summary_message(scan_result: ScanResult) -> dict[str, object]
 ```
 
-Build a compact, JSON-serialisable summary message for a scan result.
+Builds a compact, JSON-serialisable summary message for a scan result.
 
 **Arguments**:
 
@@ -35,7 +35,7 @@ def notify_scan_result(scan_result: ScanResult,
                        timeout_seconds: float = 10.0) -> bool
 ```
 
-Post a scan summary to the webhook when there are violations to report.
+Posts a scan summary to the webhook when there are violations to report.
 
 **Arguments**:
 

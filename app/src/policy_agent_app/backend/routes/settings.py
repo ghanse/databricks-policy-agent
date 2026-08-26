@@ -21,7 +21,7 @@ def get_settings(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> dict[str, Any]:
-    """Return non-sensitive deployment metadata and the policy vocabulary."""
+    """Returns non-sensitive deployment metadata and the policy vocabulary."""
     storage = config.storage
     return {
         "storage": {

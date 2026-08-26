@@ -67,7 +67,7 @@ Whether the deployment should be blocked.
 def to_dict() -> dict[str, object]
 ```
 
-Render a JSON-serialisable summary of the gate result.
+Renders a JSON-serialisable summary of the gate result.
 
 **Returns**:
 

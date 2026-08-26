@@ -10,10 +10,12 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     scan_apps,
     scan_clusters,
+    scan_genie_spaces,
     scan_jobs,
     scan_serving_endpoints,
     scan_sql_warehouses,
@@ -31,12 +33,13 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.SQL_WAREHOUSE: scan_sql_warehouses,
     ResourceType.APP: scan_apps,
     ResourceType.SERVING_ENDPOINT: scan_serving_endpoints,
+    ResourceType.GENIE_SPACE: scan_genie_spaces,
 }
 """The resource types the framework can scan, keyed to their fetch functions."""
 
 
 def supported_resource_types() -> tuple[ResourceType, ...]:
-    """Return every resource type that has a registered scanner.
+    """Returns every resource type that has a registered scanner.
 
     Returns:
         The supported resource types, in registration order.
@@ -45,7 +48,7 @@ def supported_resource_types() -> tuple[ResourceType, ...]:
 
 
 def scanner_for(resource_type: ResourceType) -> ResourceScanner:
-    """Return the scanner function registered for a resource type.
+    """Returns the scanner function registered for a resource type.
 
     Args:
         resource_type: The resource type to look up.
@@ -54,6 +57,11 @@ def scanner_for(resource_type: ResourceType) -> ResourceScanner:
         The function that fetches snapshots for the resource type.
 
     Raises:
-        KeyError: If no scanner is registered for the resource type.
+        UnsupportedResourceError: If no scanner is registered for the resource type.
     """
-    return RESOURCE_SCANNERS[resource_type]
+    try:
+        return RESOURCE_SCANNERS[resource_type]
+    except KeyError as error:
+        raise UnsupportedResourceError(
+            f"No scanner is registered for resource type {resource_type.value!r}."
+        ) from error

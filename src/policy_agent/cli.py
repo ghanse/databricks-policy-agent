@@ -27,7 +27,7 @@ from policy_agent.storage.backend import load_policies
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Run the CLI.
+    """Runs the CLI.
 
     Args:
         argv: Arguments to parse; defaults to ``sys.argv[1:]``.

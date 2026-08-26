@@ -30,7 +30,7 @@ def list_schedules(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """List scan schedules."""
+    """Lists scan schedules."""
     return [schedule_to_dict(schedule) for schedule in read_schedules(executor, config.storage)]
 
 
@@ -41,7 +41,7 @@ def upsert_schedule(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Create or update a scan schedule."""
+    """Creates or updates a scan schedule."""
     schedule = ScanSchedule(
         schedule_id=body.schedule_id or uuid.uuid4().hex,
         name=body.name,
@@ -62,5 +62,5 @@ def remove_schedule(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> None:
-    """Delete a scan schedule by id."""
+    """Deletes a scan schedule by id."""
     delete_schedule(executor, config.storage, schedule_id)

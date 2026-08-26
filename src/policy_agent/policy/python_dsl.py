@@ -41,7 +41,7 @@ def deny(
     status: PolicyStatus | str = PolicyStatus.DRAFT,
     version: int = 1,
 ) -> Policy:
-    """Build a deny-list policy: resources whose rule matches are violations.
+    """Builds a deny-list policy: resources whose rule matches are violations.
 
     Args:
         name: Unique policy identifier.
@@ -83,7 +83,7 @@ def allow(
     status: PolicyStatus | str = PolicyStatus.DRAFT,
     version: int = 1,
 ) -> Policy:
-    """Build an allow-list policy: resources whose rule does not match are violations.
+    """Builds an allow-list policy: resources whose rule does not match are violations.
 
     Args:
         name: Unique policy identifier.
@@ -126,7 +126,7 @@ def policy(
     status: PolicyStatus | str = PolicyStatus.DRAFT,
     version: int = 1,
 ) -> Policy:
-    """Build a policy with an explicit effect, coercing string enum inputs.
+    """Builds a policy with an explicit effect, coercing string enum inputs.
 
     Args:
         name: Unique policy identifier.
@@ -158,7 +158,7 @@ def policy(
 
 
 def leaf(attribute: str, operator: str, value: object = None) -> Comparison:
-    """Build a leaf comparison condition.
+    """Builds a leaf comparison condition.
 
     Args:
         attribute: Resource attribute name or dotted path (e.g. ``tags.environment``).
@@ -173,7 +173,7 @@ def leaf(attribute: str, operator: str, value: object = None) -> Comparison:
 
 
 def all_of(*conditions: Condition) -> AllOf:
-    """Build a conjunction that holds only when every child condition holds.
+    """Builds a conjunction that holds only when every child condition holds.
 
     Args:
         *conditions: Child conditions.
@@ -185,7 +185,7 @@ def all_of(*conditions: Condition) -> AllOf:
 
 
 def any_of(*conditions: Condition) -> AnyOf:
-    """Build a disjunction that holds when at least one child condition holds.
+    """Builds a disjunction that holds when at least one child condition holds.
 
     Args:
         *conditions: Child conditions.
@@ -197,7 +197,7 @@ def any_of(*conditions: Condition) -> AnyOf:
 
 
 def not_(condition: Condition) -> Negation:
-    """Build a negation that holds when its child condition does not.
+    """Builds a negation that holds when its child condition does not.
 
     Args:
         condition: The condition to negate.

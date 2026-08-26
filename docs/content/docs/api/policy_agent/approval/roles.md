@@ -24,7 +24,7 @@ def resolve_roles(group_names: Iterable[str],
                   role_mappings: Mapping[str, Iterable[Role]]) -> set[Role]
 ```
 
-Resolve the effective roles for a caller from their group memberships.
+Resolves the effective roles for a caller from their group memberships.
 
 **Arguments**:
 

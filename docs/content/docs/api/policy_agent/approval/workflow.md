@@ -38,7 +38,7 @@ def submit_for_review(policy: Policy,
                       note: str = "") -> tuple[Policy, ApprovalEvent]
 ```
 
-Move a draft or rejected policy into review.
+Moves a draft or rejected policy into review.
 
 **Arguments**:
 
@@ -68,7 +68,7 @@ def approve(policy: Policy,
             author: str | None = None) -> tuple[Policy, ApprovalEvent]
 ```
 
-Approve a policy under review, incrementing its version.
+Approves a policy under review, incrementing its version.
 
 **Arguments**:
 
@@ -99,7 +99,7 @@ def reject(policy: Policy,
            note: str = "") -> tuple[Policy, ApprovalEvent]
 ```
 
-Reject a policy under review, returning it to the author.
+Rejects a policy under review, returning it to the author.
 
 **Arguments**:
 
@@ -128,7 +128,7 @@ def archive(policy: Policy,
             note: str = "") -> tuple[Policy, ApprovalEvent]
 ```
 
-Archive a policy from any status, retiring it from scans.
+Archives a policy from any status, retiring it from scans.
 
 **Arguments**:
 

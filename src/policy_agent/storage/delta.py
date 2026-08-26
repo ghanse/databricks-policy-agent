@@ -35,7 +35,7 @@ class DeltaSqlExecutor:
         warehouse_id: str,
         poll_interval_seconds: float = 1.0,
     ) -> None:
-        """Initialise the executor.
+        """Initialises the executor.
 
         Args:
             workspace_client: An authenticated Databricks workspace client.
@@ -47,7 +47,7 @@ class DeltaSqlExecutor:
         self._poll_interval_seconds = poll_interval_seconds
 
     def execute(self, statement: str, parameters: Mapping[str, Any] | None = None) -> None:
-        """Execute a statement that returns no rows.
+        """Executes a statement that returns no rows.
 
         Args:
             statement: SQL text with ``:name`` parameter markers.
@@ -58,7 +58,7 @@ class DeltaSqlExecutor:
     def query(
         self, statement: str, parameters: Mapping[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """Execute a query and return its rows as column-keyed mappings.
+        """Executes a query and returns its rows as column-keyed mappings.
 
         Args:
             statement: SQL text with ``:name`` parameter markers.

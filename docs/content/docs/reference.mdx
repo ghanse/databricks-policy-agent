@@ -1,14 +1,12 @@
 ---
 title: Reference
-description: Supported resource types, attributes, operators, roles, and lifecycle statuses.
+description: Understand the policy agent options
 ---
 
-A quick reference for the values the policy agent supports. These are the source of truth that
-policy validation checks against — a policy referencing anything outside these sets is rejected
-at author time.
+This page provides a reference for the options supported by the policy agent.
 
 ## Resource types
-Policies target one of the following resource types (the `resource_type` field).
+Policies target one of the following resource types.
 
 | Resource type      | Description                          |
 |--------------------|--------------------------------------|
@@ -17,51 +15,121 @@ Policies target one of the following resource types (the `resource_type` field).
 | `sql_warehouse`    | SQL warehouses                       |
 | `app`              | Databricks Apps                      |
 | `serving_endpoint` | Model serving endpoints              |
+| `genie_space`      | Genie spaces                         |
 
 ## Resource attributes
-Rules compare these attributes (the `attribute` field of a leaf). Every resource type exposes the
-common attributes; each type adds its own.
+Rules check that resource attributes comply with a specific policy. Each resource type exposes both 
+common and type-specific attributes. A type only advertises valid resource attributes.
 
-**Common (all resource types):** `id`, `name`, `owner`, `owner_type`, `tags`, `created_time`
+<Callout type="info" title="Adding new resource types">
+You can add custom resource types for any resources that aren't supported.
+See [Adding a resource type](/docs/scanning#adding-a-resource-type).
+</Callout>
 
-| Resource type      | Additional attributes                                                                                                          |
-|--------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| `job`              | `schedule_pause_status`, `max_concurrent_runs`, `timeout_seconds`, `run_as_type`, `has_email_notifications`, `has_retry_policy`, `uses_serverless_compute`, `format` |
-| `cluster`          | `cluster_source`, `autotermination_minutes`, `spark_version`, `node_type_id`, `num_workers`, `data_security_mode`, `single_user_name` |
-| `sql_warehouse`    | `warehouse_type`, `cluster_size`, `auto_stop_minutes`, `enable_serverless_compute`, `min_num_clusters`, `max_num_clusters`     |
-| `app`              | `app_status`, `compute_status`, `active_deployment_mode`                                                                       |
-| `serving_endpoint` | `endpoint_state`, `endpoint_type`, `budget_policy_id`, `route_optimized`                                                       |
+### Common attributes
 
-Attributes may use dotted paths to index nested mappings, e.g. `tags.environment`. See
-[Running Scans](/docs/scanning) for how to add a new resource type and its attributes.
+| Field name     | Description                                                                 |
+|----------------|-----------------------------------------------------------------------------|
+| `id`           | System-assigned resource identifier                                         |
+| `name`         | User-assigned resource identifier                                           |
+| `owner`        | Resource owner principal (e.g. a user or service principal)                 |
+| `owner_type`   | Resource owner principal type (e.g. "user", "group", or "service_principal") |
+| `created_time` | Date and time when the resource was created                                 |
+| `tags`         | User-assigned key-value pairs                                               |
+
+### Job attributes
+
+| Field name                | Description                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| `schedule_pause_status`   | Indicates that the job's schedule is currently active or paused             |
+| `max_concurrent_runs`     | Maximum number of concurrent runs of the job                                |
+| `timeout_seconds`         | Maximum job run duration in seconds before the job is failed due to timeout |
+| `run_as_type`             | Run-as principal type (e.g. "user" or "service_principal")                  |
+| `has_email_notifications` | Whether the job specifies notifications on start, completion, failure, etc. |
+| `has_retry_policy`        | Whether the job specifies a number of retries                               |
+| `uses_serverless_compute` | Whether the job tasks use Databricks serverless compute                     |
+| `format`                  | The job definition format (e.g. "SINGLE_TASK" or "MULTI_TASK")              |
+
+
+### Cluster attributes
+
+| Field name                | Description                                                                 |
+|---------------------------|-----------------------------------------------------------------------------|
+| `cluster_source`          | How the cluster was created (e.g. "UI", "JOB", "API")                       |
+| `autotermination_minutes` | Minutes of inactivity after which the cluster auto-terminates (0 disables)  |
+| `spark_version`           | Databricks Runtime version running on the cluster                           |
+| `node_type_id`            | Cloud instance type of the cluster's nodes                                  |
+| `num_workers`             | Number of worker nodes                                                      |
+| `data_security_mode`      | Cluster access mode (e.g. "SINGLE_USER", "USER_ISOLATION")                  |
+| `single_user_name`        | Principal a single-user cluster runs as                                     |
+
+### SQL warehouse attributes
+
+| Field name                  | Description                                                               |
+|-----------------------------|---------------------------------------------------------------------------|
+| `warehouse_type`            | Warehouse type (e.g. "PRO", "CLASSIC")                                    |
+| `cluster_size`              | Warehouse size (e.g. "2X-Small", "Small", "Medium")                       |
+| `auto_stop_minutes`         | Minutes of inactivity before the warehouse stops (0 disables)             |
+| `enable_serverless_compute` | Whether the warehouse uses serverless compute                             |
+| `min_num_clusters`          | Minimum number of clusters the warehouse scales down to                   |
+| `max_num_clusters`          | Maximum number of clusters the warehouse scales up to                     |
+
+### App attributes
+
+| Field name               | Description                                          |
+|--------------------------|------------------------------------------------------|
+| `app_status`             | Current application state                            |
+| `compute_status`         | Current state of the app's compute                   |
+| `active_deployment_mode` | Deployment mode of the app's active deployment       |
+
+### Serving endpoint attributes
+
+| Field name         | Description                                                        |
+|--------------------|--------------------------------------------------------------------|
+| `endpoint_state`   | Readiness state of the endpoint                                    |
+| `endpoint_type`    | Type of the serving endpoint                                       |
+| `budget_policy_id` | Budget policy attached to the endpoint for cost attribution        |
+| `route_optimized`  | Whether the endpoint is route-optimized                            |
+
+### Genie space attributes
+
+| Field name        | Description                                          |
+|-------------------|------------------------------------------------------|
+| `warehouse_id`    | SQL warehouse the space runs its queries on          |
+| `description`     | Free-text description of the space                   |
+| `has_description` | Whether the space has a non-empty description        |
+
+<Callout type="warn" title="Unsupported common attributes for Genie spaces">
+Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` attributes.
+</Callout>
 
 ## Operators
-Leaf comparisons use one of these operators (the `operator` field).
+Leaf comparisons use one of the following operators.
 
-| Operator                     | Usage                                                                        |
-|------------------------------|------------------------------------------------------------------------------|
-| `equals`                     | Strict equality                                                              |
-| `not_equals`                 | Strict inequality                                                            |
-| `matches_regex`              | Regular-expression match against a text value                               |
-| `in`                         | Membership in a list of values                                              |
-| `not_in`                     | Not a member of a list of values                                            |
-| `exists`                     | The attribute is present (not null)                                         |
-| `absent`                     | The attribute is absent (null)                                              |
-| `less_than`                  | Numeric attribute is less than the value                                    |
-| `greater_than`               | Numeric attribute is greater than the value                                 |
-| `contains`                   | The attribute contains the value                                            |
-| `has_tag`                    | The `tags` mapping contains the given tag key                               |
-| `missing_tag`                | The `tags` mapping does not contain the given tag key                       |
-| `not_empty`                  | The collection or mapping (e.g. `tags`) has at least one entry              |
-| `owner_is_service_principal` | The owner is a service principal                                            |
+| Operator                     | Usage                                                                              |
+|------------------------------|------------------------------------------------------------------------------------|
+| `equals`                     | Strict equality                                                                    |
+| `not_equals`                 | Strict inequality                                                                  |
+| `matches_regex`              | Regular-expression match against a text value                                      |
+| `in`                         | Membership in a list of values                                                     |
+| `not_in`                     | Not a member of a list of values                                                   |
+| `exists`                     | The attribute is present (not null); The attribute value is ignored                |
+| `absent`                     | The attribute is absent (null); The attribute value is ignored                     |
+| `less_than`                  | Numeric attribute is less than the value                                           |
+| `greater_than`               | Numeric attribute is greater than the value                                        |
+| `contains`                   | The attribute contains the value                                                   |
+| `has_tag`                    | The `tags` mapping contains the given tag key                                      |
+| `missing_tag`                | The `tags` mapping does not contain the given tag key                              |
+| `not_empty`                  | The collection or mapping (e.g. `tags`) has at least one entry                     |
+| `owner_is_service_principal` | The owner is a service principal; The attribute value is ignored                   |
 | `ttl_within`                 | Numeric attribute is greater than 0 and at most the value (e.g. auto-stop minutes) |
 
-`exists`, `absent`, `not_empty`, and `owner_is_service_principal` ignore the `value` field.
-
 ## Policy effects
-| Effect  | Meaning                                                        |
-|---------|----------------------------------------------------------------|
-| `allow` | The resource is compliant only when its rule matches (allow-list) |
+Policies can have one of the following effects on resources.
+
+| Effect  | Meaning                                                            |
+|---------|--------------------------------------------------------------------|
+| `allow` | The resource is compliant only when its rule matches (allow-list)  |
 | `deny`  | The resource violates the policy when its rule matches (deny-list) |
 
 ## Enforcement levels
@@ -75,20 +143,20 @@ is the default when unspecified.
 | `hard`     | Blocks the gate and cannot be overridden                      |
 
 ## Roles
-Roles are granted to workspace groups; a caller's effective roles are the union of the roles
-mapped to their groups. See [Managing Policies](/docs/approvals) for the full lifecycle.
+Roles are granted to workspace groups. A user's effective roles are the union of the roles
+mapped to their groups.
 
-| Role              | Privileges                                                     |
-|-------------------|----------------------------------------------------------------|
-| `admin`           | All privileges, including archiving policies and managing roles |
-| `policy_author`   | Draft and submit policies for review                           |
-| `policy_approver` | Approve or reject policies under review                        |
-| `scan_runner`     | Run scans                                                      |
-| `viewer`          | Read-only access                                               |
+| Role              | Privileges                                                       |
+|-------------------|------------------------------------------------------------------|
+| `admin`           | All privileges, including archiving policies and managing roles  |
+| `policy_author`   | Draft and submit policies for review                             |
+| `policy_approver` | Approve or reject policies under review                          |
+| `scan_runner`     | Run scans                                                        |
+| `viewer`          | Read-only access                                                 |
 
 ## Policy lifecycle statuses
-Policies move through these statuses (the `status` field). Only `approved` policies are run by
-scans.
+Policies move through the following statuses. Only `approved` policies are run by scans. See 
+[Managing Policies](/docs/approvals) for more information about the policy lifecycle.
 
 | Status      | Description                                              |
 |-------------|----------------------------------------------------------|
@@ -100,7 +168,7 @@ scans.
 
 ## Remediation statuses
 Each tracked violation is a remediation item in one of these statuses. See
-[Tracking Violations](/docs/remediation) for the reconciliation rules.
+[Tracking Violations](/docs/remediation) for complete information about reconciliation.
 
 | Status        | Description                                                        |
 |---------------|--------------------------------------------------------------------|

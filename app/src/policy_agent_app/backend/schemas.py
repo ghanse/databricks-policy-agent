@@ -23,7 +23,7 @@ class PolicyRequest(BaseModel):
     remediation: str = ""
 
     def to_policy_dict(self) -> dict[str, Any]:
-        """Convert the request to the canonical policy dictionary form.
+        """Converts the request to the canonical policy dictionary form.
 
         Returns:
             A mapping accepted by :func:`policy_agent.policy.policy_from_dict`.
@@ -84,7 +84,7 @@ class ScheduleRequest(BaseModel):
 
 
 def remediation_to_dict(item: RemediationItem) -> dict[str, Any]:
-    """Serialise a remediation item for a JSON response.
+    """Serialises a remediation item for a JSON response.
 
     Args:
         item: The remediation item.
@@ -109,7 +109,7 @@ def remediation_to_dict(item: RemediationItem) -> dict[str, Any]:
 
 
 def finding_to_dict(finding: Finding) -> dict[str, Any]:
-    """Serialise a finding for a JSON response.
+    """Serialises a finding for a JSON response.
 
     Args:
         finding: The finding.
@@ -131,7 +131,7 @@ def finding_to_dict(finding: Finding) -> dict[str, Any]:
 
 
 def scan_result_to_dict(result: ScanResult) -> dict[str, Any]:
-    """Serialise a scan result and its summary for a JSON response.
+    """Serialises a scan result and its summary for a JSON response.
 
     Args:
         result: The scan result.
@@ -157,7 +157,7 @@ def scan_result_to_dict(result: ScanResult) -> dict[str, Any]:
 
 
 def schedule_to_dict(schedule: ScanSchedule) -> dict[str, Any]:
-    """Serialise a scan schedule for a JSON response.
+    """Serialises a scan schedule for a JSON response.
 
     Args:
         schedule: The scan schedule.
