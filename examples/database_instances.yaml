@@ -1,0 +1,33 @@
+# Lakebase database instance policies.
+policy: database-instances-must-be-tagged
+description: Every Lakebase database instance must carry tags so cost and ownership are attributable.
+resource_type: database_instance
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: tags, operator: not_empty }
+remediation: Add custom tags (e.g. team, cost_center) to the database instance.
+---
+policy: production-instances-must-have-readable-secondaries
+description: Production database instances must enable readable secondaries for high availability.
+resource_type: database_instance
+effect: allow
+enforcement_level: hard
+match:
+  all:
+    - { attribute: name, operator: matches_regex, value: "^prod_.+$" }
+rule:
+  all:
+    - { attribute: enable_readable_secondaries, operator: equals, value: true }
+remediation: Enable readable secondaries on the instance to provide a standby replica.
+---
+policy: database-instances-retain-at-least-a-week
+description: Database instances must retain at least seven days of point-in-time restore history.
+resource_type: database_instance
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: retention_window_in_days, operator: greater_than, value: 6 }
+remediation: Increase the instance's retention window to seven days or more.

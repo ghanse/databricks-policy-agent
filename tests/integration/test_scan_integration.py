@@ -242,3 +242,31 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     # Every evaluated space is either compliant or a violation, with no double counting.
     summary = result.summary()
     assert summary.evaluated == summary.compliant + summary.violations
+
+
+@pytest.mark.integration
+def test_scan_database_instances_maps_live_shape(ws, env_or_skip):
+    """Scanning real Lakebase database instances produces well-formed snapshots.
+
+    There is no pytester fixture for Lakebase, so this exercises the live list shape and skips
+    when the workspace has no database instances.
+    """
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.DATABASE_INSTANCE])[
+        ResourceType.DATABASE_INSTANCE
+    ]
+    if not snapshots:
+        pytest.skip("no Lakebase database instances in the workspace to evaluate")
+
+    assert all(s.resource_id for s in snapshots)
+    assert all(isinstance(s.attributes["tags"], dict) for s in snapshots)
+
+    tagged = allow(
+        "database-instance-tagged",
+        ResourceType.DATABASE_INSTANCE,
+        leaf("tags", "not_empty"),
+    )
+    result = run_scan(ws, [tagged], [ResourceType.DATABASE_INSTANCE])
+    summary = result.summary()
+    # Every evaluated instance is either compliant or a violation, with no double counting.
+    assert summary.evaluated == summary.compliant + summary.violations

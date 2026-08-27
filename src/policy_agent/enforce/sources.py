@@ -33,6 +33,7 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "quality_monitors": ResourceType.QUALITY_MONITOR,
     "pipelines": ResourceType.PIPELINE,
     "genie_spaces": ResourceType.GENIE_SPACE,
+    "database_instances": ResourceType.DATABASE_INSTANCE,
 }
 
 
@@ -261,6 +262,27 @@ def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, A
     }
 
 
+def _database_instance_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    # Lakebase instances carry native custom tags and are owned at runtime; the compute state
+    # (stopped/state) is runtime-only, but capacity and node count are declared in the bundle.
+    return {
+        **_common(
+            key,
+            definition.get("name"),
+            None,
+            OWNER_TYPE_UNKNOWN,
+            definition.get("custom_tags"),
+        ),
+        "capacity": definition.get("capacity"),
+        "state": None,
+        "node_count": definition.get("node_count"),
+        "pg_version": definition.get("pg_version"),
+        "stopped": definition.get("stopped"),
+        "enable_readable_secondaries": definition.get("enable_readable_secondaries"),
+        "retention_window_in_days": definition.get("retention_window_in_days"),
+    }
+
+
 def _common(
     key: str,
     name: str | None,
@@ -291,18 +313,25 @@ def _run_as_owner(run_as: Any) -> tuple[str | None, str]:
 
 
 def _normalize_tags(tags: Any) -> dict[str, str]:
+    if isinstance(tags, list):
+        # Lakebase database instances declare custom_tags as a top-level [{"key", "value"}] list.
+        return _pairs_to_tags(tags)
     if isinstance(tags, dict):
         # SQL warehouses declare tags as {"custom_tags": [{"key": ..., "value": ...}]};
         # jobs and clusters use a flat {key: value} mapping.
         custom_tags = tags.get("custom_tags")
         if isinstance(custom_tags, list):
-            return {
-                str(pair["key"]): str(pair.get("value", ""))
-                for pair in custom_tags
-                if isinstance(pair, dict) and "key" in pair
-            }
+            return _pairs_to_tags(custom_tags)
         return {str(key): str(value) for key, value in tags.items()}
     return {}
+
+
+def _pairs_to_tags(pairs: list[Any]) -> dict[str, str]:
+    return {
+        str(pair["key"]): str(pair.get("value", ""))
+        for pair in pairs
+        if isinstance(pair, dict) and "key" in pair
+    }
 
 
 _COMMON = {
@@ -320,4 +349,5 @@ _COMMON = {
     ResourceType.QUALITY_MONITOR: _quality_monitor_attributes,
     ResourceType.PIPELINE: _pipeline_attributes,
     ResourceType.GENIE_SPACE: _genie_space_attributes,
+    ResourceType.DATABASE_INSTANCE: _database_instance_attributes,
 }

@@ -29,6 +29,7 @@ class ResourceType(str, Enum):
     QUALITY_MONITOR = "quality_monitor"
     PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
+    DATABASE_INSTANCE = "database_instance"
 
 
 class Effect(str, Enum):
@@ -189,6 +190,7 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.SERVING_ENDPOINT,
         ResourceType.PIPELINE,
         ResourceType.APP,
+        ResourceType.DATABASE_INSTANCE,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -288,6 +290,17 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
             "has_description",
         }
     ),
+    # Lakebase database instances are owned, timestamped, and carry native custom tags.
+    ResourceType.DATABASE_INSTANCE: COMMON_RESOURCE_ATTRIBUTES
+    | {
+        "capacity",
+        "state",
+        "node_count",
+        "pg_version",
+        "stopped",
+        "enable_readable_secondaries",
+        "retention_window_in_days",
+    },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""

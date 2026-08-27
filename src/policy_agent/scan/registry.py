@@ -16,6 +16,7 @@ from policy_agent.scan.resources import (
     scan_apps,
     scan_catalogs,
     scan_clusters,
+    scan_database_instances,
     scan_external_locations,
     scan_genie_spaces,
     scan_jobs,
@@ -48,6 +49,7 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.SECRET_SCOPE: scan_secret_scopes,
     ResourceType.PIPELINE: scan_pipelines,
     ResourceType.GENIE_SPACE: scan_genie_spaces,
+    ResourceType.DATABASE_INSTANCE: scan_database_instances,
 }
 """The resource types the framework can scan, keyed to their fetch functions. Some supported
 resource types (e.g. quality monitors) have no list API and so are enforce-only, not scannable."""

@@ -9,6 +9,7 @@ from policy_agent.scan.resources import (
     scan_apps,
     scan_catalogs,
     scan_clusters,
+    scan_database_instances,
     scan_external_locations,
     scan_genie_spaces,
     scan_jobs,
@@ -455,3 +456,58 @@ def test_scan_genie_spaces_without_genie_service_raises():
     # with a clear, actionable error rather than an opaque AttributeError.
     with pytest.raises(UnsupportedResourceError):
         scan_genie_spaces(_ws())
+
+
+class _FakeDatabase:
+    def __init__(self, instances):
+        self._instances = instances
+
+    def list_database_instances(self):
+        # The SDK returns an auto-paginated iterator of DatabaseInstance objects.
+        return list(self._instances)
+
+
+def test_scan_database_instances_maps_state_owner_and_tags():
+    instance = SimpleNamespace(
+        name="prod_orders",
+        creator="alice@example.com",
+        creation_time="2026-01-02T03:04:05Z",
+        custom_tags=[
+            SimpleNamespace(key="team", value="data"),
+            SimpleNamespace(key="pii", value=None),
+        ],
+        capacity="CU_2",
+        state=SimpleNamespace(value="AVAILABLE"),
+        node_count=2,
+        pg_version="16",
+        stopped=False,
+        enable_readable_secondaries=True,
+        retention_window_in_days=7,
+    )
+    (snapshot,) = scan_database_instances(_ws(database=_FakeDatabase([instance])))
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.DATABASE_INSTANCE
+    assert attrs["id"] == "prod_orders"
+    assert attrs["owner_type"] == "user"
+    # custom_tags is a list of {key, value}; a null value normalizes to "".
+    assert attrs["tags"] == {"team": "data", "pii": ""}
+    assert attrs["capacity"] == "CU_2"
+    assert attrs["state"] == "AVAILABLE"
+    assert attrs["node_count"] == 2
+    assert attrs["enable_readable_secondaries"] is True
+    assert attrs["retention_window_in_days"] == 7
+
+
+def test_scan_database_instances_reports_untagged_and_unknown_owner():
+    instance = SimpleNamespace(name="scratch", creator=None, custom_tags=None)
+    (snapshot,) = scan_database_instances(_ws(database=_FakeDatabase([instance])))
+    attrs = snapshot.attributes
+    assert attrs["tags"] == {}
+    assert attrs["owner_type"] == "unknown"
+    assert attrs["state"] is None
+
+
+def test_scan_database_instances_without_database_service_raises():
+    # An older SDK without the database API should fail with a clear, actionable error.
+    with pytest.raises(UnsupportedResourceError):
+        scan_database_instances(_ws())
