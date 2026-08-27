@@ -170,9 +170,6 @@ class Policy:
     version: int = 1
 
 
-# Building blocks for composing each resource type's attribute set. A type advertises an
-# attribute only when the resource can actually have it, so policy validation rejects, for
-# example, a `tags` comparison against a resource that cannot be tagged.
 _IDENTITY: frozenset[str] = frozenset({"id", "name"})
 _OWNED: frozenset[str] = frozenset({"owner", "owner_type"})
 _TIMESTAMPED: frozenset[str] = frozenset({"created_time"})
@@ -190,6 +187,8 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.CLUSTER,
         ResourceType.SQL_WAREHOUSE,
         ResourceType.SERVING_ENDPOINT,
+        ResourceType.PIPELINE,
+        ResourceType.APP,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -228,10 +227,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "min_num_clusters",
         "max_num_clusters",
     },
-    # Apps cannot be tagged, so this composes the owned/timestamped set without `tags`.
-    ResourceType.APP: _IDENTITY
-    | _OWNED
-    | _TIMESTAMPED
+    ResourceType.APP: COMMON_RESOURCE_ATTRIBUTES
     | {
         "app_status",
         "compute_status",

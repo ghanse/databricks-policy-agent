@@ -161,15 +161,11 @@ def test_referenced_attributes_handles_negation_and_no_match():
 
 @pytest.mark.parametrize("resource_type", ["secret_scope", "catalog", "quality_monitor"])
 def test_validate_rejects_tags_on_non_taggable_types(resource_type):
-    # The validation framework rejects an illogical `tags` reference on a resource type that
-    # cannot be tagged, at author time.
     invalid = deny("bad", resource_type, leaf("tags", "not_empty"))
     with pytest.raises(InvalidPolicyError):
         validate_policy(invalid)
 
 
 def test_taggability_is_consistent_with_attribute_sets():
-    # A type advertises `tags` if and only if it is declared taggable. This invariant is what
-    # lets validation catch tag policies on non-taggable resources.
     for resource_type, attributes in RESOURCE_ATTRIBUTES.items():
-        assert ("tags" in attributes) == (resource_type in TAGGABLE_RESOURCE_TYPES), resource_type
+        assert ("tags" in attributes) == (resource_type in TAGGABLE_RESOURCE_TYPES)

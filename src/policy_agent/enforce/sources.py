@@ -131,7 +131,7 @@ def _sql_warehouse_attributes(key: str, definition: dict[str, Any]) -> dict[str,
 
 def _app_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
-        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, None),
+        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, definition.get("tags")),
         "app_status": None,
         "compute_status": None,
         "active_deployment_mode": None,
@@ -232,8 +232,8 @@ def _owned(key: str, name: str | None) -> dict[str, Any]:
         "owner_type": OWNER_TYPE_UNKNOWN,
         "created_time": None,
     }
-  
-  
+
+
 def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, definition.get("tags")),

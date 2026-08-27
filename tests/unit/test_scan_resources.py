@@ -6,16 +6,16 @@ from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
+    scan_apps,
     scan_catalogs,
     scan_clusters,
     scan_external_locations,
-    scan_jobs,
-    scan_registered_models,
-    scan_schemas,
-    scan_secret_scopes,
     scan_genie_spaces,
     scan_jobs,
     scan_pipelines,
+    scan_registered_models,
+    scan_schemas,
+    scan_secret_scopes,
     scan_serving_endpoints,
     scan_sql_warehouses,
     scan_volumes,
@@ -187,6 +187,51 @@ def test_scan_serving_endpoints_reads_nested_state():
     assert attrs["route_optimized"] is False
 
 
+class _FakeTagAssignments:
+    """A fake workspace entity-tag-assignments service keyed by (entity_type, entity_id)."""
+
+    def __init__(self, assignments):
+        self._assignments = assignments
+        self.calls = []
+
+    def list_tag_assignments(self, entity_type, entity_id, **kwargs):
+        self.calls.append((entity_type, entity_id))
+        return list(self._assignments.get((entity_type, entity_id), []))
+
+
+def test_scan_apps_reads_governed_tags():
+    app = SimpleNamespace(
+        name="sales-app",
+        creator="dana@example.com",
+        create_time="2026-01-02T03:04:05Z",
+        app_status=SimpleNamespace(state=SimpleNamespace(value="RUNNING")),
+        compute_status=SimpleNamespace(state=SimpleNamespace(value="ACTIVE")),
+        active_deployment=SimpleNamespace(mode=SimpleNamespace(value="SNAPSHOT")),
+    )
+    tag_service = _FakeTagAssignments(
+        {
+            ("apps", "sales-app"): [
+                SimpleNamespace(tag_key="team", tag_value="sales"),
+                SimpleNamespace(tag_key="certified", tag_value=None),
+            ]
+        }
+    )
+    ws = _ws(apps=_FakeService([app]), workspace_entity_tag_assignments=tag_service)
+    (snapshot,) = scan_apps(ws)
+    attrs = snapshot.attributes
+    assert attrs["name"] == "sales-app"
+    assert attrs["app_status"] == "RUNNING"
+    # Tags come from the entity-tag-assignments API, keyed by the app name; a null value is "".
+    assert attrs["tags"] == {"team": "sales", "certified": ""}
+    assert tag_service.calls == [("apps", "sales-app")]
+
+
+def test_scan_apps_without_tag_service_reports_untagged():
+    app = SimpleNamespace(name="bare-app", creator=None)
+    (snapshot,) = scan_apps(_ws(apps=_FakeService([app])))
+    assert snapshot.attributes["tags"] == {}
+
+
 class _FakeSecrets:
     def __init__(self, scopes):
         self._scopes = scopes
@@ -306,8 +351,8 @@ def test_scan_secret_scopes_maps_backend_type():
     assert attrs["name"] == "prod-secrets"
     assert attrs["backend_type"] == "DATABRICKS"
     assert "owner" not in attrs and "tags" not in attrs
-    
-    
+
+
 class _FakePipelines:
     def __init__(self, pipelines, specs):
         self._pipelines = pipelines

@@ -166,7 +166,7 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 name=name,
                 owner=creator,
                 owner_type=classify_principal(creator),
-                tags={},
+                tags=_get_app_tags(workspace_client, name),
                 created_time=_rfc3339_seconds(getattr(app, "create_time", None)),
                 app_status=_enum_value(getattr(getattr(app, "app_status", None), "state", None)),
                 compute_status=_enum_value(
@@ -176,6 +176,28 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
             )
         )
     return snapshots
+
+
+def _get_app_tags(workspace_client: WorkspaceClient, app_name: str) -> dict[str, str]:
+    """Fetches an app's Unity Catalog tag assignments as a flat key-value mapping.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        app_name: The app whose tags to read (an app's entity id is its name).
+
+    Returns:
+        A mapping of tag key to tag value; empty when the app has no tags or the SDK does not
+        expose the entity-tag-assignments API.
+    """
+    tag_service = getattr(workspace_client, "workspace_entity_tag_assignments", None)
+    if tag_service is None or not app_name:
+        return {}
+    tags: dict[str, str] = {}
+    for assignment in tag_service.list_tag_assignments(entity_type="apps", entity_id=app_name):
+        key = getattr(assignment, "tag_key", None)
+        if key is not None:
+            tags[str(key)] = str(getattr(assignment, "tag_value", "") or "")
+    return tags
 
 
 def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
@@ -211,7 +233,14 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
 
 
 def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every Unity Catalog catalog in the workspace's metastore."""
+    """Fetches and normalizes every catalog in the workspace's metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each catalog.
+    """
     snapshots = []
     for catalog in workspace_client.catalogs.list():
         owner = getattr(catalog, "owner", None)
@@ -234,7 +263,14 @@ def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every schema across every catalog in the metastore."""
+    """Fetches and normalizes every schema across every catalog in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each schema.
+    """
     snapshots = []
     for catalog in workspace_client.catalogs.list():
         catalog_name = getattr(catalog, "name", None)
@@ -259,7 +295,14 @@ def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every volume across every schema in the metastore."""
+    """Fetches and normalizes every volume across every volume in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each volume.
+    """
     snapshots = []
     for catalog in workspace_client.catalogs.list():
         catalog_name = getattr(catalog, "name", None)
@@ -293,7 +336,14 @@ def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_registered_models(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every Unity Catalog registered model in the metastore."""
+    """Fetches and normalizes every Unity Catalog registered model in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each registered model.
+    """
     snapshots = []
     for model in workspace_client.registered_models.list():
         owner = getattr(model, "owner", None)
@@ -309,6 +359,11 @@ def scan_registered_models(workspace_client: WorkspaceClient) -> list[ResourceSn
                 comment=getattr(model, "comment", None),
                 catalog_name=getattr(model, "catalog_name", None),
                 schema_name=getattr(model, "schema_name", None),
+            )
+        )
+    return snapshots
+
+
 def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     """Fetches and normalizes every Spark Declarative pipeline in the workspace.
 
@@ -354,7 +409,14 @@ def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetches and normalizes every external location in the metastore."""
+    """Fetches and normalizes every external location in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each external location.
+    """
     snapshots = []
     for location in workspace_client.external_locations.list():
         owner = getattr(location, "owner", None)
@@ -378,7 +440,14 @@ def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceS
 
 
 def scan_secret_scopes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetches and normalizes every secret scope in the workspace."""
+    """Fetches and normalizes every secret scope in the workspace.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each secret scope.
+    """
     snapshots = []
     for scope in workspace_client.secrets.list_scopes():
         name = getattr(scope, "name", "") or ""
@@ -391,8 +460,8 @@ def scan_secret_scopes(workspace_client: WorkspaceClient) -> list[ResourceSnapsh
             )
         )
     return snapshots
-              
-              
+
+
 def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     """Fetches and normalizes every Genie space in the workspace.
 

@@ -109,6 +109,75 @@ Fetches and normalizes every model serving endpoint in the workspace.
 
   A list of *ResourceSnapshots* for each serving endpoint.
 
+#### scan\_catalogs
+
+```python
+def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every catalog in the workspace's metastore.
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each catalog.
+
+#### scan\_schemas
+
+```python
+def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every schema across every catalog in the metastore.
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each schema.
+
+#### scan\_volumes
+
+```python
+def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every volume across every volume in the metastore.
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each volume.
+
+#### scan\_registered\_models
+
+```python
+def scan_registered_models(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every Unity Catalog registered model in the metastore.
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each registered model.
+
 #### scan\_pipelines
 
 ```python
@@ -134,6 +203,42 @@ Fetches and normalizes every Spark Declarative pipeline in the workspace.
 
   A list of *ResourceSnapshots* for each serving endpoint.
 
+#### scan\_external\_locations
+
+```python
+def scan_external_locations(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every external location in the metastore.
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each external location.
+
+#### scan\_secret\_scopes
+
+```python
+def scan_secret_scopes(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every secret scope in the workspace.
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each secret scope.
+
 #### scan\_genie\_spaces
 
 ```python
@@ -151,57 +256,6 @@ Fetches and normalizes every Genie space in the workspace.
 **Returns**:
 
   A list of *ResourceSnapshots* for each Genie space.
-
-#### scan\_catalogs
-
-```python
-def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
-```
-
-Fetch and normalize every Unity Catalog catalog in the workspace's metastore.
-
-#### scan\_schemas
-
-```python
-def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
-```
-
-Fetch and normalize every schema across every catalog in the metastore.
-
-#### scan\_volumes
-
-```python
-def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
-```
-
-Fetch and normalize every volume across every schema in the metastore.
-
-#### scan\_registered\_models
-
-```python
-def scan_registered_models(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
-```
-
-Fetch and normalize every Unity Catalog registered model in the metastore.
-
-#### scan\_external\_locations
-
-```python
-def scan_external_locations(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
-```
-
-Fetch and normalize every external location in the metastore.
-
-#### scan\_secret\_scopes
-
-```python
-def scan_secret_scopes(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
-```
-
-Fetch and normalize every secret scope in the workspace.
 
 #### classify\_principal
 

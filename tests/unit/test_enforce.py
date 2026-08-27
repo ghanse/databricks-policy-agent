@@ -203,7 +203,6 @@ def test_snapshot_bundle_maps_quality_monitors_enforce_only():
                     "snapshot": {},
                 },
                 "adhoc": {"table_name": "main.gold.adhoc", "inference_log": {}},
-              
             }
         }
     }
@@ -219,8 +218,8 @@ def test_snapshot_bundle_maps_quality_monitors_enforce_only():
     scheduled = allow("qm-scheduled", "quality_monitor", leaf("has_schedule", "equals", True))
     result = run_gate([scheduled], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
     assert {f.resource_id for f in result.blocking} == {"adhoc"}
-    
-    
+
+
 def test_snapshot_bundle_maps_declared_pipelines():
     config = {
         "resources": {
@@ -267,6 +266,7 @@ def test_snapshot_bundle_maps_declared_genie_spaces():
             }
         }
     }
+    by_id = {s.resource_id: s for s in snapshot_bundle(config)}
     assert set(by_id) == {"sales", "adhoc"}
     assert by_id["sales"].resource_type is ResourceType.GENIE_SPACE
     assert by_id["sales"].attributes["name"] == "Sales"

@@ -196,8 +196,8 @@ def test_scan_external_locations_maps_live_shape(ws, env_or_skip):
     if not snapshots:
         pytest.skip("no external locations in the metastore to evaluate")
     assert all("url" in s.attributes for s in snapshots)
-    
-    
+
+
 @pytest.mark.integration
 def test_scan_evaluates_pipeline_naming_policy(
     ws, make_catalog, make_schema, make_pipeline, make_random

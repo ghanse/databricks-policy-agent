@@ -8,15 +8,22 @@ This page provides a reference for the options supported by the policy agent.
 ## Resource types
 Policies target one of the following resource types.
 
-| Resource type      | Description                  |
-|--------------------|------------------------------|
-| `job`              | Databricks Lakeflow Jobs     |
-| `cluster`          | All-purpose compute clusters |
-| `sql_warehouse`    | SQL warehouses               |
-| `app`              | Databricks Apps              |
-| `serving_endpoint` | Model serving endpoints      |
-| `genie_space`      | Genie spaces                 |
-| `pipeline`         | Spark Declarative Pipelines  |
+| Resource type       | Description                       |
+|---------------------|-----------------------------------|
+| `job`               | Databricks Lakeflow Jobs          |
+| `cluster`           | All-purpose compute clusters      |
+| `sql_warehouse`     | SQL warehouses                    |
+| `app`               | Databricks Apps                   |
+| `serving_endpoint`  | Model serving endpoints           |
+| `catalog`           | Unity Catalog catalogs            |
+| `schema`            | Unity Catalog schemas             |
+| `volume`            | Unity Catalog volumes             |
+| `registered_model`  | Unity Catalog registered models   |
+| `external_location` | Unity Catalog external locations  |
+| `quality_monitor`   | Unity Catalog quality monitors    |
+| `secret_scope`      | Secret scopes                     |
+| `genie_space`       | Genie spaces                      |
+| `pipeline`          | Spark Declarative Pipelines       |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
@@ -91,6 +98,79 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `endpoint_type`    | Type of the serving endpoint                                       |
 | `budget_policy_id` | Budget policy attached to the endpoint for cost attribution        |
 | `route_optimized`  | Whether the endpoint is route-optimized                            |
+
+### Catalog attributes
+
+| Field name       | Description                                                          |
+|------------------|----------------------------------------------------------------------|
+| `comment`        | Free-text description of the catalog                                 |
+| `catalog_type`   | Catalog type (e.g. "MANAGED_CATALOG", "DELTASHARING_CATALOG")        |
+| `isolation_mode` | Whether the catalog is open or isolated to specific workspaces       |
+| `storage_root`   | Cloud storage root where the catalog's managed tables are written    |
+
+### Schema attributes
+
+| Field name     | Description                                     |
+|----------------|-------------------------------------------------|
+| `comment`      | Free-text description of the schema             |
+| `catalog_name` | Name of the catalog the schema belongs to       |
+
+### Volume attributes
+
+| Field name     | Description                                     |
+|----------------|-------------------------------------------------|
+| `comment`      | Free-text description of the volume             |
+| `catalog_name` | Name of the catalog the volume belongs to       |
+| `schema_name`  | Name of the schema the volume belongs to        |
+| `volume_type`  | Volume type (e.g. "MANAGED", "EXTERNAL")        |
+
+### Registered model attributes
+
+| Field name     | Description                                     |
+|----------------|-------------------------------------------------|
+| `comment`      | Free-text description of the model              |
+| `catalog_name` | Name of the catalog the model belongs to        |
+| `schema_name`  | Name of the schema the model belongs to         |
+
+### External location attributes
+
+| Field name        | Description                                             |
+|-------------------|---------------------------------------------------------|
+| `comment`         | Free-text description of the external location          |
+| `url`             | Cloud storage URL the external location points to       |
+| `credential_name` | Storage credential used to access the location          |
+| `read_only`       | Whether the location is read-only                       |
+| `isolation_mode`  | Whether the location is open or isolated to workspaces  |
+
+<Callout type="warn" title="Unsupported common attributes for Unity Catalog objects">
+Catalogs, schemas, volumes, registered models, and external locations expose `id`, `name`,
+`owner`, `owner_type`, and `created_time`, but not `tags` — their tags are not scanned.
+</Callout>
+
+### Quality monitor attributes
+
+| Field name           | Description                                                     |
+|----------------------|-----------------------------------------------------------------|
+| `table_name`         | Fully-qualified name of the monitored table                     |
+| `output_schema_name` | Schema where the monitor writes its metric tables               |
+| `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log)     |
+| `has_schedule`       | Whether the monitor runs on a schedule                          |
+
+<Callout type="info" title="Quality monitors are enforce-only">
+Quality monitors have no APIs for listing. They are evaluated only from the bundle at deploy time,
+never scanned. They expose only `id` and `name` from the common attributes.
+</Callout>
+
+### Secret scope attributes
+
+| Field name     | Description                                                       |
+|----------------|-------------------------------------------------------------------|
+| `backend_type` | Backend storing the scope's secrets (e.g. "DATABRICKS", "AZURE_KEYVAULT") |
+
+<Callout type="warn" title="Unsupported common attributes for secret scopes">
+Secret scopes expose only `id` and `name` from the common attributes. They have no `owner`, 
+`owner_type`, `created_time`, or `tags`.
+</Callout>
 
 ### Genie space attributes
 
