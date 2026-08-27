@@ -1,0 +1,61 @@
+---
+title: MCP Server
+description: Expose the policy agent to Genie and agents as a custom MCP server
+---
+
+The policy agent ships a custom [Model Context Protocol](https://docs.databricks.com/aws/en/agents/mcp-tools/custom-mcp)
+(MCP) server so that Databricks agents — including a Genie space — can query policies, inspect
+resource types, and run compliance scans in natural language. It is deployed as a Databricks App
+that serves the streamable HTTP transport at `/mcp`, and reuses the same library and stored state
+as the web app and scan jobs.
+
+<Callout type="info" title="App naming">
+The app is named `mcp-policy-agent`. The `mcp-` prefix is required for the app to be recognized
+as an MCP server in the AI Playground and Genie.
+</Callout>
+
+## Tools
+The server exposes read-oriented tools. Every tool is read-only; `run_compliance_scan` reads the
+workspace but persists nothing.
+
+| Tool                     | Description                                                            |
+|--------------------------|------------------------------------------------------------------------|
+| `list_resource_types`    | Every resource type a policy can target, with attributes/capabilities  |
+| `describe_resource_type` | The attributes and capabilities of a single resource type              |
+| `list_operators`         | The comparison operators available for policy conditions               |
+| `list_policies`          | Stored policies (approved by default; pass `all` for every policy)     |
+| `get_policy`             | A single stored policy by name                                         |
+| `run_compliance_scan`    | Run a live scan of the approved policies; return a summary + violations |
+| `list_recent_scans`      | Recent persisted scan headers, most recent first                       |
+| `get_scan_findings`      | The findings recorded for a single persisted scan                      |
+
+## Deployment
+The MCP server is part of the same bundle as the rest of the framework (see [Deployment](/docs/deployment)).
+
+```bash
+# Build the library wheel and assemble the deployable MCP app tree under mcp/.build.
+cd mcp && uv run python scripts/build_app.py && cd ..
+
+# Deploy the whole bundle (app, MCP server, jobs, storage).
+databricks bundle deploy -t dev -p <profile>
+```
+
+The server is configured through the same `POLICY_AGENT_*` environment variables as the app (storage
+backend, catalog/schema, warehouse id). It authenticates on behalf of the signed-in user for the
+resources a scan inspects, and access is controlled through Databricks Apps permissions.
+
+## Connecting from Genie
+Once deployed, add the app's URL (with the `/mcp` path) as a custom MCP server in your agent or
+Genie space. The hosted URL looks like:
+
+```
+https://<app-host>/mcp
+```
+
+The agent can then call the tools above — for example, "list the approved cluster policies" or
+"run a compliance scan of our SQL warehouses and summarize the violations".
+
+<Callout type="info" title="Local development">
+Run the server locally with `python -m policy_agent_mcp.server` (or the `policy-agent-mcp`
+script). It serves the same `/mcp` endpoint on `0.0.0.0:8000` by default.
+</Callout>

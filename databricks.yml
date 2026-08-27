@@ -1,11 +1,13 @@
 # Single Declarative Asset Bundle for the whole policy compliance framework:
 #   * app                       — FastAPI + built React SPA (authoring, scans, approvals)
+#   * mcp-policy-agent          — custom MCP server (Databricks App) for Genie/agents
 #   * policy-agent-scan         — on-demand scan job (python wheel entry point)
 #   * policy-agent-scheduled    — scheduled scan job (cron-triggered)
 #   * storage bootstrap         — UC schema + SQL warehouse the app and jobs use
 #
 # Deploy as a workspace-admin service principal:
 #   1. (cd app && uv run python scripts/build_app.py)   # builds SPA + wheel + app/.build
+#      (cd mcp && uv run python scripts/build_app.py)   # builds wheel + mcp/.build
 #   2. cp target.dev.yml.example target.dev.yml && edit it
 #   3. databricks bundle deploy -t dev
 #
@@ -41,6 +43,9 @@ variables:
   app_name:
     description: Databricks App name (unique per workspace).
     default: policy-agent
+  mcp_app_name:
+    description: MCP-server Databricks App name (must start with "mcp-" for AI Playground/Genie).
+    default: mcp-policy-agent
   warehouse_name:
     description: Name of the bundle-managed SQL warehouse the app and jobs query through.
     default: policy-agent-warehouse
@@ -73,6 +78,22 @@ variables:
           value: "${var.notification_email}"
         - name: POLICY_AGENT_NOTIFICATION_WEBHOOK
           value: "${var.notification_webhook}"
+  mcp_app_config:
+    type: complex
+    description: MCP-server Databricks App runtime config (command + environment).
+    default:
+      command: ["python", "-m", "policy_agent_mcp.server"]
+      env:
+        - name: POLICY_AGENT_STORAGE_BACKEND
+          value: "${var.storage_backend}"
+        - name: POLICY_AGENT_CATALOG
+          value: "${var.catalog_name}"
+        - name: POLICY_AGENT_SCHEMA
+          value: "${var.schema_name}"
+        - name: POLICY_AGENT_TAGS
+          value: "${var.object_tags}"
+        - name: POLICY_AGENT_WAREHOUSE_ID
+          valueFrom: "policy-agent-warehouse"
   job_cluster:
     type: complex
     description: Single-node job cluster the scan jobs run on, carrying POLICY_AGENT_* config.
@@ -99,7 +120,7 @@ artifacts:
   # Build the library wheel (jobs depend on it) and assemble the deployable app tree.
   policy_agent_build:
     type: whl
-    build: uv build --wheel && cd app && uv run python scripts/build_app.py
+    build: uv build --wheel && cd app && uv run python scripts/build_app.py && cd ../mcp && uv run python scripts/build_app.py
     path: .
 
 resources:
@@ -119,6 +140,28 @@ resources:
       resources:
         - name: "policy-agent-warehouse"
           description: "SQL warehouse policy-agent queries and stores state through."
+          sql_warehouse:
+            id: ${resources.sql_warehouses.policy_agent_warehouse.id}
+            permission: "CAN_USE"
+      permissions:
+        - group_name: "users"
+          level: "CAN_USE"
+
+    policy-agent-mcp:
+      name: ${var.mcp_app_name}
+      description: "Policy Agent MCP server — query policies, resource types, and run scans"
+      source_code_path: ./mcp/.build
+      config: ${var.mcp_app_config}
+      # Scopes for on-behalf-of reads of the resources a scan inspects.
+      user_api_scopes:
+        - sql
+        - clusters.read
+        - jobs.read
+        - apps.read
+        - serving.serving-endpoints
+      resources:
+        - name: "policy-agent-warehouse"
+          description: "SQL warehouse the MCP server queries stored policy state through."
           sql_warehouse:
             id: ${resources.sql_warehouses.policy_agent_warehouse.id}
             permission: "CAN_USE"
