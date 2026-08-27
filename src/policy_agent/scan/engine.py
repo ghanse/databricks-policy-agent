@@ -17,7 +17,7 @@ from typing import TYPE_CHECKING
 from policy_agent.policy.model import Policy, ResourceType, referenced_attributes
 from policy_agent.policy.validation import validate_policy
 from policy_agent.scan.evaluator import evaluate_resource
-from policy_agent.scan.registry import scanner_for
+from policy_agent.scan.registry import is_scannable, scanner_for
 from policy_agent.scan.resources import TASK_DERIVED_JOB_ATTRIBUTES, scan_jobs
 from policy_agent.scan.results import Finding, ResourceSnapshot, ScanResult
 
@@ -54,7 +54,9 @@ def run_scan(
 
     policies_by_type = _group_by_resource_type(policy_list)
     requested = set(resource_types) if resource_types is not None else set(policies_by_type)
-    types_to_scan = [rt for rt in policies_by_type if rt in requested]
+    # Enforce-only types (no list API, e.g. quality monitors) are validated and can be gated
+    # from a bundle, but are silently skipped by a live scan since they cannot be fetched.
+    types_to_scan = [rt for rt in policies_by_type if rt in requested and is_scannable(rt)]
 
     started_at = datetime.now(UTC)
     findings: list[Finding] = []

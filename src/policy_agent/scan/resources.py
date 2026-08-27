@@ -166,7 +166,7 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 name=name,
                 owner=creator,
                 owner_type=classify_principal(creator),
-                tags={},
+                tags=_get_app_tags(workspace_client, name),
                 created_time=_rfc3339_seconds(getattr(app, "create_time", None)),
                 app_status=_enum_value(getattr(getattr(app, "app_status", None), "state", None)),
                 compute_status=_enum_value(
@@ -176,6 +176,28 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
             )
         )
     return snapshots
+
+
+def _get_app_tags(workspace_client: WorkspaceClient, app_name: str) -> dict[str, str]:
+    """Fetches an app's Unity Catalog tag assignments as a flat key-value mapping.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        app_name: The app whose tags to read (an app's entity id is its name).
+
+    Returns:
+        A mapping of tag key to tag value; empty when the app has no tags or the SDK does not
+        expose the entity-tag-assignments API.
+    """
+    tag_service = getattr(workspace_client, "workspace_entity_tag_assignments", None)
+    if tag_service is None or not app_name:
+        return {}
+    tags: dict[str, str] = {}
+    for assignment in tag_service.list_tag_assignments(entity_type="apps", entity_id=app_name):
+        key = getattr(assignment, "tag_key", None)
+        if key is not None:
+            tags[str(key)] = str(getattr(assignment, "tag_value", "") or "")
+    return tags
 
 
 def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
@@ -205,6 +227,138 @@ def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSn
                 endpoint_type=_enum_value(getattr(endpoint, "endpoint_type", None)),
                 budget_policy_id=getattr(endpoint, "budget_policy_id", None),
                 route_optimized=getattr(endpoint, "route_optimized", None),
+            )
+        )
+    return snapshots
+
+
+def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every catalog in the workspace's metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each catalog.
+    """
+    snapshots = []
+    for catalog in workspace_client.catalogs.list():
+        owner = getattr(catalog, "owner", None)
+        name = getattr(catalog, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.CATALOG,
+                id=name,
+                name=name,
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_epoch_seconds(getattr(catalog, "created_at", None)),
+                comment=getattr(catalog, "comment", None),
+                catalog_type=_enum_value(getattr(catalog, "catalog_type", None)),
+                isolation_mode=_enum_value(getattr(catalog, "isolation_mode", None)),
+                storage_root=getattr(catalog, "storage_root", None),
+            )
+        )
+    return snapshots
+
+
+def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every schema across every catalog in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each schema.
+    """
+    snapshots = []
+    for catalog in workspace_client.catalogs.list():
+        catalog_name = getattr(catalog, "name", None)
+        if not catalog_name:
+            continue
+        for schema in workspace_client.schemas.list(catalog_name=catalog_name):
+            owner = getattr(schema, "owner", None)
+            name = getattr(schema, "name", "") or ""
+            snapshots.append(
+                _snapshot(
+                    ResourceType.SCHEMA,
+                    id=getattr(schema, "full_name", None) or f"{catalog_name}.{name}",
+                    name=name,
+                    owner=owner,
+                    owner_type=classify_principal(owner),
+                    created_time=_epoch_seconds(getattr(schema, "created_at", None)),
+                    comment=getattr(schema, "comment", None),
+                    catalog_name=catalog_name,
+                )
+            )
+    return snapshots
+
+
+def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every volume across every schema in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each volume.
+    """
+    snapshots = []
+    for catalog in workspace_client.catalogs.list():
+        catalog_name = getattr(catalog, "name", None)
+        if not catalog_name:
+            continue
+        for schema in workspace_client.schemas.list(catalog_name=catalog_name):
+            schema_name = getattr(schema, "name", None)
+            if not schema_name:
+                continue
+            for volume in workspace_client.volumes.list(
+                catalog_name=catalog_name, schema_name=schema_name
+            ):
+                owner = getattr(volume, "owner", None)
+                name = getattr(volume, "name", "") or ""
+                snapshots.append(
+                    _snapshot(
+                        ResourceType.VOLUME,
+                        id=getattr(volume, "full_name", None)
+                        or f"{catalog_name}.{schema_name}.{name}",
+                        name=name,
+                        owner=owner,
+                        owner_type=classify_principal(owner),
+                        created_time=_epoch_seconds(getattr(volume, "created_at", None)),
+                        comment=getattr(volume, "comment", None),
+                        catalog_name=catalog_name,
+                        schema_name=schema_name,
+                        volume_type=_enum_value(getattr(volume, "volume_type", None)),
+                    )
+                )
+    return snapshots
+
+
+def scan_registered_models(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every Unity Catalog registered model in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each registered model.
+    """
+    snapshots = []
+    for model in workspace_client.registered_models.list():
+        owner = getattr(model, "owner", None)
+        name = getattr(model, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.REGISTERED_MODEL,
+                id=getattr(model, "full_name", None) or name,
+                name=name,
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_epoch_seconds(getattr(model, "created_at", None)),
+                comment=getattr(model, "comment", None),
+                catalog_name=getattr(model, "catalog_name", None),
+                schema_name=getattr(model, "schema_name", None),
             )
         )
     return snapshots
@@ -249,6 +403,60 @@ def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 photon=getattr(spec, "photon", None),
                 serverless=getattr(spec, "serverless", None),
                 development=getattr(spec, "development", None),
+            )
+        )
+    return snapshots
+
+
+def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every external location in the metastore.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each external location.
+    """
+    snapshots = []
+    for location in workspace_client.external_locations.list():
+        owner = getattr(location, "owner", None)
+        name = getattr(location, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.EXTERNAL_LOCATION,
+                id=name,
+                name=name,
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_epoch_seconds(getattr(location, "created_at", None)),
+                comment=getattr(location, "comment", None),
+                url=getattr(location, "url", None),
+                credential_name=getattr(location, "credential_name", None),
+                read_only=getattr(location, "read_only", None),
+                isolation_mode=_enum_value(getattr(location, "isolation_mode", None)),
+            )
+        )
+    return snapshots
+
+
+def scan_secret_scopes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every secret scope in the workspace.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each secret scope.
+    """
+    snapshots = []
+    for scope in workspace_client.secrets.list_scopes():
+        name = getattr(scope, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.SECRET_SCOPE,
+                id=name,
+                name=name,
+                backend_type=_enum_value(getattr(scope, "backend_type", None)),
             )
         )
     return snapshots

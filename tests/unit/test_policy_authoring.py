@@ -23,6 +23,7 @@ from policy_agent.policy import (
     referenced_attributes,
     validate_policy,
 )
+from policy_agent.policy.model import RESOURCE_ATTRIBUTES, TAGGABLE_RESOURCE_TYPES
 
 CLUSTER_YAML = """
 policy: only-service-principals-own-compute
@@ -156,3 +157,15 @@ def test_referenced_attributes_collects_across_rule_and_match():
 def test_referenced_attributes_handles_negation_and_no_match():
     p = allow("no-serverless", "job", not_(leaf("uses_serverless_compute", "equals", True)))
     assert referenced_attributes(p) == frozenset({"uses_serverless_compute"})
+
+
+@pytest.mark.parametrize("resource_type", ["secret_scope", "catalog", "quality_monitor"])
+def test_validate_rejects_tags_on_non_taggable_types(resource_type):
+    invalid = deny("bad", resource_type, leaf("tags", "not_empty"))
+    with pytest.raises(InvalidPolicyError):
+        validate_policy(invalid)
+
+
+def test_taggability_is_consistent_with_attribute_sets():
+    for resource_type, attributes in RESOURCE_ATTRIBUTES.items():
+        assert ("tags" in attributes) == (resource_type in TAGGABLE_RESOURCE_TYPES)

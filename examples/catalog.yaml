@@ -1,0 +1,10 @@
+# UC catalog policies.
+policy: catalogs-must-be-isolated
+description: Catalogs must be bound to specific workspaces (ISOLATED isolation mode).
+resource_type: catalog
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: isolation_mode, operator: equals, value: ISOLATED }
+remediation: Set the catalog's isolation mode to ISOLATED and bind it to its workspaces.

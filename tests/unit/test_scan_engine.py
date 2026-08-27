@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from policy_agent.errors import UnsupportedResourceError
-from policy_agent.policy import deny, leaf
+from policy_agent.policy import allow, deny, leaf
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan import registry
 from policy_agent.scan.engine import run_scan
@@ -75,9 +75,26 @@ def test_supported_resource_types_match_registry():
         ResourceType.SQL_WAREHOUSE,
         ResourceType.APP,
         ResourceType.SERVING_ENDPOINT,
+        ResourceType.CATALOG,
+        ResourceType.SCHEMA,
+        ResourceType.VOLUME,
+        ResourceType.REGISTERED_MODEL,
+        ResourceType.EXTERNAL_LOCATION,
+        ResourceType.SECRET_SCOPE,
         ResourceType.PIPELINE,
         ResourceType.GENIE_SPACE,
     }
+    # Quality monitors are enforce-only (no list API), so they are not scannable.
+    assert ResourceType.QUALITY_MONITOR not in set(supported_resource_types())
+
+
+def test_run_scan_skips_enforce_only_types():
+    # A quality-monitor policy is valid and can be gated from a bundle, but a live scan skips it
+    # because there is no list API — so no scanner is called and no findings are produced.
+    policy = allow("qm-scheduled", "quality_monitor", leaf("has_schedule", "equals", True))
+    result = run_scan(SimpleNamespace(), [policy])
+    assert result.findings == ()
+    assert result.resource_types == ()
 
 
 def test_scanner_for_unregistered_type_raises_unsupported_resource(monkeypatch):

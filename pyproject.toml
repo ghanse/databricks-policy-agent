@@ -12,7 +12,7 @@ authors = [{ name = "Greg Hansen", email = "gregory.hansen@databricks.com" }]
 # The pure library core needs only the SDK (resource inventory) and PyYAML (policy
 # authoring). Lakebase storage extras stay optional so the core installs lean.
 dependencies = [
-    "databricks-sdk>=0.81.0,<1.0",
+    "databricks-sdk>=0.83.0,<1.0",
     "PyYAML>=6.0,<7.0",
 ]
 

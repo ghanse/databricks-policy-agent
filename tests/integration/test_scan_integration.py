@@ -135,6 +135,70 @@ def test_scan_flags_job_without_retry_policy_or_serverless_compute(ws, make_job,
 
 
 @pytest.mark.integration
+def test_scan_catalogs_includes_created_catalog(ws, make_catalog):
+    """A newly created catalog appears in the catalog scan."""
+    catalog = make_catalog()
+    snapshots = collect_snapshots(ws, [ResourceType.CATALOG])[ResourceType.CATALOG]
+    assert catalog.name in {s.resource_id for s in snapshots}
+
+
+@pytest.mark.integration
+def test_scan_schemas_includes_created_schema(ws, make_catalog, make_schema):
+    """A newly created schema appears in the schema scan, keyed by its full name."""
+    catalog = make_catalog()
+    schema = make_schema(catalog_name=catalog.name)
+    snapshots = collect_snapshots(ws, [ResourceType.SCHEMA])[ResourceType.SCHEMA]
+    assert schema.full_name in {s.resource_id for s in snapshots}
+
+
+@pytest.mark.integration
+def test_scan_volumes_includes_created_volume(ws, make_volume):
+    """A newly created volume appears in the volume scan, keyed by its full name."""
+    volume = make_volume()
+    snapshots = collect_snapshots(ws, [ResourceType.VOLUME])[ResourceType.VOLUME]
+    assert volume.full_name in {s.resource_id for s in snapshots}
+
+
+@pytest.mark.integration
+def test_scan_secret_scopes_includes_created_scope(ws, make_secret_scope):
+    """A newly created secret scope appears in the secret-scope scan."""
+    scope = make_secret_scope()
+    snapshots = collect_snapshots(ws, [ResourceType.SECRET_SCOPE])[ResourceType.SECRET_SCOPE]
+    assert scope in {s.resource_id for s in snapshots}
+
+
+@pytest.mark.integration
+def test_scan_registered_models_includes_created_model(ws, make_catalog, make_schema, make_random):
+    """A registered model appears in the scan. No pytester fixture exists, so create/clean up here."""
+    catalog = make_catalog()
+    schema = make_schema(catalog_name=catalog.name)
+    name = f"model_{make_random(6).lower()}"
+    model = ws.registered_models.create(
+        catalog_name=catalog.name, schema_name=schema.name, name=name
+    )
+    try:
+        snapshots = collect_snapshots(ws, [ResourceType.REGISTERED_MODEL])[
+            ResourceType.REGISTERED_MODEL
+        ]
+        assert model.full_name in {s.resource_id for s in snapshots}
+    finally:
+        ws.registered_models.delete(full_name=model.full_name)
+
+
+@pytest.mark.integration
+def test_scan_external_locations_maps_live_shape(ws, env_or_skip):
+    """External locations have no pytester fixture (they need real cloud storage), so this
+    exercises the live list shape and skips when the metastore has none."""
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.EXTERNAL_LOCATION])[
+        ResourceType.EXTERNAL_LOCATION
+    ]
+    if not snapshots:
+        pytest.skip("no external locations in the metastore to evaluate")
+    assert all("url" in s.attributes for s in snapshots)
+
+
+@pytest.mark.integration
 def test_scan_evaluates_pipeline_naming_policy(
     ws, make_catalog, make_schema, make_pipeline, make_random
 ):

@@ -24,6 +24,13 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "sql_warehouses": ResourceType.SQL_WAREHOUSE,
     "apps": ResourceType.APP,
     "model_serving_endpoints": ResourceType.SERVING_ENDPOINT,
+    "catalogs": ResourceType.CATALOG,
+    "schemas": ResourceType.SCHEMA,
+    "volumes": ResourceType.VOLUME,
+    "registered_models": ResourceType.REGISTERED_MODEL,
+    "external_locations": ResourceType.EXTERNAL_LOCATION,
+    "secret_scopes": ResourceType.SECRET_SCOPE,
+    "quality_monitors": ResourceType.QUALITY_MONITOR,
     "pipelines": ResourceType.PIPELINE,
     "genie_spaces": ResourceType.GENIE_SPACE,
 }
@@ -124,7 +131,7 @@ def _sql_warehouse_attributes(key: str, definition: dict[str, Any]) -> dict[str,
 
 def _app_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
-        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, None),
+        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, definition.get("tags")),
         "app_status": None,
         "compute_status": None,
         "active_deployment_mode": None,
@@ -138,6 +145,92 @@ def _serving_endpoint_attributes(key: str, definition: dict[str, Any]) -> dict[s
         "endpoint_type": definition.get("endpoint_type"),
         "budget_policy_id": definition.get("budget_policy_id"),
         "route_optimized": definition.get("route_optimized"),
+    }
+
+
+def _catalog_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_owned(key, definition.get("name")),
+        "comment": definition.get("comment"),
+        "catalog_type": definition.get("catalog_type"),
+        "isolation_mode": definition.get("isolation_mode"),
+        "storage_root": definition.get("storage_root"),
+    }
+
+
+def _schema_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_owned(key, definition.get("name")),
+        "comment": definition.get("comment"),
+        "catalog_name": definition.get("catalog_name"),
+    }
+
+
+def _volume_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_owned(key, definition.get("name")),
+        "comment": definition.get("comment"),
+        "catalog_name": definition.get("catalog_name"),
+        "schema_name": definition.get("schema_name"),
+        "volume_type": definition.get("volume_type"),
+    }
+
+
+def _registered_model_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_owned(key, definition.get("name")),
+        "comment": definition.get("comment"),
+        "catalog_name": definition.get("catalog_name"),
+        "schema_name": definition.get("schema_name"),
+    }
+
+
+def _external_location_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_owned(key, definition.get("name")),
+        "comment": definition.get("comment"),
+        "url": definition.get("url"),
+        "credential_name": definition.get("credential_name"),
+        "read_only": definition.get("read_only"),
+        "isolation_mode": definition.get("isolation_mode"),
+    }
+
+
+def _secret_scope_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": key,
+        "name": definition.get("name") or key,
+        "backend_type": definition.get("backend_type"),
+    }
+
+
+def _quality_monitor_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": key,
+        "name": definition.get("table_name") or key,
+        "table_name": definition.get("table_name"),
+        "output_schema_name": definition.get("output_schema_name"),
+        "monitor_type": _monitor_type(definition),
+        "has_schedule": bool(definition.get("schedule")),
+    }
+
+
+def _monitor_type(definition: dict[str, Any]) -> str | None:
+    # A quality monitor declares exactly one of these profile blocks.
+    for kind in ("snapshot", "time_series", "inference_log"):
+        if definition.get(kind) is not None:
+            return kind
+    return None
+
+
+def _owned(key: str, name: str | None) -> dict[str, Any]:
+    # UC objects have an owner and a creation time (unknown from a bundle) but no tags.
+    return {
+        "id": key,
+        "name": name or key,
+        "owner": None,
+        "owner_type": OWNER_TYPE_UNKNOWN,
+        "created_time": None,
     }
 
 
@@ -218,6 +311,13 @@ _COMMON = {
     ResourceType.SQL_WAREHOUSE: _sql_warehouse_attributes,
     ResourceType.APP: _app_attributes,
     ResourceType.SERVING_ENDPOINT: _serving_endpoint_attributes,
+    ResourceType.CATALOG: _catalog_attributes,
+    ResourceType.SCHEMA: _schema_attributes,
+    ResourceType.VOLUME: _volume_attributes,
+    ResourceType.REGISTERED_MODEL: _registered_model_attributes,
+    ResourceType.EXTERNAL_LOCATION: _external_location_attributes,
+    ResourceType.SECRET_SCOPE: _secret_scope_attributes,
+    ResourceType.QUALITY_MONITOR: _quality_monitor_attributes,
     ResourceType.PIPELINE: _pipeline_attributes,
     ResourceType.GENIE_SPACE: _genie_space_attributes,
 }
