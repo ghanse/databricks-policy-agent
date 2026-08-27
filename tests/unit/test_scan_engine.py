@@ -83,6 +83,7 @@ def test_supported_resource_types_match_registry():
         ResourceType.SECRET_SCOPE,
         ResourceType.PIPELINE,
         ResourceType.GENIE_SPACE,
+        ResourceType.SQL_ALERT,
     }
     # Quality monitors are enforce-only (no list API), so they are not scannable.
     assert ResourceType.QUALITY_MONITOR not in set(supported_resource_types())

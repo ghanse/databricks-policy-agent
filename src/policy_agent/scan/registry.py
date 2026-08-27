@@ -24,6 +24,7 @@ from policy_agent.scan.resources import (
     scan_schemas,
     scan_secret_scopes,
     scan_serving_endpoints,
+    scan_sql_alerts,
     scan_sql_warehouses,
     scan_volumes,
 )
@@ -48,6 +49,7 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.SECRET_SCOPE: scan_secret_scopes,
     ResourceType.PIPELINE: scan_pipelines,
     ResourceType.GENIE_SPACE: scan_genie_spaces,
+    ResourceType.SQL_ALERT: scan_sql_alerts,
 }
 """The resource types the framework can scan, keyed to their fetch functions. Some supported
 resource types (e.g. quality monitors) have no list API and so are enforce-only, not scannable."""

@@ -242,3 +242,29 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     # Every evaluated space is either compliant or a violation, with no double counting.
     summary = result.summary()
     assert summary.evaluated == summary.compliant + summary.violations
+
+
+@pytest.mark.integration
+def test_scan_sql_alerts_maps_live_shape(ws, env_or_skip):
+    """Scanning real SQL alerts produces well-formed snapshots (a schema-drift guard).
+
+    There is no pytester fixture for alerts, so this exercises the live list shape and skips
+    when the workspace has none.
+    """
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.SQL_ALERT])[ResourceType.SQL_ALERT]
+    if not snapshots:
+        pytest.skip("no SQL alerts in the workspace to evaluate")
+
+    assert all(s.resource_id for s in snapshots)
+    assert all(isinstance(s.attributes["has_schedule"], bool) for s in snapshots)
+
+    scheduled = allow(
+        "sql-alert-scheduled",
+        ResourceType.SQL_ALERT,
+        leaf("has_schedule", "equals", True),
+    )
+    result = run_scan(ws, [scheduled], [ResourceType.SQL_ALERT])
+    summary = result.summary()
+    # Every evaluated alert is either compliant or a violation, with no double counting.
+    assert summary.evaluated == summary.compliant + summary.violations

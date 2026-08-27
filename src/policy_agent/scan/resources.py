@@ -501,6 +501,53 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
             return snapshots
 
 
+def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every SQL alert in the workspace.
+
+    Note:
+        Uses the v2 alerts API (*alerts_v2.list_alerts*), whose model matches the ``alerts``
+        resource declared in a Databricks Asset Bundle, so a live scan and a bundle gate
+        evaluate the same attributes. Evaluation attributes (e.g. state, comparison operator)
+        are read from the nested *evaluation* block.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each SQL alert.
+    """
+    alerts_client = getattr(workspace_client, "alerts_v2", None)
+    if not alerts_client:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceError(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'alerts_v2' API. Upgrade the Databricks SDK to scan SQL alerts."
+        )
+    snapshots = []
+    for alert in alerts_client.list_alerts():
+        owner = getattr(alert, "owner_user_name", None)
+        evaluation = getattr(alert, "evaluation", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.SQL_ALERT,
+                id=str(getattr(alert, "id", "") or ""),
+                name=getattr(alert, "display_name", "") or "",
+                owner=owner,
+                owner_type=classify_principal(owner),
+                created_time=_rfc3339_seconds(getattr(alert, "create_time", None)),
+                warehouse_id=getattr(alert, "warehouse_id", None),
+                run_as_user_name=getattr(alert, "run_as_user_name", None),
+                state=_enum_value(getattr(evaluation, "state", None)),
+                lifecycle_state=_enum_value(getattr(alert, "lifecycle_state", None)),
+                comparison_operator=_enum_value(getattr(evaluation, "comparison_operator", None)),
+                empty_result_state=_enum_value(getattr(evaluation, "empty_result_state", None)),
+                has_schedule=bool(getattr(alert, "schedule", None)),
+            )
+        )
+    return snapshots
+
+
 def classify_principal(identifier: str | None) -> str:
     """Classifies a principal identifier as a service principal, user, or unknown.
 

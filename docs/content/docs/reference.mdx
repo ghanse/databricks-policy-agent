@@ -24,6 +24,7 @@ Policies target one of the following resource types.
 | `secret_scope`      | Secret scopes                     |
 | `genie_space`       | Genie spaces                      |
 | `pipeline`          | Spark Declarative Pipelines       |
+| `sql_alert`         | SQL alerts                        |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
@@ -197,6 +198,23 @@ Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` 
 | `photon`      | Whether Photon acceleration is enabled                                      |
 | `serverless`  | Whether the pipeline uses serverless compute                                |
 | `development` | Whether the pipeline runs in development mode                               |
+
+### SQL alert attributes
+
+| Field name            | Description                                                             |
+|-----------------------|-------------------------------------------------------------------------|
+| `warehouse_id`        | SQL warehouse the alert runs its query on                               |
+| `run_as_user_name`    | Principal the alert query runs as                                       |
+| `state`               | Latest evaluation state (e.g. "OK", "TRIGGERED", "UNKNOWN", "ERROR")    |
+| `lifecycle_state`     | Whether the alert is active or trashed (e.g. "ACTIVE", "TRASHED")       |
+| `comparison_operator` | Operator the alert compares its query result against a threshold with   |
+| `empty_result_state`  | State reported when the alert query returns no rows                     |
+| `has_schedule`        | Whether the alert runs on a schedule                                    |
+
+<Callout type="warn" title="Unsupported common attributes for SQL alerts">
+SQL alerts expose `id`, `name`, `owner`, `owner_type`, and `created_time`, but not `tags` —
+their tags are not scanned.
+</Callout>
 
 ## Operators
 Leaf comparisons use one of the following operators.

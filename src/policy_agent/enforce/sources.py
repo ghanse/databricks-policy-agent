@@ -33,6 +33,7 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "quality_monitors": ResourceType.QUALITY_MONITOR,
     "pipelines": ResourceType.PIPELINE,
     "genie_spaces": ResourceType.GENIE_SPACE,
+    "alerts": ResourceType.SQL_ALERT,
 }
 
 
@@ -261,6 +262,24 @@ def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, A
     }
 
 
+def _sql_alert_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    # Alerts are declared under `resources.alerts` using the v2 schema. Owner and evaluation
+    # state are runtime-only and unknown from a bundle; the comparison is declared inline.
+    evaluation = definition.get("evaluation") or {}
+    run_as = definition.get("run_as")
+    run_as_user = run_as.get("user_name") if isinstance(run_as, dict) else None
+    return {
+        **_owned(key, definition.get("display_name") or definition.get("name")),
+        "warehouse_id": definition.get("warehouse_id"),
+        "run_as_user_name": run_as_user,
+        "state": None,
+        "lifecycle_state": None,
+        "comparison_operator": evaluation.get("comparison_operator"),
+        "empty_result_state": evaluation.get("empty_result_state"),
+        "has_schedule": bool(definition.get("schedule")),
+    }
+
+
 def _common(
     key: str,
     name: str | None,
@@ -320,4 +339,5 @@ _COMMON = {
     ResourceType.QUALITY_MONITOR: _quality_monitor_attributes,
     ResourceType.PIPELINE: _pipeline_attributes,
     ResourceType.GENIE_SPACE: _genie_space_attributes,
+    ResourceType.SQL_ALERT: _sql_alert_attributes,
 }

@@ -281,6 +281,44 @@ def test_snapshot_bundle_maps_declared_genie_spaces():
     assert {f.resource_id for f in result.blocking} == {"adhoc"}
 
 
+def test_snapshot_bundle_maps_declared_alerts():
+    # Alerts are declared under the `alerts` group using the v2 schema.
+    config = {
+        "resources": {
+            "alerts": {
+                "row_count": {
+                    "display_name": "prod_row_count",
+                    "warehouse_id": "wh-1",
+                    "schedule": {"quartz_cron_schedule": "0 0 * * * ?"},
+                    "evaluation": {
+                        "comparison_operator": "GREATER_THAN",
+                        "empty_result_state": "UNKNOWN",
+                    },
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.SQL_ALERT
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_row_count"
+    assert attrs["warehouse_id"] == "wh-1"
+    assert attrs["comparison_operator"] == "GREATER_THAN"
+    assert attrs["has_schedule"] is True
+    # State is runtime-only and unknown from a bundle; alerts carry no tags.
+    assert attrs["state"] is None
+    assert "tags" not in attrs
+
+    # An alert without a warehouse violates a "must run on a warehouse" policy at the gate.
+    needs_warehouse = allow("alert-warehouse", "sql_alert", leaf("warehouse_id", "exists"))
+    unattached = {"resources": {"alerts": {"orphan": {"display_name": "orphan"}}}}
+    result = run_gate(
+        [needs_warehouse], snapshot_bundle(unattached), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"orphan"}
+
+
 def test_snapshot_bundle_derives_job_task_attributes():
     # has_retry_policy / uses_serverless_compute come from the declared tasks, matching the
     # live scanner; otherwise they default to None and every job falsely violates such policies.

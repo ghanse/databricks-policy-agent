@@ -29,6 +29,7 @@ class ResourceType(str, Enum):
     QUALITY_MONITOR = "quality_monitor"
     PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
+    SQL_ALERT = "sql_alert"
 
 
 class Effect(str, Enum):
@@ -288,6 +289,19 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
             "has_description",
         }
     ),
+    # SQL alerts are owned and timestamped but not tagged, so they do not advertise `tags`.
+    ResourceType.SQL_ALERT: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | {
+        "warehouse_id",
+        "run_as_user_name",
+        "state",
+        "lifecycle_state",
+        "comparison_operator",
+        "empty_result_state",
+        "has_schedule",
+    },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""
