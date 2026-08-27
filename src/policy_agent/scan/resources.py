@@ -295,7 +295,7 @@ def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetches and normalizes every volume across every volume in the metastore.
+    """Fetches and normalizes every volume across every schema in the metastore.
 
     Args:
         workspace_client: Databricks workspace client.

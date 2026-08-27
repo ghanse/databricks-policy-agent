@@ -149,7 +149,7 @@ Fetches and normalizes every schema across every catalog in the metastore.
 def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
 ```
 
-Fetches and normalizes every volume across every volume in the metastore.
+Fetches and normalizes every volume across every schema in the metastore.
 
 **Arguments**:
 

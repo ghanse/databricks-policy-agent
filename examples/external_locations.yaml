@@ -1,5 +1,5 @@
 # UC external location policies.
-policy: external-locations-should-not-be-read-only-by-default
+policy: external-locations-must-declare-read-only
 description: External locations must explicitly declare a read-only setting.
 resource_type: external_location
 effect: allow
