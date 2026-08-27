@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     scan_apps,
@@ -20,6 +21,9 @@ from policy_agent.scan.resources import (
     scan_registered_models,
     scan_schemas,
     scan_secret_scopes,
+    scan_genie_spaces,
+    scan_jobs,
+    scan_pipelines,
     scan_serving_endpoints,
     scan_sql_warehouses,
     scan_volumes,
@@ -43,13 +47,15 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.REGISTERED_MODEL: scan_registered_models,
     ResourceType.EXTERNAL_LOCATION: scan_external_locations,
     ResourceType.SECRET_SCOPE: scan_secret_scopes,
+    ResourceType.PIPELINE: scan_pipelines,
+    ResourceType.GENIE_SPACE: scan_genie_spaces,
 }
 """The resource types the framework can scan, keyed to their fetch functions. Some supported
 resource types (e.g. quality monitors) have no list API and so are enforce-only, not scannable."""
 
 
 def supported_resource_types() -> tuple[ResourceType, ...]:
-    """Return every resource type that has a registered scanner.
+    """Returns every resource type that has a registered scanner.
 
     Returns:
         The supported resource types, in registration order.
@@ -73,7 +79,7 @@ def is_scannable(resource_type: ResourceType) -> bool:
 
 
 def scanner_for(resource_type: ResourceType) -> ResourceScanner:
-    """Return the scanner function registered for a resource type.
+    """Returns the scanner function registered for a resource type.
 
     Args:
         resource_type: The resource type to look up.
@@ -82,6 +88,11 @@ def scanner_for(resource_type: ResourceType) -> ResourceScanner:
         The function that fetches snapshots for the resource type.
 
     Raises:
-        KeyError: If no scanner is registered for the resource type.
+        UnsupportedResourceError: If no scanner is registered for the resource type.
     """
-    return RESOURCE_SCANNERS[resource_type]
+    try:
+        return RESOURCE_SCANNERS[resource_type]
+    except KeyError as error:
+        raise UnsupportedResourceError(
+            f"No scanner is registered for resource type {resource_type.value!r}."
+        ) from error

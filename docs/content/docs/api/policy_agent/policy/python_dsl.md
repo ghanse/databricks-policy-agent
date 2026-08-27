@@ -33,7 +33,7 @@ def deny(name: str,
          version: int = 1) -> Policy
 ```
 
-Build a deny-list policy: resources whose rule matches are violations.
+Builds a deny-list policy: resources whose rule matches are violations.
 
 **Arguments**:
 
@@ -68,7 +68,7 @@ def allow(name: str,
           version: int = 1) -> Policy
 ```
 
-Build an allow-list policy: resources whose rule does not match are violations.
+Builds an allow-list policy: resources whose rule does not match are violations.
 
 **Arguments**:
 
@@ -104,7 +104,7 @@ def policy(name: str,
            version: int = 1) -> Policy
 ```
 
-Build a policy with an explicit effect, coercing string enum inputs.
+Builds a policy with an explicit effect, coercing string enum inputs.
 
 **Arguments**:
 
@@ -130,7 +130,7 @@ Build a policy with an explicit effect, coercing string enum inputs.
 def leaf(attribute: str, operator: str, value: object = None) -> Comparison
 ```
 
-Build a leaf comparison condition.
+Builds a leaf comparison condition.
 
 **Arguments**:
 
@@ -150,7 +150,7 @@ Build a leaf comparison condition.
 def all_of(*conditions: Condition) -> AllOf
 ```
 
-Build a conjunction that holds only when every child condition holds.
+Builds a conjunction that holds only when every child condition holds.
 
 **Arguments**:
 
@@ -167,7 +167,7 @@ Build a conjunction that holds only when every child condition holds.
 def any_of(*conditions: Condition) -> AnyOf
 ```
 
-Build a disjunction that holds when at least one child condition holds.
+Builds a disjunction that holds when at least one child condition holds.
 
 **Arguments**:
 
@@ -184,7 +184,7 @@ Build a disjunction that holds when at least one child condition holds.
 def not_(condition: Condition) -> Negation
 ```
 
-Build a negation that holds when its child condition does not.
+Builds a negation that holds when its child condition does not.
 
 **Arguments**:
 

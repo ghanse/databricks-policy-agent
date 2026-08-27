@@ -18,7 +18,7 @@ from policy_agent.scan.results import Finding
 def suggest_fixes(
     violations: Iterable[Finding], policies_by_name: Mapping[str, Policy]
 ) -> tuple[FixSuggestion, ...]:
-    """Build a remediation suggestion for each violation.
+    """Builds a remediation suggestion for each violation.
 
     Args:
         violations: The violating findings.

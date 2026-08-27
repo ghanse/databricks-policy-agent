@@ -1,4 +1,4 @@
-"""Map a resolved bundle configuration into evaluable resource snapshots.
+"""Maps a resolved bundle configuration into evaluable resource snapshots.
 
 Each declared resource under ``resources.<group>.<key>`` is normalised into the same
 `ResourceSnapshot` shape produced by a live scan, so the enforcement gate reuses the
@@ -31,11 +31,13 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "external_locations": ResourceType.EXTERNAL_LOCATION,
     "secret_scopes": ResourceType.SECRET_SCOPE,
     "quality_monitors": ResourceType.QUALITY_MONITOR,
+    "pipelines": ResourceType.PIPELINE,
+    "genie_spaces": ResourceType.GENIE_SPACE,
 }
 
 
 def snapshot_bundle(config: dict[str, Any]) -> list[ResourceSnapshot]:
-    """Build resource snapshots from a resolved bundle configuration.
+    """Builds resource snapshots from a resolved bundle configuration.
 
     Args:
         config: A resolved bundle configuration (see `load_bundle_config`).
@@ -230,6 +232,33 @@ def _owned(key: str, name: str | None) -> dict[str, Any]:
         "owner_type": OWNER_TYPE_UNKNOWN,
         "created_time": None,
     }
+  
+  
+def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    return {
+        **_common(key, definition.get("name"), None, OWNER_TYPE_UNKNOWN, definition.get("tags")),
+        "catalog": definition.get("catalog"),
+        "target": definition.get("target"),
+        "schema": definition.get("schema"),
+        "channel": definition.get("channel"),
+        "edition": definition.get("edition"),
+        "continuous": definition.get("continuous"),
+        "photon": definition.get("photon"),
+        "serverless": definition.get("serverless"),
+        "development": definition.get("development"),
+    }
+
+
+def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    # NOTE: Genie spaces have no owner or tags, so this does not use _common
+    description = definition.get("description")
+    return {
+        "id": key,
+        "name": definition.get("title") or definition.get("name") or key,
+        "warehouse_id": definition.get("warehouse_id"),
+        "description": description,
+        "has_description": bool(description),
+    }
 
 
 def _common(
@@ -289,4 +318,6 @@ _COMMON = {
     ResourceType.EXTERNAL_LOCATION: _external_location_attributes,
     ResourceType.SECRET_SCOPE: _secret_scope_attributes,
     ResourceType.QUALITY_MONITOR: _quality_monitor_attributes,
+    ResourceType.PIPELINE: _pipeline_attributes,
+    ResourceType.GENIE_SPACE: _genie_space_attributes,
 }

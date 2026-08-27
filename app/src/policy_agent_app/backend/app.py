@@ -20,6 +20,7 @@ from policy_agent.errors import (
     AuthorizationError,
     InvalidPolicyError,
     PolicyAgentError,
+    UnsupportedResourceError,
     WorkflowError,
 )
 
@@ -30,7 +31,7 @@ _UI_DIST = Path(__file__).resolve().parent.parent / "ui" / "dist"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Build process-wide state at startup and expose it on ``app.state``."""
+    """Builds process-wide state at startup and exposes it on ``app.state``."""
     from databricks.sdk import WorkspaceClient
 
     config = config_from_env()
@@ -42,7 +43,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app() -> FastAPI:
-    """Build and configure the FastAPI application.
+    """Builds and configures the FastAPI application.
 
     Returns:
         The configured application.
@@ -63,6 +64,7 @@ def create_app() -> FastAPI:
 def _register_exception_handlers(app: FastAPI) -> None:
     handlers = {
         InvalidPolicyError: 400,
+        UnsupportedResourceError: 400,
         AuthorizationError: 403,
         WorkflowError: 409,
         PolicyAgentError: 500,

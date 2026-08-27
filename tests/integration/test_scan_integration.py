@@ -196,3 +196,49 @@ def test_scan_external_locations_maps_live_shape(ws, env_or_skip):
     if not snapshots:
         pytest.skip("no external locations in the metastore to evaluate")
     assert all("url" in s.attributes for s in snapshots)
+    
+    
+@pytest.mark.integration
+def test_scan_evaluates_pipeline_naming_policy(
+    ws, make_catalog, make_schema, make_pipeline, make_random
+):
+    """A pipeline created with a conforming name is compliant with a naming policy."""
+    suffix = make_random(6).lower()
+    catalog = make_catalog(name="test")
+    schema = make_schema(catalog_name=catalog.name)
+    pipeline = make_pipeline(name=f"dev_{suffix}", catalog=catalog.name, schema=schema.name)
+
+    naming = allow(
+        "pipeline-naming",
+        ResourceType.PIPELINE,
+        leaf("name", "matches_regex", r"^dev_[a-z0-9]+$"),
+    )
+    result = run_scan(ws, [naming], [ResourceType.PIPELINE])
+
+    compliant_ids = {f.resource_id for f in result.findings if f.compliant}
+    assert str(pipeline.pipeline_id) in compliant_ids
+
+
+@pytest.mark.integration
+def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
+    """Scanning real Genie spaces produces well-formed snapshots (a schema-drift guard)."""
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.GENIE_SPACE])[ResourceType.GENIE_SPACE]
+    if not snapshots:
+        pytest.skip("no Genie spaces in the workspace to evaluate")
+
+    assert all(s.resource_id for s in snapshots)
+    assert all(s.name for s in snapshots)
+    assert all(isinstance(s.attributes["has_description"], bool) for s in snapshots)
+
+    documented = allow(
+        "genie-space-documented",
+        ResourceType.GENIE_SPACE,
+        leaf("has_description", "equals", True),
+    )
+    result = run_scan(ws, [documented], [ResourceType.GENIE_SPACE])
+    if result.summary().evaluated == 0:
+        pytest.skip("Genie spaces disappeared between fetches; nothing to evaluate")
+    # Every evaluated space is either compliant or a violation, with no double counting.
+    summary = result.summary()
+    assert summary.evaluated == summary.compliant + summary.violations

@@ -50,7 +50,7 @@ The fully qualified schema name (``catalog.schema`` for UC, ``schema`` otherwise
 def table_identifier(logical_name: str) -> str
 ```
 
-Return the fully qualified identifier for a logical table name.
+Returns the fully qualified identifier for a logical table name.
 
 **Arguments**:
 

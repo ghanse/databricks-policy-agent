@@ -126,7 +126,7 @@ class ScanResult:
         return tuple(finding for finding in self.findings if not finding.compliant)
 
     def summary(self) -> ScanSummary:
-        """Compute the aggregated summary for this scan.
+        """Computes the aggregated summary for this scan.
 
         Returns:
             A `ScanSummary` describing evaluation and violation counts.

@@ -24,7 +24,7 @@ from policy_agent.policy.model import (
 
 
 def validate_policy(policy: Policy) -> None:
-    """Validate a policy's identity and both of its condition trees.
+    """Validates a policy's identity and both of its condition trees.
 
     Args:
         policy: The policy to validate.
@@ -41,7 +41,7 @@ def validate_policy(policy: Policy) -> None:
 
 
 def validate_condition(condition: Condition, resource_type: ResourceType) -> None:
-    """Recursively validate a condition tree against a resource type's attributes.
+    """Recursively validates a condition tree against a resource type's attributes.
 
     Args:
         condition: The condition tree to validate.

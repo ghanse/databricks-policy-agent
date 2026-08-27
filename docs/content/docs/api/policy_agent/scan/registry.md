@@ -20,7 +20,7 @@ resource types (e.g. quality monitors) have no list API and so are enforce-only,
 def supported_resource_types() -> tuple[ResourceType, ...]
 ```
 
-Return every resource type that has a registered scanner.
+Returns every resource type that has a registered scanner.
 
 **Returns**:
 
@@ -52,7 +52,7 @@ be evaluated from a bundle by the enforcement gate, but never by a live scan.
 def scanner_for(resource_type: ResourceType) -> ResourceScanner
 ```
 
-Return the scanner function registered for a resource type.
+Returns the scanner function registered for a resource type.
 
 **Arguments**:
 
@@ -66,5 +66,5 @@ Return the scanner function registered for a resource type.
 
 **Raises**:
 
-- `KeyError` - If no scanner is registered for the resource type.
+- `UnsupportedResourceError` - If no scanner is registered for the resource type.
 

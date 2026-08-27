@@ -11,5 +11,5 @@ Entry point for the on-demand scan job (``policy-agent-scan``).
 def main() -> None
 ```
 
-Run an on-demand scan of every approved policy and exit with its status code.
+Runs an on-demand scan of every approved policy and exits with its status code.
 

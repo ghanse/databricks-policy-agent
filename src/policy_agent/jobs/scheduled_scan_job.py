@@ -12,7 +12,7 @@ from policy_agent.jobs.runner import execute_scan_job
 
 
 def main() -> None:
-    """Run the scheduled scan of every approved policy and exit with its status code."""
+    """Runs the scheduled scan of every approved policy and exits with its status code."""
     sys.exit(execute_scan_job(triggered_by="job:scheduled"))
 
 

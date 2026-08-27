@@ -43,7 +43,7 @@ def submit(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Submit a draft or rejected policy for review."""
+    """Submits a draft or rejected policy for review."""
     return _apply(submit_for_review, name, user, roles, body.note, executor, config)
 
 
@@ -56,7 +56,7 @@ def approve_policy(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Approve a policy under review."""
+    """Approves a policy under review."""
     return _apply(approve, name, user, roles, body.note, executor, config)
 
 
@@ -69,7 +69,7 @@ def reject_policy(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Reject a policy under review."""
+    """Rejects a policy under review."""
     return _apply(reject, name, user, roles, body.note, executor, config)
 
 
@@ -82,7 +82,7 @@ def archive_policy(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Archive a policy, retiring it from scans."""
+    """Archives a policy, retiring it from scans."""
     return _apply(archive, name, user, roles, body.note, executor, config)
 
 

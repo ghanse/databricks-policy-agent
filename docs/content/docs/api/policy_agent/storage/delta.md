@@ -24,7 +24,7 @@ def __init__(workspace_client: WorkspaceClient,
              poll_interval_seconds: float = 1.0) -> None
 ```
 
-Initialise the executor.
+Initialises the executor.
 
 **Arguments**:
 
@@ -39,7 +39,7 @@ def execute(statement: str,
             parameters: Mapping[str, Any] | None = None) -> None
 ```
 
-Execute a statement that returns no rows.
+Executes a statement that returns no rows.
 
 **Arguments**:
 
@@ -53,7 +53,7 @@ def query(statement: str,
           parameters: Mapping[str, Any] | None = None) -> list[dict[str, Any]]
 ```
 
-Execute a query and return its rows as column-keyed mappings.
+Executes a query and returns its rows as column-keyed mappings.
 
 **Arguments**:
 

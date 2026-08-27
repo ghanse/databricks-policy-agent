@@ -1,6 +1,10 @@
 import pytest
 
-from policy_agent.errors import InvalidPolicyError, UnknownConditionError
+from policy_agent.errors import (
+    InvalidPolicyError,
+    UnknownConditionError,
+    UnsupportedResourceError,
+)
 from policy_agent.policy import (
     Effect,
     EnforcementLevel,
@@ -98,6 +102,14 @@ def test_validate_rejects_unknown_attribute():
         validate_policy(invalid)
 
 
+def test_validate_rejects_tags_on_non_taggable_genie_space():
+    # Genie spaces cannot be tagged, so `tags` is not in their attribute set and a policy that
+    # references it is rejected at author time.
+    invalid = deny("bad", "genie_space", leaf("tags", "not_empty"))
+    with pytest.raises(InvalidPolicyError):
+        validate_policy(invalid)
+
+
 def test_validate_rejects_unknown_operator():
     invalid = deny("bad", "job", leaf("name", "sounds_like", "x"))
     with pytest.raises(UnknownConditionError):
@@ -115,7 +127,7 @@ def test_load_rejects_missing_required_key():
 
 
 def test_load_rejects_unknown_resource_type():
-    with pytest.raises(InvalidPolicyError):
+    with pytest.raises(UnsupportedResourceError):
         policy_from_dict(
             {
                 "policy": "x",

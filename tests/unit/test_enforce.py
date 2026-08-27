@@ -203,6 +203,7 @@ def test_snapshot_bundle_maps_quality_monitors_enforce_only():
                     "snapshot": {},
                 },
                 "adhoc": {"table_name": "main.gold.adhoc", "inference_log": {}},
+              
             }
         }
     }
@@ -217,6 +218,66 @@ def test_snapshot_bundle_maps_quality_monitors_enforce_only():
     # Monitors must be scheduled; the ad-hoc one violates.
     scheduled = allow("qm-scheduled", "quality_monitor", leaf("has_schedule", "equals", True))
     result = run_gate([scheduled], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert {f.resource_id for f in result.blocking} == {"adhoc"}
+    
+    
+def test_snapshot_bundle_maps_declared_pipelines():
+    config = {
+        "resources": {
+            "pipelines": {
+                "ingest": {
+                    "name": "prod_ingest",
+                    "catalog": "main",
+                    "schema": "bronze",
+                    "edition": "ADVANCED",
+                    "serverless": True,
+                    "continuous": False,
+                    "tags": {"team": "data"},
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.PIPELINE
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_ingest"
+    assert attrs["catalog"] == "main"
+    assert attrs["schema"] == "bronze"
+    assert attrs["serverless"] is True
+    assert attrs["tags"] == {"team": "data"}
+
+    # A non-serverless pipeline violates a "must be serverless" policy.
+    must_be_serverless = allow(
+        "pipeline-serverless", "pipeline", leaf("serverless", "equals", True)
+    )
+    classic = {"resources": {"pipelines": {"legacy": {"name": "legacy", "serverless": False}}}}
+    result = run_gate(
+        [must_be_serverless], snapshot_bundle(classic), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"legacy"}
+
+
+def test_snapshot_bundle_maps_declared_genie_spaces():
+    config = {
+        "resources": {
+            "genie_spaces": {
+                "sales": {"title": "Sales", "warehouse_id": "wh-1", "description": "Sales Q&A"},
+                "adhoc": {"title": "Adhoc", "warehouse_id": "wh-2"},
+            }
+        }
+    }
+    assert set(by_id) == {"sales", "adhoc"}
+    assert by_id["sales"].resource_type is ResourceType.GENIE_SPACE
+    assert by_id["sales"].attributes["name"] == "Sales"
+    assert by_id["sales"].attributes["warehouse_id"] == "wh-1"
+    assert by_id["sales"].attributes["has_description"] is True
+    assert by_id["adhoc"].attributes["has_description"] is False
+
+    # A Genie space without a description violates a "must be documented" policy.
+    documented = allow("genie-documented", "genie_space", leaf("has_description", "equals", True))
+    result = run_gate([documented], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY)
+    assert result.blocked
     assert {f.resource_id for f in result.blocking} == {"adhoc"}
 
 

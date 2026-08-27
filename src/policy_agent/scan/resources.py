@@ -1,4 +1,4 @@
-"""Fetch workspace resources and normalize them into evaluable snapshots.
+"""Fetches workspace resources and normalizes them into evaluable snapshots.
 
 Each ``scan_*`` function reads one resource type from a `WorkspaceClient` and maps
 every resource to the flat attribute set declared in
@@ -13,6 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from policy_agent.errors import UnsupportedResourceError
 from policy_agent.policy.model import (
     OWNER_TYPE_SERVICE_PRINCIPAL,
     OWNER_TYPE_UNKNOWN,
@@ -38,17 +39,17 @@ workspaces — so callers should expand only when a policy actually reads one of
 def scan_jobs(
     workspace_client: WorkspaceClient, *, expand_tasks: bool = True
 ) -> list[ResourceSnapshot]:
-    """Fetch and normalize every job in the workspace.
+    """Fetches and normalizes every job in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
         expand_tasks: Whether to fetch full task definitions. Required to populate the
-            `TASK_DERIVED_JOB_ATTRIBUTES`; when ``False`` those attributes are reported
-            as ``None`` rather than a value guessed from tasks that were not fetched. Defaults
-            to ``True`` so direct and inventory callers get complete snapshots.
+            `TASK_DERIVED_JOB_ATTRIBUTES`; when *False* those attributes are reported
+            as *None* rather than a value guessed from tasks that were not fetched. Defaults
+            to *True* so direct and inventory callers get complete snapshots.
 
     Returns:
-        One snapshot per job.
+        A list of *ResourceSnapshots* for each job.
     """
     snapshots = []
     for job in workspace_client.jobs.list(expand_tasks=expand_tasks):
@@ -80,13 +81,13 @@ def scan_jobs(
 
 
 def scan_clusters(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every all-purpose cluster in the workspace.
+    """Fetches and normalizes every all-purpose cluster in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per cluster.
+        A list of *ResourceSnapshots* for each cluster.
     """
     snapshots = []
     for cluster in workspace_client.clusters.list():
@@ -113,13 +114,13 @@ def scan_clusters(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_sql_warehouses(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every SQL warehouse in the workspace.
+    """Fetches and normalizes every SQL warehouse in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per SQL warehouse.
+        A list of *ResourceSnapshots* for each SQL warehouse.
     """
     snapshots = []
     for warehouse in workspace_client.warehouses.list():
@@ -145,13 +146,13 @@ def scan_sql_warehouses(workspace_client: WorkspaceClient) -> list[ResourceSnaps
 
 
 def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every Databricks App in the workspace.
+    """Fetches and normalizes every Databricks App in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per app.
+        A list of *ResourceSnapshots* for each app.
     """
     snapshots = []
     for app in workspace_client.apps.list():
@@ -178,13 +179,13 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
 
 def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every model serving endpoint in the workspace.
+    """Fetches and normalizes every model serving endpoint in the workspace.
 
     Args:
-        workspace_client: An authenticated Databricks workspace client.
+        workspace_client: Databricks workspace client.
 
     Returns:
-        One snapshot per serving endpoint.
+        A list of *ResourceSnapshots* for each serving endpoint.
     """
     snapshots = []
     for endpoint in workspace_client.serving_endpoints.list():
@@ -308,13 +309,52 @@ def scan_registered_models(workspace_client: WorkspaceClient) -> list[ResourceSn
                 comment=getattr(model, "comment", None),
                 catalog_name=getattr(model, "catalog_name", None),
                 schema_name=getattr(model, "schema_name", None),
+def scan_pipelines(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every Spark Declarative pipeline in the workspace.
+
+    Note:
+        *list_pipelines* returns only summary attributes (e.g. name, creator, state). Because
+        some attributes (e.g. catalog, edition, continuous, serverless) are part of the pipeline
+        spec, each pipeline is fetched with *get* to read its attributes.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each serving endpoint.
+    """
+    snapshots = []
+    for pipeline in workspace_client.pipelines.list_pipelines():
+        pipeline_id = getattr(pipeline, "pipeline_id", "") or ""
+        creator = getattr(pipeline, "creator_user_name", None)
+        spec = None
+        if pipeline_id:
+            spec = getattr(workspace_client.pipelines.get(pipeline_id), "spec", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.PIPELINE,
+                id=str(pipeline_id),
+                name=getattr(pipeline, "name", None) or getattr(spec, "name", "") or "",
+                owner=creator,
+                owner_type=classify_principal(creator),
+                tags=_normalize_tags(getattr(spec, "tags", None)),
+                created_time=None,
+                catalog=getattr(spec, "catalog", None),
+                target=getattr(spec, "target", None),
+                schema=getattr(spec, "schema", None),
+                channel=getattr(spec, "channel", None),
+                edition=getattr(spec, "edition", None),
+                continuous=getattr(spec, "continuous", None),
+                photon=getattr(spec, "photon", None),
+                serverless=getattr(spec, "serverless", None),
+                development=getattr(spec, "development", None),
             )
         )
     return snapshots
 
 
 def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every external location in the metastore."""
+    """Fetches and normalizes every external location in the metastore."""
     snapshots = []
     for location in workspace_client.external_locations.list():
         owner = getattr(location, "owner", None)
@@ -338,7 +378,7 @@ def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceS
 
 
 def scan_secret_scopes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
-    """Fetch and normalize every secret scope in the workspace."""
+    """Fetches and normalizes every secret scope in the workspace."""
     snapshots = []
     for scope in workspace_client.secrets.list_scopes():
         name = getattr(scope, "name", "") or ""
@@ -351,16 +391,56 @@ def scan_secret_scopes(workspace_client: WorkspaceClient) -> list[ResourceSnapsh
             )
         )
     return snapshots
+              
+              
+def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every Genie space in the workspace.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each Genie space.
+    """
+    snapshots = []
+    page_token: str | None = None
+    genie_client = getattr(workspace_client, "genie", None)
+    if not genie_client:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceError(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'genie' API. Upgrade the Databricks SDK to scan Genie spaces."
+        )
+    while True:
+        response = genie_client.list_spaces(page_token=page_token)
+        for space in getattr(response, "spaces", None) or []:
+            title = getattr(space, "title", "") or ""
+            description = getattr(space, "description", None)
+            snapshots.append(
+                _snapshot(
+                    ResourceType.GENIE_SPACE,
+                    id=str(getattr(space, "space_id", "")),
+                    name=title,
+                    warehouse_id=getattr(space, "warehouse_id", None),
+                    description=description,
+                    has_description=bool(description),
+                )
+            )
+        page_token = getattr(response, "next_page_token", None)
+        if not page_token:
+            return snapshots
 
 
 def classify_principal(identifier: str | None) -> str:
-    """Classify a principal identifier as a service principal, user, or unknown.
+    """Classifies a principal identifier as a service principal, user, or unknown.
 
     Args:
-        identifier: A principal identifier such as a user email or SP application id.
+        identifier: A principal identifier such as a user email or application id.
 
     Returns:
-        One of the ``OWNER_TYPE_*`` constants.
+        One of the ``OWNER_TYPE_*`` constants: ``service_principal`` for a UUID, ``user`` for an
+        email-shaped value, and ``unknown`` for an empty identifier or any other value.
     """
     if not identifier:
         return OWNER_TYPE_UNKNOWN

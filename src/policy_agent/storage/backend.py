@@ -26,7 +26,7 @@ class SqlExecutor(Protocol):
     """The minimal SQL surface both storage backends implement."""
 
     def execute(self, statement: str, parameters: Mapping[str, Any] | None = None) -> None:
-        """Execute a statement that returns no rows.
+        """Executes a statement that returns no rows.
 
         Args:
             statement: SQL text with ``:name`` parameter markers.
@@ -37,7 +37,7 @@ class SqlExecutor(Protocol):
     def query(
         self, statement: str, parameters: Mapping[str, Any] | None = None
     ) -> list[dict[str, Any]]:
-        """Execute a query and return its rows as column-keyed mappings.
+        """Executes a query and returns its rows as column-keyed mappings.
 
         Args:
             statement: SQL text with ``:name`` parameter markers.
@@ -50,7 +50,7 @@ class SqlExecutor(Protocol):
 
 
 def ensure_storage(executor: SqlExecutor, config: StorageConfig) -> None:
-    """Create the namespace and every table if they do not already exist.
+    """Creates the namespace and every table if they do not already exist.
 
     Args:
         executor: The SQL executor.
@@ -65,7 +65,7 @@ def ensure_storage(executor: SqlExecutor, config: StorageConfig) -> None:
 def save_policy(
     executor: SqlExecutor, config: StorageConfig, policy: Policy, actor: str = "system"
 ) -> None:
-    """Upsert a policy and append a version snapshot.
+    """Upserts a policy and appends a version snapshot.
 
     Args:
         executor: The SQL executor.
@@ -89,7 +89,7 @@ def save_policy(
 def load_policies(
     executor: SqlExecutor, config: StorageConfig, status: PolicyStatus | None = None
 ) -> list[Policy]:
-    """Load policies, optionally filtered by approval status.
+    """Loads policies, optionally filtered by approval status.
 
     Args:
         executor: The SQL executor.
@@ -105,7 +105,7 @@ def load_policies(
 
 
 def delete_policy(executor: SqlExecutor, config: StorageConfig, name: str) -> None:
-    """Delete a policy by name.
+    """Deletes a policy by name.
 
     Args:
         executor: The SQL executor.
@@ -122,7 +122,7 @@ def write_scan(
     scan_result: ScanResult,
     triggered_by: str = "system",
 ) -> None:
-    """Persist a scan's header row and one row per finding.
+    """Persists a scan's header row and one row per finding.
 
     Args:
         executor: The SQL executor.
@@ -143,7 +143,7 @@ def write_scan(
 def read_findings(
     executor: SqlExecutor, config: StorageConfig, scan_id: str | None = None
 ) -> list[Finding]:
-    """Read findings, optionally restricted to a single scan.
+    """Reads findings, optionally restricted to a single scan.
 
     Args:
         executor: The SQL executor.
@@ -159,7 +159,7 @@ def read_findings(
 
 
 def read_scans(executor: SqlExecutor, config: StorageConfig) -> list[dict[str, Any]]:
-    """Read scan header rows, most recent first.
+    """Reads scan header rows, most recent first.
 
     Args:
         executor: The SQL executor.
@@ -173,7 +173,7 @@ def read_scans(executor: SqlExecutor, config: StorageConfig) -> list[dict[str, A
 
 
 def save_approval_event(executor: SqlExecutor, config: StorageConfig, event: ApprovalEvent) -> None:
-    """Append an approval-workflow audit event.
+    """Appends an approval-workflow audit event.
 
     Args:
         executor: The SQL executor.
@@ -189,7 +189,7 @@ def save_approval_event(executor: SqlExecutor, config: StorageConfig, event: App
 def read_approval_events(
     executor: SqlExecutor, config: StorageConfig, policy_name: str | None = None
 ) -> list[dict[str, Any]]:
-    """Read approval events, optionally for a single policy, most recent first.
+    """Reads approval events, optionally for a single policy, most recent first.
 
     Args:
         executor: The SQL executor.
@@ -207,7 +207,7 @@ def read_approval_events(
 
 
 def save_remediation(executor: SqlExecutor, config: StorageConfig, item: RemediationItem) -> None:
-    """Upsert a remediation item.
+    """Upserts a remediation item.
 
     Args:
         executor: The SQL executor.
@@ -225,7 +225,7 @@ def save_remediation(executor: SqlExecutor, config: StorageConfig, item: Remedia
 
 
 def read_remediations(executor: SqlExecutor, config: StorageConfig) -> list[RemediationItem]:
-    """Read every remediation item.
+    """Reads every remediation item.
 
     Args:
         executor: The SQL executor.
@@ -239,7 +239,7 @@ def read_remediations(executor: SqlExecutor, config: StorageConfig) -> list[Reme
 
 
 def save_schedule(executor: SqlExecutor, config: StorageConfig, schedule: ScanSchedule) -> None:
-    """Upsert a scan schedule.
+    """Upserts a scan schedule.
 
     Args:
         executor: The SQL executor.
@@ -258,7 +258,7 @@ def save_schedule(executor: SqlExecutor, config: StorageConfig, schedule: ScanSc
 
 
 def read_schedules(executor: SqlExecutor, config: StorageConfig) -> list[ScanSchedule]:
-    """Read every scan schedule.
+    """Reads every scan schedule.
 
     Args:
         executor: The SQL executor.
@@ -272,7 +272,7 @@ def read_schedules(executor: SqlExecutor, config: StorageConfig) -> list[ScanSch
 
 
 def delete_schedule(executor: SqlExecutor, config: StorageConfig, schedule_id: str) -> None:
-    """Delete a scan schedule by id.
+    """Deletes a scan schedule by id.
 
     Args:
         executor: The SQL executor.
@@ -286,7 +286,7 @@ def delete_schedule(executor: SqlExecutor, config: StorageConfig, schedule_id: s
 def save_role_mapping(
     executor: SqlExecutor, config: StorageConfig, group_name: str, role: Role
 ) -> None:
-    """Grant a role to a workspace group (idempotent).
+    """Grants a role to a workspace group (idempotent).
 
     Args:
         executor: The SQL executor.
@@ -308,7 +308,7 @@ def save_role_mapping(
 def delete_role_mapping(
     executor: SqlExecutor, config: StorageConfig, group_name: str, role: Role
 ) -> None:
-    """Revoke a role from a workspace group.
+    """Revokes a role from a workspace group.
 
     Args:
         executor: The SQL executor.
@@ -323,7 +323,7 @@ def delete_role_mapping(
 
 
 def read_role_mappings(executor: SqlExecutor, config: StorageConfig) -> dict[str, set[Role]]:
-    """Read all group-to-role grants.
+    """Reads all group-to-role grants.
 
     Args:
         executor: The SQL executor.

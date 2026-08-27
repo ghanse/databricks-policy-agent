@@ -53,7 +53,7 @@ class PolicyAgentConfig:
 
 
 def config_from_env(environ: Mapping[str, str] | None = None) -> PolicyAgentConfig:
-    """Build a `PolicyAgentConfig` from environment variables.
+    """Builds a `PolicyAgentConfig` from environment variables.
 
     Args:
         environ: Environment mapping to read; defaults to ``os.environ``.
@@ -79,7 +79,7 @@ def config_from_env(environ: Mapping[str, str] | None = None) -> PolicyAgentConf
 
 
 def create_executor(config: PolicyAgentConfig, workspace_client: WorkspaceClient) -> SqlExecutor:
-    """Build the SQL executor for the configured storage backend.
+    """Builds the SQL executor for the configured storage backend.
 
     Args:
         config: The runtime configuration.
