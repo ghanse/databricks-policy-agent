@@ -1,0 +1,10 @@
+# UC schema policies.
+policy: schemas-must-be-documented
+description: Every schema must carry a comment describing its contents.
+resource_type: schema
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: comment, operator: exists }
+remediation: Add a COMMENT to the schema.

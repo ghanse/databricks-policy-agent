@@ -1,0 +1,10 @@
+# UC registered model policies.
+policy: registered-models-must-be-documented
+description: Every registered model must have a comment describing what it is and how to use it.
+resource_type: registered_model
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: comment, operator: exists }
+remediation: Add a comment to the registered model describing its purpose.

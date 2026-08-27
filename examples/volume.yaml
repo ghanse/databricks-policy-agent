@@ -1,0 +1,10 @@
+# UC volume policies.
+policy: volumes-must-be-managed
+description: Volumes must be managed rather than external.
+resource_type: volume
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: volume_type, operator: equals, value: MANAGED }
+remediation: Recreate the volume as a managed volume.
