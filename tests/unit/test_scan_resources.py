@@ -306,6 +306,33 @@ def test_scan_volumes_reads_governed_uc_tags_by_full_name():
     assert tag_service.calls == [("volumes", "main.gold.landing")]
 
 
+def test_scan_schemas_reads_governed_uc_tags_by_full_name():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="gold", full_name="main.gold", owner="data-eng")
+    tag_service = _FakeUcTagAssignments(
+        {("schemas", "main.gold"): [SimpleNamespace(tag_key="tier", tag_value="curated")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_schemas(ws)
+    assert snapshot.attributes["tags"] == {"tier": "curated"}
+    assert tag_service.calls == [("schemas", "main.gold")]
+
+
+def test_scan_external_locations_reads_governed_uc_tags():
+    location = SimpleNamespace(name="raw-landing", owner="data-eng", url="s3://bucket/raw")
+    tag_service = _FakeUcTagAssignments(
+        {("externallocations", "raw-landing"): [SimpleNamespace(tag_key="zone", tag_value="raw")]}
+    )
+    ws = _ws(external_locations=_FakeService([location]), entity_tag_assignments=tag_service)
+    (snapshot,) = scan_external_locations(ws)
+    assert snapshot.attributes["tags"] == {"zone": "raw"}
+    assert tag_service.calls == [("externallocations", "raw-landing")]
+
+
 def test_scan_schemas_iterates_catalogs():
     catalog = SimpleNamespace(name="main")
     schema = SimpleNamespace(
