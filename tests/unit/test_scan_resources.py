@@ -260,7 +260,78 @@ def test_scan_catalogs_maps_owner_type_and_created_time():
     assert attrs["catalog_type"] == "MANAGED_CATALOG"
     assert attrs["isolation_mode"] == "ISOLATED"
     assert attrs["created_time"] == 1_700_000_000
-    assert "tags" not in attrs  # catalogs do not advertise tags
+    # Catalogs advertise tags; with no UC tag service wired the mapping is empty.
+    assert attrs["tags"] == {}
+
+
+class _FakeUcTagAssignments:
+    """A fake UC entity-tag-assignments service keyed by (entity_type, entity_name)."""
+
+    def __init__(self, assignments):
+        self._assignments = assignments
+        self.calls = []
+
+    def list(self, entity_type, entity_name, **kwargs):
+        self.calls.append((entity_type, entity_name))
+        return list(self._assignments.get((entity_type, entity_name), []))
+
+
+def test_scan_catalogs_reads_governed_uc_tags():
+    catalog = SimpleNamespace(name="main", owner="data-eng", created_at=None)
+    tag_service = _FakeUcTagAssignments(
+        {("catalogs", "main"): [SimpleNamespace(tag_key="domain", tag_value="finance")]}
+    )
+    ws = _ws(catalogs=_FakeService([catalog]), entity_tag_assignments=tag_service)
+    (snapshot,) = scan_catalogs(ws)
+    # UC tags come from the entity-tag-assignments API, keyed by entity type + fully-qualified name.
+    assert snapshot.attributes["tags"] == {"domain": "finance"}
+    assert tag_service.calls == [("catalogs", "main")]
+
+
+def test_scan_volumes_reads_governed_uc_tags_by_full_name():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="gold")
+    volume = SimpleNamespace(name="landing", full_name="main.gold.landing", owner="data-eng")
+    tag_service = _FakeUcTagAssignments(
+        {("volumes", "main.gold.landing"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        volumes=_FakeService([volume]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_volumes(ws)
+    assert snapshot.attributes["tags"] == {"pii": "true"}
+    # The volume's fully-qualified name is used as the UC entity name.
+    assert tag_service.calls == [("volumes", "main.gold.landing")]
+
+
+def test_scan_schemas_reads_governed_uc_tags_by_full_name():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="gold", full_name="main.gold", owner="data-eng")
+    tag_service = _FakeUcTagAssignments(
+        {("schemas", "main.gold"): [SimpleNamespace(tag_key="tier", tag_value="curated")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_schemas(ws)
+    assert snapshot.attributes["tags"] == {"tier": "curated"}
+    assert tag_service.calls == [("schemas", "main.gold")]
+
+
+def test_scan_external_locations_reads_governed_uc_tags():
+    location = SimpleNamespace(name="raw-landing", owner="data-eng", url="s3://bucket/raw")
+    tag_service = _FakeUcTagAssignments(
+        {("externallocations", "raw-landing"): [SimpleNamespace(tag_key="zone", tag_value="raw")]}
+    )
+    ws = _ws(external_locations=_FakeService([location]), entity_tag_assignments=tag_service)
+    (snapshot,) = scan_external_locations(ws)
+    assert snapshot.attributes["tags"] == {"zone": "raw"}
+    assert tag_service.calls == [("externallocations", "raw-landing")]
 
 
 def test_scan_schemas_iterates_catalogs():
@@ -513,3 +584,23 @@ def test_scan_quality_monitors_without_data_quality_service_raises():
     # An older SDK without the data-quality API should fail with a clear, actionable error.
     with pytest.raises(UnsupportedResourceError):
         scan_quality_monitors(_ws())
+        
+        
+def test_scan_genie_spaces_reads_governed_tags():
+    space = SimpleNamespace(
+        space_id="sp-1", title="Sales", description="Sales Q&A", warehouse_id="wh-1"
+    )
+    tag_service = _FakeTagAssignments(
+        {("geniespaces", "sp-1"): [SimpleNamespace(tag_key="team", tag_value="sales")]}
+    )
+    ws = _ws(genie=_FakeGenie([space]), workspace_entity_tag_assignments=tag_service)
+    (snapshot,) = scan_genie_spaces(ws)
+    # Tags come from the entity-tag-assignments API, keyed by the geniespaces entity type + id.
+    assert snapshot.attributes["tags"] == {"team": "sales"}
+    assert tag_service.calls == [("geniespaces", "sp-1")]
+
+
+def test_scan_genie_spaces_without_tag_service_reports_untagged():
+    space = SimpleNamespace(space_id="sp-1", title="Sales", description=None, warehouse_id=None)
+    (snapshot,) = scan_genie_spaces(_ws(genie=_FakeGenie([space])))
+    assert snapshot.attributes["tags"] == {}

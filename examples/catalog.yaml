@@ -8,3 +8,13 @@ rule:
   all:
     - { attribute: isolation_mode, operator: equals, value: ISOLATED }
 remediation: Set the catalog's isolation mode to ISOLATED and bind it to its workspaces.
+---
+policy: catalogs-must-carry-a-data-domain-tag
+description: Catalogs must carry a data-domain tag for governance and cost attribution.
+resource_type: catalog
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: tags, operator: has_tag, value: data_domain }
+remediation: Assign a `data_domain` tag to the catalog (governed via Unity Catalog tags).
