@@ -219,6 +219,9 @@ def test_snapshot_bundle_maps_quality_monitors_enforce_only():
     by_id = {s.resource_id: s for s in snapshot_bundle(config)}
     assert by_id["orders"].resource_type is ResourceType.QUALITY_MONITOR
     assert by_id["orders"].attributes["table_name"] == "main.gold.orders"
+    # Bundles declare the output schema by name; the id is a live-scan-only attribute.
+    assert by_id["orders"].attributes["output_schema_name"] == "main.monitoring"
+    assert by_id["orders"].attributes["output_schema_id"] is None
     assert by_id["orders"].attributes["monitor_type"] == "snapshot"
     assert by_id["orders"].attributes["has_schedule"] is True
     assert by_id["adhoc"].attributes["monitor_type"] == "inference_log"

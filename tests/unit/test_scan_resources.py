@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from policy_agent.errors import UnsupportedResourceError
+from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
@@ -13,6 +13,7 @@ from policy_agent.scan.resources import (
     scan_genie_spaces,
     scan_jobs,
     scan_pipelines,
+    scan_quality_monitors,
     scan_registered_models,
     scan_schemas,
     scan_secret_scopes,
@@ -526,6 +527,153 @@ def test_scan_genie_spaces_without_genie_service_raises():
     # with a clear, actionable error rather than an opaque AttributeError.
     with pytest.raises(UnsupportedResourceError):
         scan_genie_spaces(_ws())
+
+
+class _FakeDataQuality:
+    def __init__(self, monitors):
+        self._monitors = monitors
+
+    def list_monitor(self):
+        # The data-quality SDK returns an auto-paginated iterator of Monitor objects.
+        return list(self._monitors)
+
+
+def _monitor(profiling):
+    return SimpleNamespace(object_type="table", object_id="obj-1", data_profiling_config=profiling)
+
+
+class _RaisingCatalogs:
+    def __init__(self, error):
+        self._error = error
+
+    def list(self):
+        raise self._error
+
+
+def test_scan_quality_monitors_reads_data_profiling_config():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-123",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=SimpleNamespace(quartz_cron_expression="0 0 * * * ?"),
+    )
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(schema_id="sch-123", full_name="main.monitoring", name="monitoring")
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.QUALITY_MONITOR
+    assert attrs["id"] == "main.gold.orders"
+    assert attrs["table_name"] == "main.gold.orders"
+    assert attrs["output_schema_id"] == "sch-123"
+    assert attrs["output_schema_name"] == "main.monitoring"
+    assert attrs["monitor_type"] == "snapshot"
+    assert attrs["has_schedule"] is True
+    # Quality monitors are neither owned nor tagged.
+    assert "owner" not in attrs and "tags" not in attrs
+
+
+def test_scan_quality_monitors_leaves_output_schema_name_none_when_unresolved():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-missing",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_FakeService([SimpleNamespace(name="main")]),
+        schemas=_FakeService([SimpleNamespace(schema_id="sch-other", full_name="main.other")]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    assert snapshot.attributes["output_schema_id"] == "sch-missing"
+    assert snapshot.attributes["output_schema_name"] is None
+
+
+def test_scan_quality_monitors_resolution_tolerates_listing_errors():
+    from databricks.sdk.errors import PermissionDenied
+
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-123",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_RaisingCatalogs(PermissionDenied("no access")),
+        schemas=_FakeService([]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    assert snapshot.attributes["output_schema_id"] == "sch-123"
+    assert snapshot.attributes["output_schema_name"] is None
+
+
+def test_scan_quality_monitors_falls_back_to_object_id_when_table_name_missing():
+    # A data-profiling monitor with no monitored_table_name falls back to object_id
+    profiling = SimpleNamespace(
+        monitored_table_name=None,
+        output_schema_id="main.monitoring",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling)]))
+    (snapshot,) = scan_quality_monitors(ws)
+    attrs = snapshot.attributes
+    assert attrs["table_name"] is None
+    # _monitor(...) uses object_id "obj-1"; id and name both fall back to it.
+    assert attrs["id"] == "obj-1"
+    assert attrs["name"] == "obj-1"
+
+
+def test_scan_quality_monitors_skips_monitors_without_profiling_config():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.inference",
+        output_schema_id="main.monitoring",
+        snapshot=None,
+        time_series=None,
+        inference_log=SimpleNamespace(),
+        schedule=None,
+    )
+    # An anomaly-detection-only monitor has no data_profiling_config and is skipped.
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling), _monitor(None)]))
+    snapshots = scan_quality_monitors(ws)
+    assert [s.attributes["monitor_type"] for s in snapshots] == ["inference_log"]
+    assert snapshots[0].attributes["has_schedule"] is False
+
+
+def test_scan_quality_monitors_without_data_quality_service_raises():
+    # An older SDK without the data-quality API should fail with a clear, actionable error.
+    with pytest.raises(UnsupportedResourceError):
+        scan_quality_monitors(_ws())
+
+
+class _RaisingDataQuality:
+    def __init__(self, error):
+        self._error = error
+
+    def list_monitor(self):
+        raise self._error
+
+
+def test_scan_quality_monitors_wraps_api_errors_in_scan_error():
+    from databricks.sdk.errors import PermissionDenied
+
+    ws = _ws(data_quality=_RaisingDataQuality(PermissionDenied("feature not enabled")))
+    with pytest.raises(ScanError):
+        scan_quality_monitors(ws)
 
 
 def test_scan_genie_spaces_reads_governed_tags():

@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from policy_agent.errors import UnsupportedResourceError
+from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import (
     OWNER_TYPE_SERVICE_PRINCIPAL,
     OWNER_TYPE_UNKNOWN,
@@ -544,6 +544,135 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
         page_token = getattr(response, "next_page_token", None)
         if not page_token:
             return snapshots
+
+
+def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monitor.
+
+    Note:
+        Uses the data-quality API (*data_quality.list_monitor*); each monitor's classic
+        Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
+        no data-profiling config (for example anomaly-detection-only monitors) are skipped
+        because they do not map to this resource type's attributes. Older SDKs without the
+        *data_quality* API raise UnsupportedResourceError.
+
+        Output schemas are identified by id (*output_schema_id*); their fully-qualified names
+        are resolved during scans. A policy on the schema name matches the same monitor whether
+        it is scanned live or declared in a bundle. Name resolution is best-effort
+        (see *_resolve_schema_names*).
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each data-profiling quality monitor.
+
+    Raises:
+        UnsupportedResourceError: If the SDK does not expose the *data_quality* API.
+        ScanError: If listing monitors fails — for example a workspace without the data-quality
+            monitoring feature enabled.
+    """
+    from databricks.sdk.errors import DatabricksError
+
+    data_quality = getattr(workspace_client, "data_quality", None)
+    if not data_quality:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceError(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'data_quality' API. Upgrade the Databricks SDK to scan quality monitors."
+        )
+    try:
+        monitors = list(data_quality.list_monitor())
+    except DatabricksError as error:
+        raise ScanError(
+            "Could not list quality monitors; the workspace may not have data-quality "
+            f"monitoring enabled. Original error: {error}"
+        ) from error
+
+    profiled = [
+        (monitor, profiling)
+        for monitor in monitors
+        if (profiling := getattr(monitor, "data_profiling_config", None)) is not None
+    ]
+    schema_ids = {
+        str(schema_id)
+        for _, profiling in profiled
+        if (schema_id := getattr(profiling, "output_schema_id", None))
+    }
+    schema_names = _resolve_schema_names(workspace_client, schema_ids)
+
+    snapshots = []
+    for monitor, profiling in profiled:
+        table_name = getattr(profiling, "monitored_table_name", None)
+        monitor_id = table_name or str(getattr(monitor, "object_id", "") or "")
+        output_schema_id = getattr(profiling, "output_schema_id", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.QUALITY_MONITOR,
+                id=monitor_id,
+                name=table_name or monitor_id,
+                table_name=table_name,
+                output_schema_id=output_schema_id,
+                output_schema_name=schema_names.get(str(output_schema_id))
+                if output_schema_id
+                else None,
+                monitor_type=_profiling_monitor_type(profiling),
+                has_schedule=bool(getattr(profiling, "schedule", None)),
+            )
+        )
+    return snapshots
+
+
+def _resolve_schema_names(
+    workspace_client: WorkspaceClient, schema_ids: set[str]
+) -> dict[str, str]:
+    """Resolves Unity Catalog schema ids to their fully-qualified schema names. Used when
+    scanning quality monitors that return the output schema by id rather than name.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        schema_ids: The schema ids to resolve.
+
+    Returns:
+        A mapping of schema id to fully-qualified schema name, covering the ids that were found.
+    """
+    from databricks.sdk.errors import DatabricksError
+
+    catalogs = getattr(workspace_client, "catalogs", None)
+    schemas = getattr(workspace_client, "schemas", None)
+    if not schema_ids or catalogs is None or schemas is None:
+        return {}
+    remaining = set(schema_ids)
+    resolved: dict[str, str] = {}
+    try:
+        for catalog in catalogs.list():
+            catalog_name = getattr(catalog, "name", None)
+            if not catalog_name:
+                continue
+            for schema in schemas.list(catalog_name=catalog_name):
+                schema_id = getattr(schema, "schema_id", None)
+                if schema_id is None or str(schema_id) not in remaining:
+                    continue
+                name = getattr(schema, "full_name", None) or (
+                    f"{catalog_name}.{getattr(schema, 'name', '')}"
+                )
+                resolved[str(schema_id)] = name
+                remaining.discard(str(schema_id))
+            if not remaining:
+                break
+    except DatabricksError:
+        # Name resolution enriches the snapshot; a listing failure leaves the remaining ids
+        # unresolved rather than failing the whole quality-monitor scan.
+        pass
+    return resolved
+
+
+def _profiling_monitor_type(profiling: Any) -> str | None:
+    for kind in ("snapshot", "time_series", "inference_log"):
+        if getattr(profiling, kind, None) is not None:
+            return kind
+    return None
 
 
 def classify_principal(identifier: str | None) -> str:

@@ -54,7 +54,7 @@ def run_scan(
 
     policies_by_type = _group_by_resource_type(policy_list)
     requested = set(resource_types) if resource_types is not None else set(policies_by_type)
-    # Enforce-only types (no list API, e.g. quality monitors) are validated and can be gated
+    # Enforce-only types (any without a registered scanner) are validated and can be gated
     # from a bundle, but are silently skipped by a live scan since they cannot be fetched.
     types_to_scan = [rt for rt in policies_by_type if rt in requested and is_scannable(rt)]
 

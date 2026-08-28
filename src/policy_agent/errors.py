@@ -21,6 +21,10 @@ class UnsupportedResourceError(InvalidPolicyError):
     """Raised when a resource type is not supported by the requested operation."""
 
 
+class ScanError(PolicyAgentError):
+    """Raised when a resource type cannot be fetched from the workspace during a scan."""
+
+
 class StorageError(PolicyAgentError):
     """Raised when a storage backend cannot read or write policy-agent state."""
 

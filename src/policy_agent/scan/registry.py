@@ -20,6 +20,7 @@ from policy_agent.scan.resources import (
     scan_genie_spaces,
     scan_jobs,
     scan_pipelines,
+    scan_quality_monitors,
     scan_registered_models,
     scan_schemas,
     scan_secret_scopes,
@@ -48,9 +49,10 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.SECRET_SCOPE: scan_secret_scopes,
     ResourceType.PIPELINE: scan_pipelines,
     ResourceType.GENIE_SPACE: scan_genie_spaces,
+    ResourceType.QUALITY_MONITOR: scan_quality_monitors,
 }
-"""The resource types the framework can scan, keyed to their fetch functions. Some supported
-resource types (e.g. quality monitors) have no list API and so are enforce-only, not scannable."""
+"""The resource types the framework can scan, keyed to their fetch functions. A type without a
+registered scanner is enforce-only — it can still be gated from a bundle but never live-scanned."""
 
 
 def supported_resource_types() -> tuple[ResourceType, ...]:
@@ -65,14 +67,14 @@ def supported_resource_types() -> tuple[ResourceType, ...]:
 def is_scannable(resource_type: ResourceType) -> bool:
     """Return whether a resource type can be live-scanned.
 
-    Enforce-only types (those without a workspace list API, such as quality monitors) can still
-    be evaluated from a bundle by the enforcement gate, but never by a live scan.
+    Enforce-only types (e.g. those without a workspace list API) can still be
+    evaluated from a bundle by the enforcement gate, but never by a live scan.
 
     Args:
         resource_type: The resource type to check.
 
     Returns:
-        ``True`` if a scanner is registered for the resource type.
+        *True* if a scanner is registered for the resource type.
     """
     return resource_type in RESOURCE_SCANNERS
 
