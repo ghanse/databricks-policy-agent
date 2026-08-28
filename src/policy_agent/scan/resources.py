@@ -166,7 +166,7 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 name=name,
                 owner=creator,
                 owner_type=classify_principal(creator),
-                tags=_get_app_tags(workspace_client, name),
+                tags=_get_entity_tags(workspace_client, "apps", name),
                 created_time=_rfc3339_seconds(getattr(app, "create_time", None)),
                 app_status=_enum_value(getattr(getattr(app, "app_status", None), "state", None)),
                 compute_status=_enum_value(
@@ -178,22 +178,31 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     return snapshots
 
 
-def _get_app_tags(workspace_client: WorkspaceClient, app_name: str) -> dict[str, str]:
-    """Fetches an app's Unity Catalog tag assignments as a flat key-value mapping.
+def _get_entity_tags(
+    workspace_client: WorkspaceClient, entity_type: str, entity_id: str
+) -> dict[str, str]:
+    """Fetches an entity's workspace tag assignments as a flat key-value mapping.
+
+    Used for resource types whose tags are governed through the workspace entity-tag-assignments
+    API rather than a native tags field — for example apps (``entity_type="apps"``) and Genie
+    spaces (``entity_type="geniespaces"``).
 
     Args:
         workspace_client: Databricks workspace client.
-        app_name: The app whose tags to read (an app's entity id is its name).
+        entity_type: The tag-assignment entity type (e.g. ``apps`` or ``geniespaces``).
+        entity_id: The entity's identifier (an app's name, a Genie space's id).
 
     Returns:
-        A mapping of tag key to tag value; empty when the app has no tags or the SDK does not
+        A mapping of tag key to tag value; empty when the entity has no tags or the SDK does not
         expose the entity-tag-assignments API.
     """
     tag_service = getattr(workspace_client, "workspace_entity_tag_assignments", None)
-    if tag_service is None or not app_name:
+    if tag_service is None or not entity_id:
         return {}
     tags: dict[str, str] = {}
-    for assignment in tag_service.list_tag_assignments(entity_type="apps", entity_id=app_name):
+    for assignment in tag_service.list_tag_assignments(
+        entity_type=entity_type, entity_id=entity_id
+    ):
         key = getattr(assignment, "tag_key", None)
         if key is not None:
             tags[str(key)] = str(getattr(assignment, "tag_value", "") or "")
@@ -486,11 +495,13 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
         for space in getattr(response, "spaces", None) or []:
             title = getattr(space, "title", "") or ""
             description = getattr(space, "description", None)
+            space_id = str(getattr(space, "space_id", ""))
             snapshots.append(
                 _snapshot(
                     ResourceType.GENIE_SPACE,
-                    id=str(getattr(space, "space_id", "")),
+                    id=space_id,
                     name=title,
+                    tags=_get_entity_tags(workspace_client, "geniespaces", space_id),
                     warehouse_id=getattr(space, "warehouse_id", None),
                     description=description,
                     has_description=bool(description),

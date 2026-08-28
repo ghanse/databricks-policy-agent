@@ -273,6 +273,9 @@ def test_snapshot_bundle_maps_declared_genie_spaces():
     assert by_id["sales"].attributes["warehouse_id"] == "wh-1"
     assert by_id["sales"].attributes["has_description"] is True
     assert by_id["adhoc"].attributes["has_description"] is False
+    # Genie spaces advertise tags (governed via tag assignments); a bundle rarely declares them,
+    # so they default to empty.
+    assert by_id["sales"].attributes["tags"] == {}
 
     # A Genie space without a description violates a "must be documented" policy.
     documented = allow("genie-documented", "genie_space", leaf("has_description", "equals", True))

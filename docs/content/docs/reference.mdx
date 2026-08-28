@@ -181,7 +181,8 @@ Secret scopes expose only `id` and `name` from the common attributes. They have 
 | `has_description` | Whether the space has a non-empty description        |
 
 <Callout type="warn" title="Unsupported common attributes for Genie spaces">
-Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` attributes.
+Genie spaces do not expose the `owner`, `owner_type`, or `created_time` attributes. They do
+expose `tags`, governed through workspace tag assignments (like Databricks Apps).
 </Callout>
 
 ### Spark Declarative Pipelines attributes

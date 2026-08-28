@@ -102,12 +102,11 @@ def test_validate_rejects_unknown_attribute():
         validate_policy(invalid)
 
 
-def test_validate_rejects_tags_on_non_taggable_genie_space():
-    # Genie spaces cannot be tagged, so `tags` is not in their attribute set and a policy that
-    # references it is rejected at author time.
-    invalid = deny("bad", "genie_space", leaf("tags", "not_empty"))
-    with pytest.raises(InvalidPolicyError):
-        validate_policy(invalid)
+def test_validate_allows_tags_on_taggable_genie_space():
+    # Genie spaces are tagged through workspace tag assignments, so `tags` is in their attribute
+    # set and a policy that references it is valid at author time.
+    valid = deny("genie-tagged", "genie_space", leaf("tags", "not_empty"))
+    validate_policy(valid)
 
 
 def test_validate_rejects_unknown_operator():

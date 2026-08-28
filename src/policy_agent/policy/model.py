@@ -189,6 +189,7 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.SERVING_ENDPOINT,
         ResourceType.PIPELINE,
         ResourceType.APP,
+        ResourceType.GENIE_SPACE,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -277,17 +278,16 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "serverless",
         "development",
     },
-    # NOTE: Genie spaces have neither an owner nor tags, so they intentionally do NOT inherit
-    # COMMON_RESOURCE_ATTRIBUTES.
-    ResourceType.GENIE_SPACE: frozenset(
-        {
-            "id",
-            "name",
-            "warehouse_id",
-            "description",
-            "has_description",
-        }
-    ),
+    # NOTE: Genie spaces expose no owner or creation time, so they do NOT inherit
+    # COMMON_RESOURCE_ATTRIBUTES; but they are tagged through the workspace entity-tag-assignments
+    # API (like apps), so they advertise `tags`.
+    ResourceType.GENIE_SPACE: _IDENTITY
+    | _TAGGABLE
+    | {
+        "warehouse_id",
+        "description",
+        "has_description",
+    },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""

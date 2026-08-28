@@ -455,3 +455,23 @@ def test_scan_genie_spaces_without_genie_service_raises():
     # with a clear, actionable error rather than an opaque AttributeError.
     with pytest.raises(UnsupportedResourceError):
         scan_genie_spaces(_ws())
+
+
+def test_scan_genie_spaces_reads_governed_tags():
+    space = SimpleNamespace(
+        space_id="sp-1", title="Sales", description="Sales Q&A", warehouse_id="wh-1"
+    )
+    tag_service = _FakeTagAssignments(
+        {("geniespaces", "sp-1"): [SimpleNamespace(tag_key="team", tag_value="sales")]}
+    )
+    ws = _ws(genie=_FakeGenie([space]), workspace_entity_tag_assignments=tag_service)
+    (snapshot,) = scan_genie_spaces(ws)
+    # Tags come from the entity-tag-assignments API, keyed by the geniespaces entity type + id.
+    assert snapshot.attributes["tags"] == {"team": "sales"}
+    assert tag_service.calls == [("geniespaces", "sp-1")]
+
+
+def test_scan_genie_spaces_without_tag_service_reports_untagged():
+    space = SimpleNamespace(space_id="sp-1", title="Sales", description=None, warehouse_id=None)
+    (snapshot,) = scan_genie_spaces(_ws(genie=_FakeGenie([space])))
+    assert snapshot.attributes["tags"] == {}
