@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from policy_agent.errors import UnsupportedResourceError
+from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import (
     OWNER_TYPE_SERVICE_PRINCIPAL,
     OWNER_TYPE_UNKNOWN,
@@ -561,7 +561,14 @@ def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSna
 
     Returns:
         A list of *ResourceSnapshots* for each data-profiling quality monitor.
+
+    Raises:
+        UnsupportedResourceError: If the SDK does not expose the *data_quality* API.
+        ScanError: If listing monitors fails — for example a workspace without the data-quality
+            monitoring feature enabled.
     """
+    from databricks.sdk.errors import DatabricksError
+
     data_quality = getattr(workspace_client, "data_quality", None)
     if not data_quality:
         from databricks.sdk import version as databricks_sdk_version
@@ -570,8 +577,15 @@ def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSna
             f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
             "'data_quality' API. Upgrade the Databricks SDK to scan quality monitors."
         )
+    try:
+        monitors = list(data_quality.list_monitor())
+    except DatabricksError as error:
+        raise ScanError(
+            "Could not list quality monitors; the workspace may not have data-quality "
+            f"monitoring enabled. Original error: {error}"
+        ) from error
     snapshots = []
-    for monitor in data_quality.list_monitor():
+    for monitor in monitors:
         profiling = getattr(monitor, "data_profiling_config", None)
         if profiling is None:
             continue

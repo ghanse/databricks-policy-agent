@@ -2,6 +2,7 @@
 
 import pytest
 
+from policy_agent.errors import ScanError
 from policy_agent.policy import allow, leaf
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan import run_scan
@@ -244,16 +245,21 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     assert summary.evaluated == summary.compliant + summary.violations
 
 
-@pytest.mark.skip(reason="Test workspace does not support quality monitoring APIs")
 @pytest.mark.integration
 def test_scan_quality_monitors_maps_live_shape(ws, env_or_skip):
     """Scanning real quality monitors produces well-formed snapshots (a schema-drift guard).
 
-    There is no pytester fixture for quality monitors, so this exercises the live list shape
-    and skips when the workspace has no data-profiling monitors.
+    There is no pytester fixture for quality monitors, so this exercises the live list shape.
+    It skips when the workspace has no data-profiling monitors, and when the workspace does not
+    have data-quality monitoring enabled at all (surfaced as a ``ScanError``).
     """
     env_or_skip("DATABRICKS_HOST")
-    snapshots = collect_snapshots(ws, [ResourceType.QUALITY_MONITOR])[ResourceType.QUALITY_MONITOR]
+    try:
+        snapshots = collect_snapshots(ws, [ResourceType.QUALITY_MONITOR])[
+            ResourceType.QUALITY_MONITOR
+        ]
+    except ScanError as error:
+        pytest.skip(f"workspace does not support data-quality monitoring: {error}")
     if not snapshots:
         pytest.skip("no data-profiling quality monitors in the workspace to evaluate")
 
@@ -271,6 +277,7 @@ def test_scan_quality_monitors_maps_live_shape(ws, env_or_skip):
     assert summary.evaluated == summary.compliant + summary.violations
 
 
+@pytest.mark.integration
 def test_scan_catalog_reads_governed_uc_tag(ws, make_catalog, make_random):
     """A tag assigned to a catalog via the UC entity-tag-assignments API is read back by a scan.
 

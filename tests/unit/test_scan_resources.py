@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from policy_agent.errors import UnsupportedResourceError
+from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
@@ -603,6 +603,22 @@ def test_scan_quality_monitors_without_data_quality_service_raises():
     # An older SDK without the data-quality API should fail with a clear, actionable error.
     with pytest.raises(UnsupportedResourceError):
         scan_quality_monitors(_ws())
+
+
+class _RaisingDataQuality:
+    def __init__(self, error):
+        self._error = error
+
+    def list_monitor(self):
+        raise self._error
+
+
+def test_scan_quality_monitors_wraps_api_errors_in_scan_error():
+    from databricks.sdk.errors import PermissionDenied
+
+    ws = _ws(data_quality=_RaisingDataQuality(PermissionDenied("feature not enabled")))
+    with pytest.raises(ScanError):
+        scan_quality_monitors(ws)
 
 
 def test_scan_genie_spaces_reads_governed_tags():

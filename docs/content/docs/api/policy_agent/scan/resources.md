@@ -283,6 +283,13 @@ Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monit
 **Returns**:
 
   A list of *ResourceSnapshots* for each data-profiling quality monitor.
+  
+
+**Raises**:
+
+- `UnsupportedResourceError` - If the SDK does not expose the *data_quality* API.
+- `ScanError` - If listing monitors fails — for example a workspace without the data-quality
+  monitoring feature enabled.
 
 #### classify\_principal
 
