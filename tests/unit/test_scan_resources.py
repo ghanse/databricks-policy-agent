@@ -13,6 +13,7 @@ from policy_agent.scan.resources import (
     scan_genie_spaces,
     scan_jobs,
     scan_pipelines,
+    scan_quality_monitors,
     scan_registered_models,
     scan_schemas,
     scan_secret_scopes,
@@ -455,3 +456,60 @@ def test_scan_genie_spaces_without_genie_service_raises():
     # with a clear, actionable error rather than an opaque AttributeError.
     with pytest.raises(UnsupportedResourceError):
         scan_genie_spaces(_ws())
+
+
+class _FakeDataQuality:
+    def __init__(self, monitors):
+        self._monitors = monitors
+
+    def list_monitor(self):
+        # The data-quality SDK returns an auto-paginated iterator of Monitor objects.
+        return list(self._monitors)
+
+
+def _monitor(profiling):
+    return SimpleNamespace(object_type="table", object_id="obj-1", data_profiling_config=profiling)
+
+
+def test_scan_quality_monitors_reads_data_profiling_config():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="main.monitoring",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=SimpleNamespace(quartz_cron_expression="0 0 * * * ?"),
+    )
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling)]))
+    (snapshot,) = scan_quality_monitors(ws)
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.QUALITY_MONITOR
+    assert attrs["id"] == "main.gold.orders"
+    assert attrs["table_name"] == "main.gold.orders"
+    assert attrs["output_schema_name"] == "main.monitoring"
+    assert attrs["monitor_type"] == "snapshot"
+    assert attrs["has_schedule"] is True
+    # Quality monitors are neither owned nor tagged.
+    assert "owner" not in attrs and "tags" not in attrs
+
+
+def test_scan_quality_monitors_skips_monitors_without_profiling_config():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.inference",
+        output_schema_id="main.monitoring",
+        snapshot=None,
+        time_series=None,
+        inference_log=SimpleNamespace(),
+        schedule=None,
+    )
+    # An anomaly-detection-only monitor has no data_profiling_config and is skipped.
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling), _monitor(None)]))
+    snapshots = scan_quality_monitors(ws)
+    assert [s.attributes["monitor_type"] for s in snapshots] == ["inference_log"]
+    assert snapshots[0].attributes["has_schedule"] is False
+
+
+def test_scan_quality_monitors_without_data_quality_service_raises():
+    # An older SDK without the data-quality API should fail with a clear, actionable error.
+    with pytest.raises(UnsupportedResourceError):
+        scan_quality_monitors(_ws())

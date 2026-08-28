@@ -242,3 +242,29 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     # Every evaluated space is either compliant or a violation, with no double counting.
     summary = result.summary()
     assert summary.evaluated == summary.compliant + summary.violations
+
+
+@pytest.mark.integration
+def test_scan_quality_monitors_maps_live_shape(ws, env_or_skip):
+    """Scanning real quality monitors produces well-formed snapshots (a schema-drift guard).
+
+    There is no pytester fixture for quality monitors, so this exercises the live list shape
+    and skips when the workspace has no data-profiling monitors.
+    """
+    env_or_skip("DATABRICKS_HOST")
+    snapshots = collect_snapshots(ws, [ResourceType.QUALITY_MONITOR])[ResourceType.QUALITY_MONITOR]
+    if not snapshots:
+        pytest.skip("no data-profiling quality monitors in the workspace to evaluate")
+
+    assert all(s.resource_id for s in snapshots)
+    assert all(isinstance(s.attributes["has_schedule"], bool) for s in snapshots)
+
+    scheduled = allow(
+        "quality-monitor-scheduled",
+        ResourceType.QUALITY_MONITOR,
+        leaf("has_schedule", "equals", True),
+    )
+    result = run_scan(ws, [scheduled], [ResourceType.QUALITY_MONITOR])
+    summary = result.summary()
+    # Every evaluated monitor is either compliant or a violation, with no double counting.
+    assert summary.evaluated == summary.compliant + summary.violations

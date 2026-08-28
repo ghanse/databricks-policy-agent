@@ -11,8 +11,8 @@ in `policy_agent.scan.resources` and an attribute set in
 
 #### RESOURCE\_SCANNERS
 
-The resource types the framework can scan, keyed to their fetch functions. Some supported
-resource types (e.g. quality monitors) have no list API and so are enforce-only, not scannable.
+The resource types the framework can scan, keyed to their fetch functions. A type without a
+registered scanner is enforce-only — it can still be gated from a bundle but never live-scanned.
 
 #### supported\_resource\_types
 

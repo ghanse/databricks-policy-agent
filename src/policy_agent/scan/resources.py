@@ -501,6 +501,59 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
             return snapshots
 
 
+def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monitor.
+
+    Note:
+        Uses the data-quality API (*data_quality.list_monitor*); each monitor's classic
+        Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
+        no data-profiling config (for example anomaly-detection-only monitors) are skipped
+        because they do not map to this resource type's attributes. Older SDKs without the
+        *data_quality* API raise `UnsupportedResourceError`.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each data-profiling quality monitor.
+    """
+    data_quality = getattr(workspace_client, "data_quality", None)
+    if not data_quality:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceError(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'data_quality' API. Upgrade the Databricks SDK to scan quality monitors."
+        )
+    snapshots = []
+    for monitor in data_quality.list_monitor():
+        profiling = getattr(monitor, "data_profiling_config", None)
+        if profiling is None:
+            continue
+        table_name = getattr(profiling, "monitored_table_name", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.QUALITY_MONITOR,
+                id=table_name or str(getattr(monitor, "object_id", "") or ""),
+                name=table_name or "",
+                table_name=table_name,
+                output_schema_name=getattr(profiling, "output_schema_id", None),
+                monitor_type=_profiling_monitor_type(profiling),
+                has_schedule=bool(getattr(profiling, "schedule", None)),
+            )
+        )
+    return snapshots
+
+
+def _profiling_monitor_type(profiling: Any) -> str | None:
+    # A data-profiling config sets exactly one of these profile blocks; mirror the bundle
+    # reader so a scanned and a bundle-declared monitor report the same monitor_type.
+    for kind in ("snapshot", "time_series", "inference_log"):
+        if getattr(profiling, kind, None) is not None:
+            return kind
+    return None
+
+
 def classify_principal(identifier: str | None) -> str:
     """Classifies a principal identifier as a service principal, user, or unknown.
 

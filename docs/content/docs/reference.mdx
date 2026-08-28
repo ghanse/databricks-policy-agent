@@ -156,9 +156,10 @@ Catalogs, schemas, volumes, registered models, and external locations expose `id
 | `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log)     |
 | `has_schedule`       | Whether the monitor runs on a schedule                          |
 
-<Callout type="info" title="Quality monitors are enforce-only">
-Quality monitors have no APIs for listing. They are evaluated only from the bundle at deploy time,
-never scanned. They expose only `id` and `name` from the common attributes.
+<Callout type="info" title="Quality monitors expose only these attributes">
+Quality monitors expose `id`, `name`, and the fields above, but not `owner`, `owner_type`,
+`created_time`, or `tags`. When scanned, their attributes come from each monitor's
+data-profiling configuration; at deploy time they come from the declared bundle resource.
 </Callout>
 
 ### Secret scope attributes

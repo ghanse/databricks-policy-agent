@@ -261,8 +261,8 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
     | {"comment", "url", "credential_name", "read_only", "isolation_mode"},
     # Secret scopes expose only a name and a backend type: no owner, tags, or timestamp.
     ResourceType.SECRET_SCOPE: _IDENTITY | {"backend_type"},
-    # Quality monitors have no list API, so they are enforce-only (evaluated from the bundle,
-    # never live-scanned). Attributes come from the declared monitor.
+    # Quality monitors expose the classic Lakehouse Monitoring settings, whether scanned (from a
+    # monitor's data-profiling config) or declared in a bundle. They are neither owned nor tagged.
     ResourceType.QUALITY_MONITOR: _IDENTITY
     | {"table_name", "output_schema_name", "monitor_type", "has_schedule"},
     ResourceType.PIPELINE: COMMON_RESOURCE_ATTRIBUTES

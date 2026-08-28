@@ -257,6 +257,33 @@ Fetches and normalizes every Genie space in the workspace.
 
   A list of *ResourceSnapshots* for each Genie space.
 
+#### scan\_quality\_monitors
+
+```python
+def scan_quality_monitors(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monitor.
+
+**Notes**:
+
+  Uses the data-quality API (*data_quality.list_monitor*); each monitor's classic
+  Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
+  no data-profiling config (for example anomaly-detection-only monitors) are skipped
+  because they do not map to this resource type's attributes. Older SDKs without the
+  *data_quality* API raise `UnsupportedResourceError`.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each data-profiling quality monitor.
+
 #### classify\_principal
 
 ```python
