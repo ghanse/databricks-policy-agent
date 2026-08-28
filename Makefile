@@ -1,7 +1,8 @@
 .PHONY: dev fmt lint test coverage build integration \
-        lock-dependencies lock-docs-dependencies lock-app-dependencies \
+        lock-dependencies lock-docs-dependencies lock-app-dependencies lock-mcp-dependencies \
         docs docs-install docs-build docs-serve docs-clean \
-        app-install app-build app-lint app-test clean
+        app-install app-build app-lint app-test \
+        mcp-install mcp-build mcp-lint mcp-test clean
 
 UV_RUN := uv run --exact --all-extras
 UV_TEST := $(UV_RUN) pytest -n 10 --timeout 60 --durations 20
@@ -91,6 +92,26 @@ app-lint:
 app-test:
 	cd app && uv run pytest tests
 
+# MCP server (custom MCP server deployed as a Databricks App):
+mcp-install:
+	cd mcp && uv sync --group dev
+
+# Regenerate the MCP app lock and sanitize proxy URLs out of it.
+lock-mcp-dependencies:
+	cd mcp && uv lock
+	$(SANITIZE_LOCK) mcp/uv.lock
+
+mcp-build:
+	cd mcp && uv run python scripts/build_app.py
+
+mcp-lint:
+	cd mcp && uv run ruff format --check src tests
+	cd mcp && uv run ruff check src tests
+	cd mcp && uv run mypy src
+
+mcp-test:
+	cd mcp && uv run pytest tests
+
 clean: docs-clean
-	rm -rf dist build .mypy_cache .ruff_cache .pytest_cache app/.build
+	rm -rf dist build .mypy_cache .ruff_cache .pytest_cache app/.build app/.wheels mcp/.build mcp/.wheels
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +

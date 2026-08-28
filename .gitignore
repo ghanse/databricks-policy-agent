@@ -15,6 +15,9 @@ htmlcov/
 # Databricks bundle
 .databricks/
 app/.build/
+app/.wheels/
+mcp/.build/
+mcp/.wheels/
 
 # Node (app UI + docs)
 node_modules/
