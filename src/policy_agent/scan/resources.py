@@ -213,7 +213,7 @@ def _get_uc_entity_tags(
 ) -> dict[str, str]:
     """Fetches a Unity Catalog securable's tag assignments as a flat key-value mapping.
 
-    Unity Catalog securables (e,g, catalogs, schemas, volumes, external locations) are tagged
+    Unity Catalog securables (e.g. catalogs, schemas, volumes, external locations) are tagged
     through the entity-tag-assignments API, which uses fully-qualified securable names.
 
     Args:

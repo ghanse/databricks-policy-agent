@@ -228,7 +228,6 @@ def _monitor_type(definition: dict[str, Any]) -> str | None:
 
 
 def _owned(key: str, name: str | None) -> dict[str, Any]:
-    # UC objects have an owner and a creation time (unknown from a bundle) but no tags.
     return {
         "id": key,
         "name": name or key,
