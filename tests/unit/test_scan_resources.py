@@ -564,6 +564,25 @@ def test_scan_quality_monitors_reads_data_profiling_config():
     assert "owner" not in attrs and "tags" not in attrs
 
 
+def test_scan_quality_monitors_falls_back_to_object_id_when_table_name_missing():
+    # A data-profiling monitor with no monitored_table_name falls back to object_id
+    profiling = SimpleNamespace(
+        monitored_table_name=None,
+        output_schema_id="main.monitoring",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling)]))
+    (snapshot,) = scan_quality_monitors(ws)
+    attrs = snapshot.attributes
+    assert attrs["table_name"] is None
+    # _monitor(...) uses object_id "obj-1"; id and name both fall back to it.
+    assert attrs["id"] == "obj-1"
+    assert attrs["name"] == "obj-1"
+
+
 def test_scan_quality_monitors_skips_monitors_without_profiling_config():
     profiling = SimpleNamespace(
         monitored_table_name="main.gold.inference",
@@ -584,8 +603,8 @@ def test_scan_quality_monitors_without_data_quality_service_raises():
     # An older SDK without the data-quality API should fail with a clear, actionable error.
     with pytest.raises(UnsupportedResourceError):
         scan_quality_monitors(_ws())
-        
-        
+
+
 def test_scan_genie_spaces_reads_governed_tags():
     space = SimpleNamespace(
         space_id="sp-1", title="Sales", description="Sales Q&A", warehouse_id="wh-1"

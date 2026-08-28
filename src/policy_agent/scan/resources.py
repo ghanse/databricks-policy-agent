@@ -576,11 +576,12 @@ def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSna
         if profiling is None:
             continue
         table_name = getattr(profiling, "monitored_table_name", None)
+        monitor_id = table_name or str(getattr(monitor, "object_id", "") or "")
         snapshots.append(
             _snapshot(
                 ResourceType.QUALITY_MONITOR,
-                id=table_name or str(getattr(monitor, "object_id", "") or ""),
-                name=table_name or "",
+                id=monitor_id,
+                name=table_name or monitor_id,
                 table_name=table_name,
                 output_schema_name=getattr(profiling, "output_schema_id", None),
                 monitor_type=_profiling_monitor_type(profiling),

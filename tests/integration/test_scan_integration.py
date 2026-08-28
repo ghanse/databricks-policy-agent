@@ -244,6 +244,7 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     assert summary.evaluated == summary.compliant + summary.violations
 
 
+@pytest.mark.skip(reason="Test workspace does not support quality monitoring APIs")
 @pytest.mark.integration
 def test_scan_quality_monitors_maps_live_shape(ws, env_or_skip):
     """Scanning real quality monitors produces well-formed snapshots (a schema-drift guard).
@@ -268,8 +269,8 @@ def test_scan_quality_monitors_maps_live_shape(ws, env_or_skip):
     summary = result.summary()
     # Every evaluated monitor is either compliant or a violation, with no double counting.
     assert summary.evaluated == summary.compliant + summary.violations
-    
-    
+
+
 def test_scan_catalog_reads_governed_uc_tag(ws, make_catalog, make_random):
     """A tag assigned to a catalog via the UC entity-tag-assignments API is read back by a scan.
 
