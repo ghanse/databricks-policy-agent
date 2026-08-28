@@ -142,9 +142,11 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `read_only`       | Whether the location is read-only                       |
 | `isolation_mode`  | Whether the location is open or isolated to workspaces  |
 
-<Callout type="warn" title="Unsupported common attributes for Unity Catalog objects">
-Catalogs, schemas, volumes, registered models, and external locations expose `id`, `name`,
-`owner`, `owner_type`, and `created_time`, but not `tags` — their tags are not scanned.
+<Callout type="warn" title="Common attributes for Unity Catalog objects">
+Catalogs, schemas, volumes, and external locations expose `id`, `name`, `owner`, `owner_type`,
+`created_time`, and `tags` (governed through the Unity Catalog entity-tag-assignments API).
+Registered models expose the same set **except** `tags` — in Unity Catalog the taggable unit is
+the model version rather than the model.
 </Callout>
 
 ### Quality monitor attributes

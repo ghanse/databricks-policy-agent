@@ -190,6 +190,10 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.PIPELINE,
         ResourceType.APP,
         ResourceType.GENIE_SPACE,
+        ResourceType.CATALOG,
+        ResourceType.SCHEMA,
+        ResourceType.VOLUME,
+        ResourceType.EXTERNAL_LOCATION,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -241,16 +245,23 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "budget_policy_id",
         "route_optimized",
     },
-    # Unity Catalog objects are owned and timestamped but their tags are not scanned, so they do
-    # not advertise `tags`.
+    # Unity Catalog securables are owned, timestamped, and tagged through the UC
+    # entity-tag-assignments API — except registered models, whose taggable unit is the model
+    # version rather than the model, so they do not advertise `tags`.
     ResourceType.CATALOG: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
+    | _TAGGABLE
     | {"comment", "catalog_type", "isolation_mode", "storage_root"},
-    ResourceType.SCHEMA: _IDENTITY | _OWNED | _TIMESTAMPED | {"comment", "catalog_name"},
+    ResourceType.SCHEMA: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | _TAGGABLE
+    | {"comment", "catalog_name"},
     ResourceType.VOLUME: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
+    | _TAGGABLE
     | {"comment", "catalog_name", "schema_name", "volume_type"},
     ResourceType.REGISTERED_MODEL: _IDENTITY
     | _OWNED
@@ -259,6 +270,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
     ResourceType.EXTERNAL_LOCATION: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
+    | _TAGGABLE
     | {"comment", "url", "credential_name", "read_only", "isolation_mode"},
     # Secret scopes expose only a name and a backend type: no owner, tags, or timestamp.
     ResourceType.SECRET_SCOPE: _IDENTITY | {"backend_type"},

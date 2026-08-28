@@ -209,6 +209,35 @@ def _get_entity_tags(
     return tags
 
 
+def _get_uc_entity_tags(
+    workspace_client: WorkspaceClient, entity_type: str, entity_name: str
+) -> dict[str, str]:
+    """Fetches a Unity Catalog securable's tag assignments as a flat key-value mapping.
+
+    Unity Catalog securables (catalogs, schemas, volumes, external locations, ...) are tagged
+    through the UC entity-tag-assignments API, which is keyed by the securable's fully-qualified
+    name rather than an opaque id.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        entity_type: The UC tag-assignment entity type (e.g. ``catalogs`` or ``externallocations``).
+        entity_name: The securable's fully-qualified name.
+
+    Returns:
+        A mapping of tag key to tag value; empty when the securable has no tags or the SDK does
+        not expose the UC entity-tag-assignments API.
+    """
+    tag_service = getattr(workspace_client, "entity_tag_assignments", None)
+    if tag_service is None or not entity_name:
+        return {}
+    tags: dict[str, str] = {}
+    for assignment in tag_service.list(entity_type=entity_type, entity_name=entity_name):
+        key = getattr(assignment, "tag_key", None)
+        if key is not None:
+            tags[str(key)] = str(getattr(assignment, "tag_value", "") or "")
+    return tags
+
+
 def scan_serving_endpoints(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     """Fetches and normalizes every model serving endpoint in the workspace.
 
@@ -261,6 +290,7 @@ def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 name=name,
                 owner=owner,
                 owner_type=classify_principal(owner),
+                tags=_get_uc_entity_tags(workspace_client, "catalogs", name),
                 created_time=_epoch_seconds(getattr(catalog, "created_at", None)),
                 comment=getattr(catalog, "comment", None),
                 catalog_type=_enum_value(getattr(catalog, "catalog_type", None)),
@@ -288,13 +318,15 @@ def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
         for schema in workspace_client.schemas.list(catalog_name=catalog_name):
             owner = getattr(schema, "owner", None)
             name = getattr(schema, "name", "") or ""
+            full_name = getattr(schema, "full_name", None) or f"{catalog_name}.{name}"
             snapshots.append(
                 _snapshot(
                     ResourceType.SCHEMA,
-                    id=getattr(schema, "full_name", None) or f"{catalog_name}.{name}",
+                    id=full_name,
                     name=name,
                     owner=owner,
                     owner_type=classify_principal(owner),
+                    tags=_get_uc_entity_tags(workspace_client, "schemas", full_name),
                     created_time=_epoch_seconds(getattr(schema, "created_at", None)),
                     comment=getattr(schema, "comment", None),
                     catalog_name=catalog_name,
@@ -326,14 +358,17 @@ def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
             ):
                 owner = getattr(volume, "owner", None)
                 name = getattr(volume, "name", "") or ""
+                full_name = (
+                    getattr(volume, "full_name", None) or f"{catalog_name}.{schema_name}.{name}"
+                )
                 snapshots.append(
                     _snapshot(
                         ResourceType.VOLUME,
-                        id=getattr(volume, "full_name", None)
-                        or f"{catalog_name}.{schema_name}.{name}",
+                        id=full_name,
                         name=name,
                         owner=owner,
                         owner_type=classify_principal(owner),
+                        tags=_get_uc_entity_tags(workspace_client, "volumes", full_name),
                         created_time=_epoch_seconds(getattr(volume, "created_at", None)),
                         comment=getattr(volume, "comment", None),
                         catalog_name=catalog_name,
@@ -437,6 +472,7 @@ def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceS
                 name=name,
                 owner=owner,
                 owner_type=classify_principal(owner),
+                tags=_get_uc_entity_tags(workspace_client, "externallocations", name),
                 created_time=_epoch_seconds(getattr(location, "created_at", None)),
                 comment=getattr(location, "comment", None),
                 url=getattr(location, "url", None),

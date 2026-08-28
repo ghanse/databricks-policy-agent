@@ -259,7 +259,51 @@ def test_scan_catalogs_maps_owner_type_and_created_time():
     assert attrs["catalog_type"] == "MANAGED_CATALOG"
     assert attrs["isolation_mode"] == "ISOLATED"
     assert attrs["created_time"] == 1_700_000_000
-    assert "tags" not in attrs  # catalogs do not advertise tags
+    # Catalogs advertise tags; with no UC tag service wired the mapping is empty.
+    assert attrs["tags"] == {}
+
+
+class _FakeUcTagAssignments:
+    """A fake UC entity-tag-assignments service keyed by (entity_type, entity_name)."""
+
+    def __init__(self, assignments):
+        self._assignments = assignments
+        self.calls = []
+
+    def list(self, entity_type, entity_name, **kwargs):
+        self.calls.append((entity_type, entity_name))
+        return list(self._assignments.get((entity_type, entity_name), []))
+
+
+def test_scan_catalogs_reads_governed_uc_tags():
+    catalog = SimpleNamespace(name="main", owner="data-eng", created_at=None)
+    tag_service = _FakeUcTagAssignments(
+        {("catalogs", "main"): [SimpleNamespace(tag_key="domain", tag_value="finance")]}
+    )
+    ws = _ws(catalogs=_FakeService([catalog]), entity_tag_assignments=tag_service)
+    (snapshot,) = scan_catalogs(ws)
+    # UC tags come from the entity-tag-assignments API, keyed by entity type + fully-qualified name.
+    assert snapshot.attributes["tags"] == {"domain": "finance"}
+    assert tag_service.calls == [("catalogs", "main")]
+
+
+def test_scan_volumes_reads_governed_uc_tags_by_full_name():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="gold")
+    volume = SimpleNamespace(name="landing", full_name="main.gold.landing", owner="data-eng")
+    tag_service = _FakeUcTagAssignments(
+        {("volumes", "main.gold.landing"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        volumes=_FakeService([volume]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_volumes(ws)
+    assert snapshot.attributes["tags"] == {"pii": "true"}
+    # The volume's fully-qualified name is used as the UC entity name.
+    assert tag_service.calls == [("volumes", "main.gold.landing")]
 
 
 def test_scan_schemas_iterates_catalogs():

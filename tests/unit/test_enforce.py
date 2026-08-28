@@ -183,8 +183,18 @@ def test_snapshot_bundle_maps_declared_uc_objects():
     assert by_type[ResourceType.REGISTERED_MODEL]["schema_name"] == "ml"
     assert by_type[ResourceType.EXTERNAL_LOCATION]["url"] == "s3://bucket/raw"
     assert by_type[ResourceType.SECRET_SCOPE]["backend_type"] == "DATABRICKS"
-    # None of the UC/secret types advertise tags.
-    assert all("tags" not in attrs for attrs in by_type.values())
+    # Catalogs, schemas, volumes, and external locations are taggable (tags governed via the UC
+    # entity-tag-assignments API); a bundle rarely declares them, so they default to empty.
+    for taggable in (
+        ResourceType.CATALOG,
+        ResourceType.SCHEMA,
+        ResourceType.VOLUME,
+        ResourceType.EXTERNAL_LOCATION,
+    ):
+        assert by_type[taggable]["tags"] == {}
+    # Registered models and secret scopes are not taggable.
+    assert "tags" not in by_type[ResourceType.REGISTERED_MODEL]
+    assert "tags" not in by_type[ResourceType.SECRET_SCOPE]
 
     # An external location that is not read-only violates a read-only policy at the gate.
     read_only = allow("el-read-only", "external_location", leaf("read_only", "equals", True))

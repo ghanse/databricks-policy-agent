@@ -158,7 +158,7 @@ def test_referenced_attributes_handles_negation_and_no_match():
     assert referenced_attributes(p) == frozenset({"uses_serverless_compute"})
 
 
-@pytest.mark.parametrize("resource_type", ["secret_scope", "catalog", "quality_monitor"])
+@pytest.mark.parametrize("resource_type", ["secret_scope", "registered_model", "quality_monitor"])
 def test_validate_rejects_tags_on_non_taggable_types(resource_type):
     invalid = deny("bad", resource_type, leaf("tags", "not_empty"))
     with pytest.raises(InvalidPolicyError):

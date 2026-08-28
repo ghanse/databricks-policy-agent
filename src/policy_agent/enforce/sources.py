@@ -151,6 +151,7 @@ def _serving_endpoint_attributes(key: str, definition: dict[str, Any]) -> dict[s
 def _catalog_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "catalog_type": definition.get("catalog_type"),
         "isolation_mode": definition.get("isolation_mode"),
@@ -161,6 +162,7 @@ def _catalog_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
 def _schema_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "catalog_name": definition.get("catalog_name"),
     }
@@ -169,6 +171,7 @@ def _schema_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
 def _volume_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "catalog_name": definition.get("catalog_name"),
         "schema_name": definition.get("schema_name"),
@@ -188,6 +191,7 @@ def _registered_model_attributes(key: str, definition: dict[str, Any]) -> dict[s
 def _external_location_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "url": definition.get("url"),
         "credential_name": definition.get("credential_name"),
