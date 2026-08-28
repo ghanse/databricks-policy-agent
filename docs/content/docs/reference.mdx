@@ -132,8 +132,9 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `catalog_name` | Name of the catalog the model belongs to        |
 | `schema_name`  | Name of the schema the model belongs to         |
 
-<Callout type="warn" title="Common attributes for registered models">
-Only *model versions* are taggable in Databricks. Registered models do not expose `tags`.
+<Callout type="warn" title="Unsupported attributes for registered models">
+Only *model versions* are taggable in Databricks. Registered models do not support the
+`tags` attribute.
 </Callout>
 
 ### External location attributes
@@ -148,18 +149,17 @@ Only *model versions* are taggable in Databricks. Registered models do not expos
 
 ### Quality monitor attributes
 
-| Field name           | Description                                                     |
-|----------------------|-----------------------------------------------------------------|
-| `table_name`         | Fully-qualified name of the monitored table                     |
-| `output_schema_name` | Schema where the monitor writes its metric tables               |
-| `output_schema_id`   | Unity Catalog id of the output schema (live scan only)          |
-| `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log)     |
-| `has_schedule`       | Whether the monitor runs on a schedule                          |
+| Field name           | Description                                                 |
+|----------------------|-------------------------------------------------------------|
+| `table_name`         | Fully-qualified name of the monitored table                 |
+| `output_schema_name` | Schema where the monitor writes its metric tables           |
+| `output_schema_id`   | Unity Catalog system ID of the output schema                |
+| `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log) |
+| `has_schedule`       | Whether the monitor runs on a schedule                      |
 
-<Callout type="info" title="Quality monitors expose only these attributes">
-Quality monitors do not expose `owner`, `owner_type`, `created_time`, or `tags`. When scanned, 
-their attributes come from each monitor's data-profiling configuration; at deploy time they come
- from the declared bundle resource. `output_schema_id` cannot be validated at deploy time.
+<Callout type="warn" title="Unsupported attributes for quality monitors">
+* Quality monitors do not support the `owner`, `owner_type`, `created_time`, or `tags` attributes
+* `output_schema_id` cannot be validated when running scans
 </Callout>
 
 ### Secret scope attributes
@@ -168,9 +168,8 @@ their attributes come from each monitor's data-profiling configuration; at deplo
 |----------------|-------------------------------------------------------------------|
 | `backend_type` | Backend storing the scope's secrets (e.g. "DATABRICKS", "AZURE_KEYVAULT") |
 
-<Callout type="warn" title="Unsupported common attributes for secret scopes">
-Secret scopes expose only `id` and `name` from the common attributes. They have no `owner`, 
-`owner_type`, `created_time`, or `tags`.
+<Callout type="warn" title="Unsupported attributes for secret scopes">
+Secret scopes do not support the `owner`, `owner_type`, `created_time`, or `tags` attributes.
 </Callout>
 
 ### Genie space attributes
@@ -181,8 +180,8 @@ Secret scopes expose only `id` and `name` from the common attributes. They have 
 | `description`     | Free-text description of the space                   |
 | `has_description` | Whether the space has a non-empty description        |
 
-<Callout type="warn" title="Unsupported common attributes for Genie spaces">
-Genie spaces do not expose the `owner`, `owner_type`, or `created_time` attributes.
+<Callout type="warn" title="Unsupported attributes for Genie spaces">
+Genie spaces do not support the `owner`, `owner_type`, or `created_time` attributes.
 </Callout>
 
 ### Spark Declarative Pipelines attributes
