@@ -189,6 +189,11 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.SERVING_ENDPOINT,
         ResourceType.PIPELINE,
         ResourceType.APP,
+        ResourceType.GENIE_SPACE,
+        ResourceType.CATALOG,
+        ResourceType.SCHEMA,
+        ResourceType.VOLUME,
+        ResourceType.EXTERNAL_LOCATION,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -240,17 +245,22 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "budget_policy_id",
         "route_optimized",
     },
-    # Unity Catalog objects are owned and timestamped but their tags are not scanned, so they do
-    # not advertise `tags`.
     ResourceType.CATALOG: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
+    | _TAGGABLE
     | {"comment", "catalog_type", "isolation_mode", "storage_root"},
-    ResourceType.SCHEMA: _IDENTITY | _OWNED | _TIMESTAMPED | {"comment", "catalog_name"},
+    ResourceType.SCHEMA: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | _TAGGABLE
+    | {"comment", "catalog_name"},
     ResourceType.VOLUME: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
+    | _TAGGABLE
     | {"comment", "catalog_name", "schema_name", "volume_type"},
+    # Only model versions are taggable; Registered models do not advertise `tags`.
     ResourceType.REGISTERED_MODEL: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
@@ -258,6 +268,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
     ResourceType.EXTERNAL_LOCATION: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
+    | _TAGGABLE
     | {"comment", "url", "credential_name", "read_only", "isolation_mode"},
     # Secret scopes expose only a name and a backend type: no owner, tags, or timestamp.
     ResourceType.SECRET_SCOPE: _IDENTITY | {"backend_type"},
@@ -277,17 +288,14 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "serverless",
         "development",
     },
-    # NOTE: Genie spaces have neither an owner nor tags, so they intentionally do NOT inherit
-    # COMMON_RESOURCE_ATTRIBUTES.
-    ResourceType.GENIE_SPACE: frozenset(
-        {
-            "id",
-            "name",
-            "warehouse_id",
-            "description",
-            "has_description",
-        }
-    ),
+    # Genie spaces don't inherit COMMON_RESOURCE_ATTRIBUTES
+    ResourceType.GENIE_SPACE: _IDENTITY
+    | _TAGGABLE
+    | {
+        "warehouse_id",
+        "description",
+        "has_description",
+    },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""

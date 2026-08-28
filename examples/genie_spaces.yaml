@@ -18,3 +18,13 @@ rule:
   all:
     - { attribute: warehouse_id, operator: exists }
 remediation: Attach a SQL warehouse to the Genie space.
+---
+policy: genie-spaces-must-carry-a-team-tag
+description: Genie spaces must be tagged with an owning team for cost and access attribution.
+resource_type: genie_space
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: tags, operator: has_tag, value: team }
+remediation: Assign a `team` tag to the Genie space.

@@ -242,3 +242,38 @@ def test_scan_genie_spaces_maps_live_shape(ws, env_or_skip):
     # Every evaluated space is either compliant or a violation, with no double counting.
     summary = result.summary()
     assert summary.evaluated == summary.compliant + summary.violations
+
+
+@pytest.mark.integration
+def test_scan_catalog_reads_governed_uc_tag(ws, make_catalog, make_random):
+    """A tag assigned to a catalog via the UC entity-tag-assignments API is read back by a scan.
+
+    Skips when the workspace's tag governance does not allow assigning the ad-hoc key (some
+    metastores require the key to be pre-registered by a tag policy).
+    """
+    from databricks.sdk.service.catalog import EntityTagAssignment
+
+    catalog = make_catalog()
+    tag_key = f"policy_agent_test_{make_random(6).lower()}"
+    try:
+        ws.entity_tag_assignments.create(
+            EntityTagAssignment(
+                entity_type="catalogs",
+                entity_name=catalog.name,
+                tag_key=tag_key,
+                tag_value="scanned",
+            )
+        )
+    except Exception as error:  # noqa: BLE001 - governance may forbid ad-hoc keys; skip, don't fail
+        pytest.skip(f"cannot assign a UC tag in this workspace: {error}")
+    try:
+        snapshots = collect_snapshots(ws, [ResourceType.CATALOG])[ResourceType.CATALOG]
+        tags = next(
+            (s.attributes["tags"] for s in snapshots if s.resource_id == catalog.name), None
+        )
+        assert tags is not None, "the created catalog should appear in the scan"
+        assert tags.get(tag_key) == "scanned"
+    finally:
+        ws.entity_tag_assignments.delete(
+            entity_type="catalogs", entity_name=catalog.name, tag_key=tag_key
+        )
