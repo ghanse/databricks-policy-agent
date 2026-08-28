@@ -67,14 +67,14 @@ def supported_resource_types() -> tuple[ResourceType, ...]:
 def is_scannable(resource_type: ResourceType) -> bool:
     """Return whether a resource type can be live-scanned.
 
-    Enforce-only types (those without a workspace list API, such as quality monitors) can still
-    be evaluated from a bundle by the enforcement gate, but never by a live scan.
+    Enforce-only types (e.g. those without a workspace list API) can still be
+    evaluated from a bundle by the enforcement gate, but never by a live scan.
 
     Args:
         resource_type: The resource type to check.
 
     Returns:
-        ``True`` if a scanner is registered for the resource type.
+        *True* if a scanner is registered for the resource type.
     """
     return resource_type in RESOURCE_SCANNERS
 

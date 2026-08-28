@@ -152,13 +152,14 @@ Only *model versions* are taggable in Databricks. Registered models do not expos
 |----------------------|-----------------------------------------------------------------|
 | `table_name`         | Fully-qualified name of the monitored table                     |
 | `output_schema_name` | Schema where the monitor writes its metric tables               |
+| `output_schema_id`   | Unity Catalog id of the output schema (live scan only)          |
 | `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log)     |
 | `has_schedule`       | Whether the monitor runs on a schedule                          |
 
 <Callout type="info" title="Quality monitors expose only these attributes">
-Quality monitors expose `id`, `name`, and the fields above, but not `owner`, `owner_type`,
-`created_time`, or `tags`. When scanned, their attributes come from each monitor's
-data-profiling configuration; at deploy time they come from the declared bundle resource.
+Quality monitors do not expose `owner`, `owner_type`, `created_time`, or `tags`. When scanned, 
+their attributes come from each monitor's data-profiling configuration; at deploy time they come
+ from the declared bundle resource. `output_schema_id` cannot be validated at deploy time.
 </Callout>
 
 ### Secret scope attributes

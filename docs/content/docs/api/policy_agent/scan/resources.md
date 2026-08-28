@@ -272,7 +272,12 @@ Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monit
   Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
   no data-profiling config (for example anomaly-detection-only monitors) are skipped
   because they do not map to this resource type's attributes. Older SDKs without the
-  *data_quality* API raise `UnsupportedResourceError`.
+  *data_quality* API raise UnsupportedResourceError.
+  
+  Output schemas are identified by id (*output_schema_id*); their fully-qualified names
+  are resolved during scans. A policy on the schema name matches the same monitor whether
+  it is scanned live or declared in a bundle. Name resolution is best-effort
+  (see *_resolve_schema_names*).
   
 
 **Arguments**:

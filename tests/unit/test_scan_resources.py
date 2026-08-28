@@ -542,26 +542,81 @@ def _monitor(profiling):
     return SimpleNamespace(object_type="table", object_id="obj-1", data_profiling_config=profiling)
 
 
+class _RaisingCatalogs:
+    def __init__(self, error):
+        self._error = error
+
+    def list(self):
+        raise self._error
+
+
 def test_scan_quality_monitors_reads_data_profiling_config():
     profiling = SimpleNamespace(
         monitored_table_name="main.gold.orders",
-        output_schema_id="main.monitoring",
+        output_schema_id="sch-123",
         snapshot=SimpleNamespace(),
         time_series=None,
         inference_log=None,
         schedule=SimpleNamespace(quartz_cron_expression="0 0 * * * ?"),
     )
-    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling)]))
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(schema_id="sch-123", full_name="main.monitoring", name="monitoring")
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+    )
     (snapshot,) = scan_quality_monitors(ws)
     attrs = snapshot.attributes
     assert snapshot.resource_type is ResourceType.QUALITY_MONITOR
     assert attrs["id"] == "main.gold.orders"
     assert attrs["table_name"] == "main.gold.orders"
+    assert attrs["output_schema_id"] == "sch-123"
     assert attrs["output_schema_name"] == "main.monitoring"
     assert attrs["monitor_type"] == "snapshot"
     assert attrs["has_schedule"] is True
     # Quality monitors are neither owned nor tagged.
     assert "owner" not in attrs and "tags" not in attrs
+
+
+def test_scan_quality_monitors_leaves_output_schema_name_none_when_unresolved():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-missing",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_FakeService([SimpleNamespace(name="main")]),
+        schemas=_FakeService([SimpleNamespace(schema_id="sch-other", full_name="main.other")]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    assert snapshot.attributes["output_schema_id"] == "sch-missing"
+    assert snapshot.attributes["output_schema_name"] is None
+
+
+def test_scan_quality_monitors_resolution_tolerates_listing_errors():
+    from databricks.sdk.errors import PermissionDenied
+
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-123",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_RaisingCatalogs(PermissionDenied("no access")),
+        schemas=_FakeService([]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    assert snapshot.attributes["output_schema_id"] == "sch-123"
+    assert snapshot.attributes["output_schema_name"] is None
 
 
 def test_scan_quality_monitors_falls_back_to_object_id_when_table_name_missing():

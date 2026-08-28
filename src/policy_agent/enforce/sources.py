@@ -213,7 +213,10 @@ def _quality_monitor_attributes(key: str, definition: dict[str, Any]) -> dict[st
         "id": key,
         "name": definition.get("table_name") or key,
         "table_name": definition.get("table_name"),
+        # Bundles declare the output schema by name; the id is a live-scan-only attribute, so it
+        # stays None here unless a bundle happens to declare one.
         "output_schema_name": definition.get("output_schema_name"),
+        "output_schema_id": definition.get("output_schema_id"),
         "monitor_type": _monitor_type(definition),
         "has_schedule": bool(definition.get("schedule")),
     }

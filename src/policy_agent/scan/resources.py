@@ -554,7 +554,12 @@ def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSna
         Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
         no data-profiling config (for example anomaly-detection-only monitors) are skipped
         because they do not map to this resource type's attributes. Older SDKs without the
-        *data_quality* API raise `UnsupportedResourceError`.
+        *data_quality* API raise UnsupportedResourceError.
+
+        Output schemas are identified by id (*output_schema_id*); their fully-qualified names
+        are resolved during scans. A policy on the schema name matches the same monitor whether
+        it is scanned live or declared in a bundle. Name resolution is best-effort
+        (see *_resolve_schema_names*).
 
     Args:
         workspace_client: Databricks workspace client.
@@ -584,20 +589,34 @@ def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSna
             "Could not list quality monitors; the workspace may not have data-quality "
             f"monitoring enabled. Original error: {error}"
         ) from error
+
+    profiled = [
+        (monitor, profiling)
+        for monitor in monitors
+        if (profiling := getattr(monitor, "data_profiling_config", None)) is not None
+    ]
+    schema_ids = {
+        str(schema_id)
+        for _, profiling in profiled
+        if (schema_id := getattr(profiling, "output_schema_id", None))
+    }
+    schema_names = _resolve_schema_names(workspace_client, schema_ids)
+
     snapshots = []
-    for monitor in monitors:
-        profiling = getattr(monitor, "data_profiling_config", None)
-        if profiling is None:
-            continue
+    for monitor, profiling in profiled:
         table_name = getattr(profiling, "monitored_table_name", None)
         monitor_id = table_name or str(getattr(monitor, "object_id", "") or "")
+        output_schema_id = getattr(profiling, "output_schema_id", None)
         snapshots.append(
             _snapshot(
                 ResourceType.QUALITY_MONITOR,
                 id=monitor_id,
                 name=table_name or monitor_id,
                 table_name=table_name,
-                output_schema_name=getattr(profiling, "output_schema_id", None),
+                output_schema_id=output_schema_id,
+                output_schema_name=schema_names.get(str(output_schema_id))
+                if output_schema_id
+                else None,
                 monitor_type=_profiling_monitor_type(profiling),
                 has_schedule=bool(getattr(profiling, "schedule", None)),
             )
@@ -605,9 +624,51 @@ def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSna
     return snapshots
 
 
+def _resolve_schema_names(
+    workspace_client: WorkspaceClient, schema_ids: set[str]
+) -> dict[str, str]:
+    """Resolves Unity Catalog schema ids to their fully-qualified schema names. Used when
+    scanning quality monitors that return the output schema by id rather than name.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        schema_ids: The schema ids to resolve.
+
+    Returns:
+        A mapping of schema id to fully-qualified schema name, covering the ids that were found.
+    """
+    from databricks.sdk.errors import DatabricksError
+
+    catalogs = getattr(workspace_client, "catalogs", None)
+    schemas = getattr(workspace_client, "schemas", None)
+    if not schema_ids or catalogs is None or schemas is None:
+        return {}
+    remaining = set(schema_ids)
+    resolved: dict[str, str] = {}
+    try:
+        for catalog in catalogs.list():
+            catalog_name = getattr(catalog, "name", None)
+            if not catalog_name:
+                continue
+            for schema in schemas.list(catalog_name=catalog_name):
+                schema_id = getattr(schema, "schema_id", None)
+                if schema_id is None or str(schema_id) not in remaining:
+                    continue
+                name = getattr(schema, "full_name", None) or (
+                    f"{catalog_name}.{getattr(schema, 'name', '')}"
+                )
+                resolved[str(schema_id)] = name
+                remaining.discard(str(schema_id))
+            if not remaining:
+                break
+    except DatabricksError:
+        # Name resolution enriches the snapshot; a listing failure leaves the remaining ids
+        # unresolved rather than failing the whole quality-monitor scan.
+        pass
+    return resolved
+
+
 def _profiling_monitor_type(profiling: Any) -> str | None:
-    # A data-profiling config sets exactly one of these profile blocks; mirror the bundle
-    # reader so a scanned and a bundle-declared monitor report the same monitor_type.
     for kind in ("snapshot", "time_series", "inference_log"):
         if getattr(profiling, kind, None) is not None:
             return kind

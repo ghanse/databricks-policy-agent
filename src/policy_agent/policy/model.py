@@ -275,7 +275,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
     # Quality monitors expose the classic Lakehouse Monitoring settings, whether scanned (from a
     # monitor's data-profiling config) or declared in a bundle. They are neither owned nor tagged.
     ResourceType.QUALITY_MONITOR: _IDENTITY
-    | {"table_name", "output_schema_name", "monitor_type", "has_schedule"},
+    | {"table_name", "output_schema_name", "output_schema_id", "monitor_type", "has_schedule"},
     ResourceType.PIPELINE: COMMON_RESOURCE_ATTRIBUTES
     | {
         "catalog",
