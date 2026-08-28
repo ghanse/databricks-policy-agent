@@ -255,7 +255,7 @@ def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]
 
 def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     # NOTE: Genie spaces have no owner and are tagged through workspace tag assignments rather
-    # than a native bundle field, so tags are typically empty at deploy time.
+    # than a native bundle field; Tags are typically empty at deploy time.
     description = definition.get("description")
     return {
         "id": key,

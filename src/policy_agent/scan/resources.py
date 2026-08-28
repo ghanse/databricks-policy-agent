@@ -184,13 +184,12 @@ def _get_entity_tags(
     """Fetches an entity's workspace tag assignments as a flat key-value mapping.
 
     Used for resource types whose tags are governed through the workspace entity-tag-assignments
-    API rather than a native tags field — for example apps (``entity_type="apps"``) and Genie
-    spaces (``entity_type="geniespaces"``).
+    API (e.g. Databricks Apps and Genie spaces).
 
     Args:
         workspace_client: Databricks workspace client.
-        entity_type: The tag-assignment entity type (e.g. ``apps`` or ``geniespaces``).
-        entity_id: The entity's identifier (an app's name, a Genie space's id).
+        entity_type: The tag-assignment entity type (e.g. *apps* or *geniespaces*).
+        entity_id: The entity's identifier (e.g. the app name or Genie space id).
 
     Returns:
         A mapping of tag key to tag value; empty when the entity has no tags or the SDK does not
@@ -214,13 +213,12 @@ def _get_uc_entity_tags(
 ) -> dict[str, str]:
     """Fetches a Unity Catalog securable's tag assignments as a flat key-value mapping.
 
-    Unity Catalog securables (catalogs, schemas, volumes, external locations, ...) are tagged
-    through the UC entity-tag-assignments API, which is keyed by the securable's fully-qualified
-    name rather than an opaque id.
+    Unity Catalog securables (e,g, catalogs, schemas, volumes, external locations) are tagged
+    through the entity-tag-assignments API, which uses fully-qualified securable names.
 
     Args:
         workspace_client: Databricks workspace client.
-        entity_type: The UC tag-assignment entity type (e.g. ``catalogs`` or ``externallocations``).
+        entity_type: The UC tag-assignment entity type (e.g. *catalogs* or *externallocations*).
         entity_name: The securable's fully-qualified name.
 
     Returns:

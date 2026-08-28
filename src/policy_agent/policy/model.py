@@ -245,9 +245,6 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "budget_policy_id",
         "route_optimized",
     },
-    # Unity Catalog securables are owned, timestamped, and tagged through the UC
-    # entity-tag-assignments API — except registered models, whose taggable unit is the model
-    # version rather than the model, so they do not advertise `tags`.
     ResourceType.CATALOG: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
@@ -263,6 +260,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
     | _TIMESTAMPED
     | _TAGGABLE
     | {"comment", "catalog_name", "schema_name", "volume_type"},
+    # Only model versions are taggable; Registered models do not advertise `tags`.
     ResourceType.REGISTERED_MODEL: _IDENTITY
     | _OWNED
     | _TIMESTAMPED
@@ -290,9 +288,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "serverless",
         "development",
     },
-    # NOTE: Genie spaces expose no owner or creation time, so they do NOT inherit
-    # COMMON_RESOURCE_ATTRIBUTES; but they are tagged through the workspace entity-tag-assignments
-    # API (like apps), so they advertise `tags`.
+    # Genie spaces don't inherit COMMON_RESOURCE_ATTRIBUTES
     ResourceType.GENIE_SPACE: _IDENTITY
     | _TAGGABLE
     | {

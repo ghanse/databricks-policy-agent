@@ -132,6 +132,10 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `catalog_name` | Name of the catalog the model belongs to        |
 | `schema_name`  | Name of the schema the model belongs to         |
 
+<Callout type="warn" title="Common attributes for registered models">
+Only *model versions* are taggable in Databricks. Registered models do not expose `tags`.
+</Callout>
+
 ### External location attributes
 
 | Field name        | Description                                             |
@@ -141,13 +145,6 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `credential_name` | Storage credential used to access the location          |
 | `read_only`       | Whether the location is read-only                       |
 | `isolation_mode`  | Whether the location is open or isolated to workspaces  |
-
-<Callout type="warn" title="Common attributes for Unity Catalog objects">
-Catalogs, schemas, volumes, and external locations expose `id`, `name`, `owner`, `owner_type`,
-`created_time`, and `tags` (governed through the Unity Catalog entity-tag-assignments API).
-Registered models expose the same set **except** `tags` — in Unity Catalog the taggable unit is
-the model version rather than the model.
-</Callout>
 
 ### Quality monitor attributes
 
@@ -183,8 +180,7 @@ Secret scopes expose only `id` and `name` from the common attributes. They have 
 | `has_description` | Whether the space has a non-empty description        |
 
 <Callout type="warn" title="Unsupported common attributes for Genie spaces">
-Genie spaces do not expose the `owner`, `owner_type`, or `created_time` attributes. They do
-expose `tags`, governed through workspace tag assignments (like Databricks Apps).
+Genie spaces do not expose the `owner`, `owner_type`, or `created_time` attributes.
 </Callout>
 
 ### Spark Declarative Pipelines attributes
