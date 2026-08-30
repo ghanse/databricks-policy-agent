@@ -1,11 +1,11 @@
 :root {
   /* Dark theme (default). Gray-black neutrals; sections sit close to the background. */
-  --bg: #17171b;
-  --surface: #1c1c21;
-  --surface-2: #222228;
-  --surface-3: #2b2b32;
-  --border: #313139;
-  --border-strong: #42424b;
+  --bg: #191920;
+  --surface: #1d1d24;
+  --surface-2: #242430;
+  --surface-3: #2d2d38;
+  --border: #2b2b34;
+  --border-strong: #3d3d47;
 
   /* Gray/white text ramp. */
   --text: #f2f2f5;
@@ -42,23 +42,23 @@
 
 /* Light theme. */
 :root[data-theme="light"] {
-  --bg: #eceaec;
+  --bg: #f3f2f4;
   --surface: #ffffff;
-  --surface-2: #f2f1f3;
-  --surface-3: #e7e5e8;
-  --border: #dcdade;
-  --border-strong: #c4c2c8;
+  --surface-2: #f4f3f5;
+  --surface-3: #ebeaed;
+  --border: #e7e5e9;
+  --border-strong: #d0ced4;
 
   --text: #1a1a20;
   --muted: #494952;
   --faint: #6b6b75;
 
-  /* Same dusty-pink accent as dark mode, with dark text for contrast on the fill. */
-  --accent: #c8848a;
-  --accent-hover: #b06f76;
-  --accent-soft: rgba(200, 132, 138, 0.14);
-  --accent-ring: rgba(200, 132, 138, 0.32);
-  --on-accent: #1f1512;
+  /* Deeper dusty-pink for light mode so white button text stays readable. */
+  --accent: #b57078;
+  --accent-hover: #9d5a62;
+  --accent-soft: rgba(181, 112, 120, 0.13);
+  --accent-ring: rgba(181, 112, 120, 0.3);
+  --on-accent: #ffffff;
 
   --link: #2563c9;
 
@@ -302,6 +302,10 @@ textarea, input, select {
   transition: border-color 0.12s, box-shadow 0.12s;
 }
 textarea:focus, input:focus, select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+input[type="date"] { min-width: 168px; color-scheme: inherit; }
+input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.75; }
+input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+:root:not([data-theme="light"]) input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.85); }
 textarea { min-height: 200px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; line-height: 1.5; }
 label.field { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 5px; font-weight: 500; }
 
@@ -643,8 +647,11 @@ th.sortable:hover { color: var(--text); }
 .detail-list dt { color: var(--muted); }
 .detail-list dd { margin: 0; color: var(--text); word-break: break-all; }
 /* Scan details laid out across the top of the results page. */
-.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 20px; margin-top: 12px; }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px 20px; margin-top: 12px; }
+.detail-grid > div { min-width: 0; }
 .detail-grid .field-label { margin-bottom: 3px; }
+.detail-grid > div > div { overflow-wrap: anywhere; }
+.detail-grid .mono { word-break: break-all; }
 .metrics-h { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; max-width: 640px; }
 @media (max-width: 620px) { .metrics-h { grid-template-columns: 1fr; } }
 .metrics { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }

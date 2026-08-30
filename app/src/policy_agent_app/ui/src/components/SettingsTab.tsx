@@ -8,6 +8,7 @@ import { CheckIcon, EditIcon, MoonIcon, PlusIcon, SunIcon, TrashIcon } from "./i
 interface TagRow {
   key: string;
   value: string;
+  editing: boolean;
 }
 interface EmailRow {
   value: string;
@@ -35,7 +36,9 @@ export function SettingsTab({
 
   useEffect(() => {
     if (settings) {
-      setTags(Object.entries(settings.storage.object_tags).map(([key, value]) => ({ key, value })));
+      setTags(
+        Object.entries(settings.storage.object_tags).map(([key, value]) => ({ key, value, editing: false })),
+      );
       setEmails(settings.notifications.emails.map((value) => ({ value, editing: false })));
       setWebhook(settings.notifications.webhook ?? "");
     }
@@ -166,6 +169,17 @@ export function SettingsTab({
                   <EditIcon size={15} />
                 </button>
               )}
+              <button
+                className="icon-btn act-danger"
+                title="Remove"
+                onClick={() => {
+                  setWebhook("");
+                  setWebhookEditing(false);
+                  persist({ notification_webhook: "" }, "Webhook removed", "delete");
+                }}
+              >
+                <TrashIcon size={15} />
+              </button>
             </div>
           </>
         ) : (
@@ -191,17 +205,37 @@ export function SettingsTab({
               <div key={i} className="kv-row">
                 <input
                   placeholder="key"
+                  disabled={!row.editing}
                   value={row.key}
                   onChange={(e) => setTags((t) => t.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))}
                 />
                 <input
                   placeholder="value"
+                  disabled={!row.editing}
                   value={row.value}
                   onChange={(e) => setTags((t) => t.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))}
                 />
-                <button className="icon-btn act-ok" title="Save" onClick={() => saveTags(tags, "save")}>
-                  <CheckIcon size={15} />
-                </button>
+                {row.editing ? (
+                  <button
+                    className="icon-btn act-ok"
+                    title="Save"
+                    onClick={() => {
+                      const next = tags.map((r, j) => (j === i ? { ...r, editing: false } : r));
+                      setTags(next);
+                      saveTags(next, "save");
+                    }}
+                  >
+                    <CheckIcon size={15} />
+                  </button>
+                ) : (
+                  <button
+                    className="icon-btn act-accent"
+                    title="Edit"
+                    onClick={() => setTags((t) => t.map((r, j) => (j === i ? { ...r, editing: true } : r)))}
+                  >
+                    <EditIcon size={15} />
+                  </button>
+                )}
                 <button
                   className="icon-btn act-danger"
                   title="Delete"
@@ -216,7 +250,10 @@ export function SettingsTab({
               </div>
             ))}
             <div>
-              <button className="action secondary tiny" onClick={() => setTags((t) => [...t, { key: "", value: "" }])}>
+              <button
+                className="action secondary tiny"
+                onClick={() => setTags((t) => [...t, { key: "", value: "", editing: true }])}
+              >
                 <PlusIcon size={13} /> Add tag
               </button>
             </div>

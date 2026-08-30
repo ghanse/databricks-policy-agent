@@ -364,7 +364,9 @@ export function ScansTab({
                     </td>
                     <td>{fmtDuration(durationMs(h.started_at, h.finished_at))}</td>
                     <td>{h.triggered_by}</td>
-                    <td>{h.evaluated}</td>
+                    <td>
+                      <span className="badge neutral">{h.evaluated}</span>
+                    </td>
                     <td>{Number(h.violations) > 0 ? <span className="badge high">{h.violations}</span> : "0"}</td>
                   </tr>
                 ))}
