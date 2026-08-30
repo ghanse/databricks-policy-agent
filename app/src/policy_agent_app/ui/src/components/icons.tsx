@@ -63,3 +63,10 @@ export const UserIcon = svg(
     <path d="M4 21a8 8 0 0116 0" />
   </>,
 );
+export const SunIcon = svg(
+  <>
+    <circle cx="12" cy="12" r="4.5" />
+    <path d="M12 1.5v2.5M12 20v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M1.5 12h2.5M20 12h2.5M4.2 19.8l1.8-1.8M18 6l1.8-1.8" />
+  </>,
+);
+export const MoonIcon = svg(<path d="M20 14.5A8 8 0 019.5 4a7 7 0 100 16 8 8 0 0010.5-5.5z" />);

@@ -59,6 +59,7 @@ export interface Remediation {
   status: string;
   assignee: string | null;
   note: string;
+  scan_id: string;
   opened_at: string;
   updated_at: string;
 }
@@ -74,7 +75,17 @@ export interface Settings {
   resource_types: string[];
   operators: string[];
   roles: string[];
-  notifications: { emails: string[]; webhook_configured: boolean };
+  notifications: { emails: string[]; webhook_configured: boolean; webhook?: string };
+}
+
+export interface ScanHeader {
+  scan_id: string;
+  started_at: string;
+  finished_at: string;
+  triggered_by: string;
+  evaluated: string | number;
+  compliant: string | number;
+  violations: string | number;
 }
 
 export interface MyRoles {

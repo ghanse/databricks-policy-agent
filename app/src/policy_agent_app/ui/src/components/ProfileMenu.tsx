@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { MyRoles } from "../types";
-import { ChevronIcon, SettingsIcon, UserIcon } from "./icons";
+import type { Theme } from "../theme";
+import { ChevronIcon, MoonIcon, SettingsIcon, SunIcon, UserIcon } from "./icons";
 
 function initials(user: string): string {
   const local = user.split("@")[0];
@@ -11,7 +12,17 @@ function initials(user: string): string {
 
 /** Top-left profile control: shows the signed-in user and opens a menu with their
  *  roles and a shortcut into Settings. */
-export function ProfileMenu({ roles, onOpenSettings }: { roles: MyRoles | null; onOpenSettings: () => void }) {
+export function ProfileMenu({
+  roles,
+  onOpenSettings,
+  theme,
+  onToggleTheme,
+}: {
+  roles: MyRoles | null;
+  onOpenSettings: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -64,6 +75,10 @@ export function ProfileMenu({ roles, onOpenSettings }: { roles: MyRoles | null; 
           >
             <SettingsIcon className="ico" size={16} />
             Settings
+          </button>
+          <button className="menu-item" onClick={onToggleTheme}>
+            {theme === "dark" ? <SunIcon className="ico" size={16} /> : <MoonIcon className="ico" size={16} />}
+            {theme === "dark" ? "Light mode" : "Dark mode"}
           </button>
           <button className="menu-item" onClick={() => setOpen(false)}>
             <UserIcon className="ico" size={16} />

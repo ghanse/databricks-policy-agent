@@ -1,6 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy, Settings } from "../types";
+import { effectLabel, resourceTypeLabel, severityLabel, statusLabel } from "../labels";
+import { FilterBar } from "./FilterBar";
+import { PolicyDetail } from "./PolicyDetail";
+import { ImportDialog } from "./ImportDialog";
 
 const EXAMPLE_RULE = JSON.stringify(
   { any: [{ attribute: "owner_type", operator: "not_equals", value: "service_principal" }] },
@@ -18,6 +22,13 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
   const [remediation, setRemediation] = useState("");
   const [rule, setRule] = useState(EXAMPLE_RULE);
   const [validation, setValidation] = useState("");
+
+  const [search, setSearch] = useState("");
+  const [fType, setFType] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fSeverity, setFSeverity] = useState("");
+  const [detail, setDetail] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const refresh = () => api.listPolicies().then(setPolicies).catch((e) => setError(String(e)));
   useEffect(() => {
@@ -55,6 +66,18 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
     }
   };
 
+  const resourceTypes = settings?.resource_types ?? ["cluster"];
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return policies.filter(
+      (p) =>
+        (!q || p.policy.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q)) &&
+        (!fType || p.resource_type === fType) &&
+        (!fStatus || p.status === fStatus) &&
+        (!fSeverity || p.severity === fSeverity),
+    );
+  }, [policies, search, fType, fStatus, fSeverity]);
+
   return (
     <>
       <div className="panel">
@@ -71,28 +94,32 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
           <div style={{ flex: "1 1 120px" }}>
             <label className="field">Resource type</label>
             <select value={resourceType} onChange={(e) => setResourceType(e.target.value)}>
-              {(settings?.resource_types ?? ["cluster"]).map((t) => (
-                <option key={t}>{t}</option>
+              {resourceTypes.map((t) => (
+                <option key={t} value={t}>
+                  {resourceTypeLabel(t)}
+                </option>
               ))}
             </select>
           </div>
           <div style={{ flex: "1 1 100px" }}>
             <label className="field">Effect</label>
             <select value={effect} onChange={(e) => setEffect(e.target.value)}>
-              <option value="deny">deny</option>
-              <option value="allow">allow</option>
+              <option value="deny">Deny</option>
+              <option value="allow">Allow</option>
             </select>
           </div>
           <div style={{ flex: "1 1 100px" }}>
             <label className="field">Severity</label>
             <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
               {["low", "medium", "high", "critical"].map((s) => (
-                <option key={s}>{s}</option>
+                <option key={s} value={s}>
+                  {severityLabel(s)}
+                </option>
               ))}
             </select>
           </div>
         </div>
-        <label className="field">Remediation guidance</label>
+        <label className="field">Recommended action (remediation guidance)</label>
         <input
           placeholder="What should an owner do to fix a violation?"
           value={remediation}
@@ -113,12 +140,50 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
       </div>
 
       <div className="panel">
-        <h3>
-          Policies
-          <span className="hint">{policies.length} defined</span>
-        </h3>
-        {policies.length === 0 ? (
-          <div className="empty">No policies yet. Create one above to get started.</div>
+        <div className="spread" style={{ marginBottom: 12 }}>
+          <h3 style={{ marginBottom: 0 }}>
+            Policies
+            <span className="hint">
+              {filtered.length} of {policies.length}
+            </span>
+          </h3>
+          <button className="action secondary tiny" onClick={() => setImporting(true)}>
+            Import YAML
+          </button>
+        </div>
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search by name or description…"
+          filters={[
+            {
+              label: "Type",
+              value: fType,
+              onChange: setFType,
+              options: resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) })),
+            },
+            {
+              label: "Status",
+              value: fStatus,
+              onChange: setFStatus,
+              options: ["draft", "in_review", "approved", "rejected", "archived"].map((s) => ({
+                value: s,
+                label: statusLabel(s),
+              })),
+            },
+            {
+              label: "Severity",
+              value: fSeverity,
+              onChange: setFSeverity,
+              options: ["low", "medium", "high", "critical"].map((s) => ({
+                value: s,
+                label: severityLabel(s),
+              })),
+            },
+          ]}
+        />
+        {filtered.length === 0 ? (
+          <div className="empty">No matching policies.</div>
         ) : (
           <table>
             <thead>
@@ -133,25 +198,28 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
               </tr>
             </thead>
             <tbody>
-              {policies.map((p) => (
-                <tr key={p.policy}>
+              {filtered.map((p) => (
+                <tr key={p.policy} className="clickable" onClick={() => setDetail(p.policy)}>
                   <td>
-                    <div className="cell-strong">{p.policy}</div>
+                    <div className="cell-strong link">{p.policy}</div>
                     {p.description && <div className="faint">{p.description}</div>}
                   </td>
-                  <td className="muted">{p.resource_type}</td>
-                  <td className="muted">{p.effect}</td>
+                  <td className="muted">{resourceTypeLabel(p.resource_type)}</td>
+                  <td className="muted">{effectLabel(p.effect)}</td>
                   <td>
-                    <span className={`badge ${p.severity}`}>{p.severity}</span>
+                    <span className={`badge ${p.severity}`}>{severityLabel(p.severity)}</span>
                   </td>
                   <td>
-                    <span className={`badge ${p.status}`}>{p.status.replace("_", " ")}</span>
+                    <span className={`badge ${p.status}`}>{statusLabel(p.status)}</span>
                   </td>
                   <td className="muted">{p.version}</td>
                   <td>
                     <button
                       className="action secondary tiny"
-                      onClick={() => api.deletePolicy(p.policy).then(refresh)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        api.deletePolicy(p.policy).then(refresh);
+                      }}
                     >
                       Delete
                     </button>
@@ -162,6 +230,9 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
           </table>
         )}
       </div>
+
+      {detail && <PolicyDetail name={detail} onClose={() => setDetail(null)} />}
+      {importing && <ImportDialog onClose={() => setImporting(false)} onImported={refresh} />}
     </>
   );
 }

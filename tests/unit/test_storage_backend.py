@@ -218,3 +218,22 @@ def test_remediation_upsert_and_read_round_trip():
     assert len(stored) == 1
     assert stored[0].status.value == "resolved"
     assert stored[0].note == "fixed"
+
+
+def test_app_settings_round_trip():
+    from policy_agent.storage.backend import read_app_settings, save_app_setting
+
+    executor, config = FakeExecutor(), _config()
+    ensure_storage(executor, config)
+    assert read_app_settings(executor, config) == {}
+
+    save_app_setting(executor, config, "object_tags", '{"team": "x"}')
+    save_app_setting(executor, config, "notification_webhook", "https://hooks.example/x")
+    assert read_app_settings(executor, config) == {
+        "object_tags": '{"team": "x"}',
+        "notification_webhook": "https://hooks.example/x",
+    }
+
+    # Upsert replaces the prior value rather than appending a second row.
+    save_app_setting(executor, config, "object_tags", '{"team": "y"}')
+    assert read_app_settings(executor, config)["object_tags"] == '{"team": "y"}'

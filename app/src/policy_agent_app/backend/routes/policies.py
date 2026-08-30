@@ -10,6 +10,7 @@ from policy_agent.config import PolicyAgentConfig
 from policy_agent.errors import PolicyAgentError
 from policy_agent.policy import policy_from_dict, policy_to_dict, validate_policy
 from policy_agent.policy.model import PolicyStatus
+from policy_agent.policy.yaml_loader import dump_policies_to_yaml, load_policies_from_yaml
 from policy_agent.storage.backend import (
     SqlExecutor,
     delete_policy,
@@ -19,9 +20,9 @@ from policy_agent.storage.backend import (
 )
 
 from policy_agent_app.backend.auth import current_user, require_admin, require_author
-from policy_agent_app.backend.dependencies import get_config, get_executor
+from policy_agent_app.backend.dependencies import get_config, get_effective_config, get_executor
 from policy_agent_app.backend.lookups import find_policy
-from policy_agent_app.backend.schemas import PolicyRequest
+from policy_agent_app.backend.schemas import PolicyImportRequest, PolicyRequest
 
 router = APIRouter(prefix="/policies", tags=["policies"])
 
@@ -48,6 +49,21 @@ def validate_policy_request(body: PolicyRequest) -> dict[str, Any]:
     return {"valid": True}
 
 
+@router.post("/import", status_code=status.HTTP_201_CREATED)
+def import_policies(
+    body: PolicyImportRequest,
+    user: str = Depends(current_user),
+    _roles: set[Role] = Depends(require_author),
+    executor: SqlExecutor = Depends(get_executor),
+    config: PolicyAgentConfig = Depends(get_effective_config),
+) -> dict[str, Any]:
+    """Import one or more policies from OPA-style YAML text, each saved as a draft."""
+    policies = load_policies_from_yaml(body.yaml)
+    for policy in policies:
+        save_policy(executor, config.storage, policy, actor=user)
+    return {"imported": [policy.name for policy in policies], "count": len(policies)}
+
+
 @router.get("/{name}")
 def get_policy(
     name: str,
@@ -57,6 +73,17 @@ def get_policy(
 ) -> dict[str, Any]:
     """Return a single policy by name."""
     return policy_to_dict(find_policy(executor, config, name))
+
+
+@router.get("/{name}/yaml")
+def get_policy_yaml(
+    name: str,
+    executor: SqlExecutor = Depends(get_executor),
+    config: PolicyAgentConfig = Depends(get_config),
+    _user: str = Depends(current_user),
+) -> dict[str, str]:
+    """Return a single policy rendered as OPA-style YAML."""
+    return {"yaml": dump_policies_to_yaml([find_policy(executor, config, name)])}
 
 
 @router.get("/{name}/history")
@@ -76,7 +103,7 @@ def upsert_policy(
     user: str = Depends(current_user),
     _roles: set[Role] = Depends(require_author),
     executor: SqlExecutor = Depends(get_executor),
-    config: PolicyAgentConfig = Depends(get_config),
+    config: PolicyAgentConfig = Depends(get_effective_config),
 ) -> dict[str, Any]:
     """Create or update a policy (saved in draft status by the author)."""
     policy = policy_from_dict(body.to_policy_dict())

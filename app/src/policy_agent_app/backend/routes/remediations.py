@@ -13,7 +13,7 @@ from policy_agent.remediation.model import RemediationItem
 from policy_agent.storage.backend import SqlExecutor, read_remediations, save_remediation
 
 from policy_agent_app.backend.auth import current_user, require_runner
-from policy_agent_app.backend.dependencies import get_config, get_executor
+from policy_agent_app.backend.dependencies import get_config, get_effective_config, get_executor
 from policy_agent_app.backend.lookups import find_remediation
 from policy_agent_app.backend.schemas import RemediationActionRequest, remediation_to_dict
 
@@ -36,7 +36,7 @@ def act_on_remediation(
     body: RemediationActionRequest,
     _roles: set[Role] = Depends(require_runner),
     executor: SqlExecutor = Depends(get_executor),
-    config: PolicyAgentConfig = Depends(get_config),
+    config: PolicyAgentConfig = Depends(get_effective_config),
 ) -> dict[str, Any]:
     """Advance, resolve, waive, or assign a remediation item."""
     item = find_remediation(executor, config, remediation_id)

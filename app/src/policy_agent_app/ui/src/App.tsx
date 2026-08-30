@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
 import type { MyRoles, Settings } from "./types";
+import { applyTheme, initialTheme, type Theme } from "./theme";
 import { PoliciesTab } from "./components/PoliciesTab";
 import { ApprovalsTab } from "./components/ApprovalsTab";
 import { ScansTab } from "./components/ScansTab";
@@ -63,6 +64,12 @@ export function App() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [policyCount, setPolicyCount] = useState<number | null>(null);
   const [openCount, setOpenCount] = useState<number | null>(null);
+  const [theme, setTheme] = useState<Theme>(initialTheme);
+  const [focusScanId, setFocusScanId] = useState<string | null>(null);
+
+  useEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     api.getMyRoles().then(setRoles).catch(() => setRoles(null));
@@ -74,8 +81,14 @@ export function App() {
       .catch(() => setOpenCount(null));
   }, []);
 
+  const openScan = (scanId: string) => {
+    setFocusScanId(scanId);
+    setActive("Scans");
+  };
+
   const section = SECTIONS.find((s) => s.key === active)!;
   const counts: Record<string, number | null> = { Policies: policyCount, Remediations: openCount };
+  const isAdmin = roles?.roles.includes("admin") ?? false;
 
   return (
     <div className="app">
@@ -106,7 +119,12 @@ export function App() {
         })}
 
         <div className="spacer" />
-        <ProfileMenu roles={roles} onOpenSettings={() => setActive("Settings")} />
+        <ProfileMenu
+          roles={roles}
+          onOpenSettings={() => setActive("Settings")}
+          theme={theme}
+          onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+        />
       </aside>
 
       <div className="content">
@@ -117,9 +135,17 @@ export function App() {
         <main>
           {active === "Policies" && <PoliciesTab settings={settings} />}
           {active === "Approvals" && <ApprovalsTab />}
-          {active === "Scans" && <ScansTab settings={settings} />}
-          {active === "Remediations" && <RemediationsTab />}
-          {active === "Settings" && <SettingsTab settings={settings} />}
+          {active === "Scans" && (
+            <ScansTab settings={settings} focusScanId={focusScanId} onFocusHandled={() => setFocusScanId(null)} />
+          )}
+          {active === "Remediations" && <RemediationsTab onOpenScan={openScan} />}
+          {active === "Settings" && (
+            <SettingsTab
+              settings={settings}
+              isAdmin={isAdmin}
+              onSaved={(s) => setSettings(s)}
+            />
+          )}
         </main>
       </div>
     </div>

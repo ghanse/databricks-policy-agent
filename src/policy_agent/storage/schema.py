@@ -184,6 +184,16 @@ TABLES: tuple[Table, ...] = (
         ),
         primary_key=("group_name", "role"),
     ),
+    Table(
+        "app_settings",
+        (
+            Column("setting_key", _S, nullable=False),
+            Column("setting_value", _S),
+            Column("object_tags", _S),
+            Column("updated_at", _T),
+        ),
+        primary_key=("setting_key",),
+    ),
 )
 
 

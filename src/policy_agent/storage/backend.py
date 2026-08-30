@@ -360,3 +360,46 @@ def read_role_mappings(executor: SqlExecutor, config: StorageConfig) -> dict[str
     for row in executor.query(sql, params):
         mappings.setdefault(str(row["group_name"]), set()).add(Role(row["role"]))
     return mappings
+
+
+def read_app_settings(executor: SqlExecutor, config: StorageConfig) -> dict[str, str]:
+    """Read the app-settings overrides as a flat key/value mapping.
+
+    These are runtime configuration overrides an administrator sets through the app (for
+    example object tags or notification destinations), layered over the deploy-time defaults.
+
+    Args:
+        executor: The SQL executor.
+        config: The storage configuration.
+
+    Returns:
+        A mapping from setting key to its stored (text) value.
+    """
+    sql, params = schema.select_statement(config, "app_settings")
+    return {
+        str(row["setting_key"]): _as_text(row["setting_value"])
+        for row in executor.query(sql, params)
+    }
+
+
+def save_app_setting(executor: SqlExecutor, config: StorageConfig, key: str, value: str) -> None:
+    """Upsert a single app-settings override.
+
+    Args:
+        executor: The SQL executor.
+        config: The storage configuration.
+        key: The setting key.
+        value: The setting value, serialised to text.
+    """
+    delete_sql, delete_params = schema.delete_statement(
+        config, "app_settings", {"setting_key": key}
+    )
+    executor.execute(delete_sql, delete_params)
+    insert_sql, insert_params = schema.insert_statement(
+        config, "app_settings", records.app_setting_to_row(key, value, config, datetime.now(UTC))
+    )
+    executor.execute(insert_sql, insert_params)
+
+
+def _as_text(value: object) -> str:
+    return "" if value is None else str(value)

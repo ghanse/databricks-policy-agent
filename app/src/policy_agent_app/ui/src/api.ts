@@ -3,6 +3,7 @@ import type {
   MyRoles,
   Policy,
   Remediation,
+  ScanHeader,
   ScanResult,
   Settings,
 } from "./types";
@@ -26,12 +27,21 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   getSettings: () => request<Settings>("/settings"),
+  updateSettings: (body: unknown) =>
+    request<Settings>("/settings", { method: "PUT", body: JSON.stringify(body) }),
   getMyRoles: () => request<MyRoles>("/roles/me"),
 
   listPolicies: (status?: string) =>
     request<Policy[]>(`/policies${status ? `?status=${status}` : ""}`),
+  getPolicy: (name: string) => request<Policy>(`/policies/${name}`),
+  getPolicyYaml: (name: string) => request<{ yaml: string }>(`/policies/${name}/yaml`),
   savePolicy: (body: unknown) =>
     request<Policy>("/policies", { method: "POST", body: JSON.stringify(body) }),
+  importPolicies: (yaml: string) =>
+    request<{ imported: string[]; count: number }>("/policies/import", {
+      method: "POST",
+      body: JSON.stringify({ yaml }),
+    }),
   validatePolicy: (body: unknown) =>
     request<{ valid: boolean; error?: string }>("/policies/validate", {
       method: "POST",
@@ -46,7 +56,7 @@ export const api = {
 
   runScan: (body: unknown) =>
     request<ScanResult>("/scans", { method: "POST", body: JSON.stringify(body) }),
-  listScans: () => request<Record<string, unknown>[]>("/scans"),
+  listScans: () => request<ScanHeader[]>("/scans"),
   scanFindings: (scanId: string) => request<Finding[]>(`/scans/${scanId}/findings`),
 
   listRemediations: () => request<Remediation[]>("/remediations"),

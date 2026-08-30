@@ -1,7 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy } from "../types";
+import { resourceTypeLabel, statusLabel } from "../labels";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
+import { FilterBar } from "./FilterBar";
 
 const ACTIONS: Record<string, string[]> = {
   draft: ["submit"],
@@ -23,11 +25,20 @@ export function ApprovalsTab() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [error, setError] = useState("");
   const [dialog, setDialog] = useState<NoteRequest | null>(null);
+  const [search, setSearch] = useState("");
+  const [fStatus, setFStatus] = useState("");
 
   const refresh = () => api.listPolicies().then(setPolicies).catch((e) => setError(String(e)));
   useEffect(() => {
     refresh();
   }, []);
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return policies.filter(
+      (p) => (!q || p.policy.toLowerCase().includes(q)) && (!fStatus || p.status === fStatus),
+    );
+  }, [policies, search, fStatus]);
 
   const promptAction = (name: string, action: string) => {
     setError("");
@@ -50,8 +61,26 @@ export function ApprovalsTab() {
     <div className="panel">
       <h3>Approval workflow</h3>
       {error && <div className="error">{error}</div>}
+      <FilterBar
+        search={search}
+        onSearch={setSearch}
+        placeholder="Search policies…"
+        filters={[
+          {
+            label: "Status",
+            value: fStatus,
+            onChange: setFStatus,
+            options: ["draft", "in_review", "approved", "rejected", "archived"].map((s) => ({
+              value: s,
+              label: statusLabel(s),
+            })),
+          },
+        ]}
+      />
       {policies.length === 0 ? (
         <div className="empty">No policies yet. Author one on the Policies tab.</div>
+      ) : filtered.length === 0 ? (
+        <div className="empty">No matching policies.</div>
       ) : (
         <table>
           <thead>
@@ -64,12 +93,12 @@ export function ApprovalsTab() {
             </tr>
           </thead>
           <tbody>
-            {policies.map((p) => (
+            {filtered.map((p) => (
               <tr key={p.policy}>
                 <td className="cell-strong">{p.policy}</td>
-                <td className="muted">{p.resource_type}</td>
+                <td className="muted">{resourceTypeLabel(p.resource_type)}</td>
                 <td>
-                  <span className={`badge ${p.status}`}>{p.status.replace("_", " ")}</span>
+                  <span className={`badge ${p.status}`}>{statusLabel(p.status)}</span>
                 </td>
                 <td className="muted">{NEXT_STEP[p.status] ?? ""}</td>
                 <td>
