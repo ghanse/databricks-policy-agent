@@ -3,7 +3,7 @@ import { ArchiveIcon, CheckIcon, SendIcon, XIcon } from "./components/icons";
 
 type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
-export type ActionColor = "ok" | "danger" | "neutral" | "accent";
+export type ActionColor = "ok" | "danger" | "neutral" | "accent" | "warn";
 
 export interface TransitionSpec {
   action: string;

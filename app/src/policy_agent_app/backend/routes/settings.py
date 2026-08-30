@@ -26,13 +26,14 @@ from policy_agent_app.backend.dependencies import (
     get_config,
     get_effective_config,
     get_executor,
+    get_workspace_client,
 )
 from policy_agent_app.backend.schemas import SettingsUpdateRequest
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
-def _payload(config: PolicyAgentConfig) -> dict[str, Any]:
+def _payload(config: PolicyAgentConfig, workspace_url: str = "") -> dict[str, Any]:
     storage = config.storage
     return {
         "storage": {
@@ -50,16 +51,23 @@ def _payload(config: PolicyAgentConfig) -> dict[str, Any]:
         "resource_types": [rt.value for rt in supported_resource_types()],
         "operators": list(registered_operators()),
         "roles": [role.value for role in Role],
+        "workspace_url": workspace_url,
     }
+
+
+def _workspace_url(workspace_client: Any) -> str:
+    config = getattr(workspace_client, "config", None)
+    return (getattr(config, "host", "") or "").rstrip("/")
 
 
 @router.get("")
 def get_settings(
     config: PolicyAgentConfig = Depends(get_effective_config),
+    workspace_client=Depends(get_workspace_client),
     _user: str = Depends(current_user),
 ) -> dict[str, Any]:
     """Return the effective deployment configuration (deploy-time defaults plus overrides)."""
-    return _payload(config)
+    return _payload(config, _workspace_url(workspace_client))
 
 
 @router.put("")
@@ -68,6 +76,7 @@ def update_settings(
     _roles: set[Role] = Depends(require_admin),
     executor: SqlExecutor = Depends(get_executor),
     base_config: PolicyAgentConfig = Depends(get_config),
+    workspace_client=Depends(get_workspace_client),
 ) -> dict[str, Any]:
     """Persist admin-editable overrides (object tags, notification destinations).
 
@@ -90,4 +99,4 @@ def update_settings(
             executor, base_config.storage, SETTING_NOTIFICATION_WEBHOOK, body.notification_webhook
         )
     effective = apply_overrides(base_config, read_app_settings(executor, base_config.storage))
-    return _payload(effective)
+    return _payload(effective, _workspace_url(workspace_client))

@@ -3,24 +3,25 @@ import { api } from "../api";
 import type { Policy, Remediation } from "../types";
 import { resourceTypeLabel, severityLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
-import { CheckIcon, EditIcon, LightbulbIcon, XIcon } from "./icons";
+import { CheckIcon, ExternalIcon, LightbulbIcon, PlayIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { FilterBar } from "./FilterBar";
 import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
+import { resourceUrl } from "../resourceUrl";
 import type { ActionColor } from "../policyActions";
 
 type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
 const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind; color: ActionColor }[]> = {
   open: [
-    { action: "advance", label: "Advance", icon: EditIcon, kind: "save", color: "accent" },
+    { action: "advance", label: "Advance", icon: PlayIcon, kind: "save", color: "warn" },
     { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
-    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "neutral" },
+    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
   ],
   in_progress: [
     { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
-    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "neutral" },
+    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
   ],
 };
 
@@ -30,17 +31,14 @@ const ACTION_HELP: Record<string, string> = {
   waive: "Knowingly accept this violation; it stays on the audit trail.",
 };
 
-function age(iso: string): string {
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return "—";
-  const days = Math.floor((Date.now() - then) / 86_400_000);
-  if (days <= 0) return "today";
-  if (days === 1) return "1 day";
-  if (days < 30) return `${days} days`;
-  return `${Math.floor(days / 30)} mo`;
-}
 
-export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) => void }) {
+export function RemediationsTab({
+  onOpenScan,
+  workspaceUrl,
+}: {
+  onOpenScan: (scanId: string) => void;
+  workspaceUrl: string;
+}) {
   const [items, setItems] = useState<Remediation[]>([]);
   const [reco, setReco] = useState<Record<string, string>>({});
   const [dialog, setDialog] = useState<NoteRequest | null>(null);
@@ -98,9 +96,9 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
   const sorted = sort.apply(filtered, {
     severity: (i) => SEVERITY_RANK[i.severity] ?? -1,
     policy: (i) => i.policy_name.toLowerCase(),
+    type: (i) => i.resource_type,
     resource: (i) => (i.resource_name ?? "").toLowerCase(),
     owner: (i) => (i.assignee ?? "").toLowerCase(),
-    age: (i) => new Date(i.opened_at).getTime(),
     status: (i) => i.status,
   });
   const pager = usePage(sorted, 10);
@@ -158,10 +156,10 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
             <tr>
               <SortTh label="Severity" field="severity" sort={sort} />
               <SortTh label="Policy" field="policy" sort={sort} />
+              <SortTh label="Type" field="type" sort={sort} />
               <SortTh label="Resource" field="resource" sort={sort} />
               <th>Recommended action</th>
               <SortTh label="Owner" field="owner" sort={sort} />
-              <SortTh label="Age" field="age" sort={sort} />
               <th>Opened by</th>
               <SortTh label="Status" field="status" sort={sort} />
               <th></th>
@@ -175,8 +173,19 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
                 </td>
                 <td className="cell-strong">{item.policy_name}</td>
                 <td>
-                  {item.resource_name}
-                  <div className="faint">{resourceTypeLabel(item.resource_type)}</div>
+                  <span className="badge neutral">{resourceTypeLabel(item.resource_type)}</span>
+                </td>
+                <td>
+                  {(() => {
+                    const url = resourceUrl(workspaceUrl, item.resource_type, item.resource_id);
+                    return url ? (
+                      <a className="reslink" href={url} target="_blank" rel="noreferrer">
+                        {item.resource_name} <ExternalIcon size={12} />
+                      </a>
+                    ) : (
+                      item.resource_name
+                    );
+                  })()}
                 </td>
                 <td style={{ maxWidth: 260 }}>
                   {reco[item.policy_name] ? (
@@ -189,7 +198,6 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
                   )}
                 </td>
                 <td>{item.assignee ? item.assignee.split("@")[0] : <span className="faint">unassigned</span>}</td>
-                <td className="muted">{age(item.opened_at)}</td>
                 <td>
                   {item.scan_id ? (
                     <button className="linkbtn mono" onClick={() => onOpenScan(item.scan_id)}>

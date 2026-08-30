@@ -96,7 +96,9 @@ export function App() {
           {active === "Scans" && (
             <ScansTab settings={settings} focusScanId={focusScanId} onFocusHandled={() => setFocusScanId(null)} />
           )}
-          {active === "Remediations" && <RemediationsTab onOpenScan={openScan} />}
+          {active === "Remediations" && (
+            <RemediationsTab onOpenScan={openScan} workspaceUrl={settings?.workspace_url ?? ""} />
+          )}
           {active === "Settings" && (
             <SettingsTab
               settings={settings}

@@ -79,6 +79,12 @@ export const TrashIcon = svg(
   </>,
 );
 export const ArrowLeftIcon = svg(<path d="M19 12H5M12 19l-7-7 7-7" />);
+export const PlayIcon = svg(<path d="M6 4l14 8-14 8V4z" />);
+export const ExternalIcon = svg(
+  <>
+    <path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h6" />
+  </>,
+);
 export const ListIcon = svg(
   <>
     <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />

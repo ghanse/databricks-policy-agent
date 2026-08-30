@@ -99,7 +99,7 @@ export function SettingsTab({
                   />
                   {row.editing ? (
                     <button
-                      className="icon-btn ok"
+                      className="icon-btn act-ok"
                       title="Save"
                       onClick={() => {
                         setEmails((list) => list.map((v, j) => (j === i ? { ...v, editing: false } : v)));
@@ -113,7 +113,7 @@ export function SettingsTab({
                     </button>
                   ) : (
                     <button
-                      className="icon-btn"
+                      className="icon-btn act-accent"
                       title="Edit"
                       onClick={() => setEmails((list) => list.map((v, j) => (j === i ? { ...v, editing: true } : v)))}
                     >
@@ -121,7 +121,7 @@ export function SettingsTab({
                     </button>
                   )}
                   <button
-                    className="icon-btn danger"
+                    className="icon-btn act-danger"
                     title="Remove"
                     onClick={() => {
                       const next = emails.filter((_, j) => j !== i);
@@ -152,7 +152,7 @@ export function SettingsTab({
               />
               {webhookEditing ? (
                 <button
-                  className="icon-btn ok"
+                  className="icon-btn act-ok"
                   title="Save"
                   onClick={() => {
                     setWebhookEditing(false);
@@ -162,7 +162,7 @@ export function SettingsTab({
                   <CheckIcon size={15} />
                 </button>
               ) : (
-                <button className="icon-btn" title="Edit" onClick={() => setWebhookEditing(true)}>
+                <button className="icon-btn act-accent" title="Edit" onClick={() => setWebhookEditing(true)}>
                   <EditIcon size={15} />
                 </button>
               )}
@@ -199,11 +199,11 @@ export function SettingsTab({
                   value={row.value}
                   onChange={(e) => setTags((t) => t.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))}
                 />
-                <button className="icon-btn ok" title="Save" onClick={() => saveTags(tags, "save")}>
+                <button className="icon-btn act-ok" title="Save" onClick={() => saveTags(tags, "save")}>
                   <CheckIcon size={15} />
                 </button>
                 <button
-                  className="icon-btn danger"
+                  className="icon-btn act-danger"
                   title="Delete"
                   onClick={() => {
                     const next = tags.filter((_, j) => j !== i);

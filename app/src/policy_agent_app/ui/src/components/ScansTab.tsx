@@ -5,14 +5,11 @@ import { resourceTypeLabel, severityLabel } from "../labels";
 import { useToast } from "../toast";
 import { useSort, SortTh, SEVERITY_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
-import { CheckIcon, ChevronIcon, LightbulbIcon } from "./icons";
+import { resourceUrl } from "../resourceUrl";
+import { CheckIcon, ExternalIcon, LightbulbIcon } from "./icons";
 import { SplitButton } from "./SplitButton";
 import { FilterBar } from "./FilterBar";
 import { Select } from "./Select";
-
-function shortId(id: string): string {
-  return id.slice(0, 8);
-}
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
@@ -42,7 +39,6 @@ export function ScansTab({
   const [viewing, setViewing] = useState<{ header: ScanHeader | null; findings: Finding[] } | null>(null);
   const [history, setHistory] = useState<ScanHeader[]>([]);
   const [running, setRunning] = useState(false);
-  const [paneOpen, setPaneOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [fSeverity, setFSeverity] = useState("");
   const [fType, setFType] = useState("");
@@ -122,6 +118,7 @@ export function ScansTab({
         : null;
 
   const resourceTypes = settings?.resource_types ?? [];
+  const workspaceUrl = settings?.workspace_url ?? "";
   const sources = useMemo(() => [...new Set(history.map((h) => h.triggered_by))], [history]);
 
   const filteredViolations = useMemo(() => {
@@ -166,38 +163,83 @@ export function ScansTab({
         <div className="crumbs">
           <button onClick={() => setMode("list")}>Scans</button>
           <span className="sep">/</span>
-          <span className="here mono">{shortId(details.scanId) || "result"}</span>
+          <span className="here">{details.start ? fmtTime(details.start) : "Scan result"}</span>
         </div>
 
-        <div className={`scan-layout ${paneOpen ? "" : "collapsed"}`}>
-          <div className="panel" style={{ marginBottom: 0 }}>
-            <h3>
-              Violations
-              <span className="hint">{sortedViolations.length} shown</span>
-            </h3>
-            <FilterBar
-              search={search}
-              onSearch={setSearch}
-              placeholder="Search by policy or resource…"
-              filters={[
-                {
-                  label: "Severity",
-                  value: fSeverity,
-                  onChange: setFSeverity,
-                  options: ["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) })),
-                },
-                {
-                  label: "Type",
-                  value: fType,
-                  onChange: setFType,
-                  options: resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) })),
-                },
-              ]}
+        <div className="panel">
+          <h3>Scan details</h3>
+          <div className="detail-grid">
+            <Field label="Scan ID" value={details.scanId || "—"} mono />
+            <Field label="Start Time" value={details.start ? fmtTime(details.start) : "—"} />
+            <Field label="End Time" value={details.end ? fmtTime(details.end) : "—"} />
+            <Field
+              label="Duration"
+              value={details.start && details.end ? fmtDuration(durationMs(details.start, details.end)) : "—"}
             />
-            {sortedViolations.length === 0 ? (
-              <div className="empty">No violations — everything scanned is compliant. 🎉</div>
-            ) : (
-              <>
+            <Field label="Source" value={details.source} />
+            <div>
+              <div className="field-label">Status</div>
+              <div className="row" style={{ gap: 6 }}>
+                <CheckIcon size={14} className="ok-ico" /> Succeeded
+              </div>
+            </div>
+          </div>
+          <div className="metrics-h">
+            <div className="metric ok">
+              <div className="metric-top">
+                <span>Compliant</span>
+                <span className="n">
+                  {details.compliant} of {details.evaluated}{" "}
+                  <span className="faint">({pct(details.compliant)}%)</span>
+                </span>
+              </div>
+              <div className="metric-bar">
+                <span style={{ width: `${pct(details.compliant)}%` }} />
+              </div>
+            </div>
+            <div className="metric bad">
+              <div className="metric-top">
+                <span>Noncompliant</span>
+                <span className="n">
+                  {details.violations} of {details.evaluated}{" "}
+                  <span className="faint">({pct(details.violations)}%)</span>
+                </span>
+              </div>
+              <div className="metric-bar">
+                <span style={{ width: `${pct(details.violations)}%` }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h3>
+            Violations
+            <span className="hint">{sortedViolations.length} shown</span>
+          </h3>
+          <FilterBar
+            search={search}
+            onSearch={setSearch}
+            placeholder="Search by policy or resource…"
+            filters={[
+              {
+                label: "Severity",
+                value: fSeverity,
+                onChange: setFSeverity,
+                options: ["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) })),
+              },
+              {
+                label: "Type",
+                value: fType,
+                onChange: setFType,
+                options: resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) })),
+              },
+            ]}
+          />
+          {sortedViolations.length === 0 ? (
+            <div className="empty">No violations — everything scanned is compliant. 🎉</div>
+          ) : (
+            <>
               <div className="table-wrap">
                 <table>
                   <thead>
@@ -210,96 +252,47 @@ export function ScansTab({
                     </tr>
                   </thead>
                   <tbody>
-                    {violPager.pageRows.map((f, i) => (
-                      <tr key={i}>
-                        <td>
-                          <span className={`badge ${f.severity}`}>{severityLabel(f.severity)}</span>
-                        </td>
-                        <td>
-                          {f.policy_name}
-                          <div className="faint">{f.message}</div>
-                        </td>
-                        <td>
-                          <span className="badge neutral">{resourceTypeLabel(f.resource_type)}</span>
-                        </td>
-                        <td>{f.resource_name}</td>
-                        <td style={{ maxWidth: 300 }}>
-                          {f.remediation ? (
-                            <div className="reco">
-                              <LightbulbIcon className="ico" size={15} />
-                              <span>{f.remediation}</span>
-                            </div>
-                          ) : (
-                            <span className="faint">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                    {violPager.pageRows.map((f, i) => {
+                      const url = resourceUrl(workspaceUrl, f.resource_type, f.resource_id);
+                      return (
+                        <tr key={i}>
+                          <td>
+                            <span className={`badge ${f.severity}`}>{severityLabel(f.severity)}</span>
+                          </td>
+                          <td>
+                            {f.policy_name}
+                            <div className="faint">{f.message}</div>
+                          </td>
+                          <td>
+                            <span className="badge neutral">{resourceTypeLabel(f.resource_type)}</span>
+                          </td>
+                          <td>
+                            {url ? (
+                              <a className="reslink" href={url} target="_blank" rel="noreferrer">
+                                {f.resource_name} <ExternalIcon size={12} />
+                              </a>
+                            ) : (
+                              f.resource_name
+                            )}
+                          </td>
+                          <td style={{ maxWidth: 300 }}>
+                            {f.remediation ? (
+                              <div className="reco">
+                                <LightbulbIcon className="ico" size={15} />
+                                <span>{f.remediation}</span>
+                              </div>
+                            ) : (
+                              <span className="faint">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
               <PagerBar pager={violPager} />
-              </>
-            )}
-          </div>
-
-          {paneOpen ? (
-            <div className="panel detail-pane" style={{ marginBottom: 0 }}>
-              <div className="pane-head">
-                <h3>Scan details</h3>
-                <button className="chev" title="Collapse" onClick={() => setPaneOpen(false)}>
-                  <ChevronIcon size={16} />
-                </button>
-              </div>
-              <dl className="detail-list">
-                <dt>Scan ID</dt>
-                <dd className="mono">{details.scanId || "—"}</dd>
-                <dt>Start Time</dt>
-                <dd>{details.start ? fmtTime(details.start) : "—"}</dd>
-                <dt>End Time</dt>
-                <dd>{details.end ? fmtTime(details.end) : "—"}</dd>
-                <dt>Duration</dt>
-                <dd>{details.start && details.end ? fmtDuration(durationMs(details.start, details.end)) : "—"}</dd>
-                <dt>Source</dt>
-                <dd>{details.source}</dd>
-                <dt>Status</dt>
-                <dd className="row" style={{ gap: 6 }}>
-                  <CheckIcon size={14} className="ok-ico" /> Succeeded
-                </dd>
-              </dl>
-              <div className="metrics">
-                <div className="metric ok">
-                  <div className="metric-top">
-                    <span>Compliant</span>
-                    <span className="n">
-                      {details.compliant} of {details.evaluated}{" "}
-                      <span className="faint">({pct(details.compliant)}%)</span>
-                    </span>
-                  </div>
-                  <div className="metric-bar">
-                    <span style={{ width: `${pct(details.compliant)}%` }} />
-                  </div>
-                </div>
-                <div className="metric bad">
-                  <div className="metric-top">
-                    <span>Noncompliant</span>
-                    <span className="n">
-                      {details.violations} of {details.evaluated}{" "}
-                      <span className="faint">({pct(details.violations)}%)</span>
-                    </span>
-                  </div>
-                  <div className="metric-bar">
-                    <span style={{ width: `${pct(details.violations)}%` }} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="collapsed-rail">
-              <button title="Show scan details" onClick={() => setPaneOpen(true)}>
-                <ChevronIcon size={16} />
-              </button>
-            </div>
+            </>
           )}
         </div>
       </>
@@ -382,5 +375,14 @@ export function ScansTab({
         )}
       </div>
     </>
+  );
+}
+
+function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div>
+      <div className="field-label">{label}</div>
+      <div className={mono ? "mono" : ""}>{value}</div>
+    </div>
   );
 }

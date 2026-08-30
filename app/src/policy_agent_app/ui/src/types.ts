@@ -76,6 +76,7 @@ export interface Settings {
   operators: string[];
   roles: string[];
   notifications: { emails: string[]; webhook_configured: boolean; webhook?: string };
+  workspace_url?: string;
 }
 
 export interface ScanHeader {

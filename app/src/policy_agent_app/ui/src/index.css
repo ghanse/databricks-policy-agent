@@ -1,29 +1,33 @@
 :root {
-  /* Dark theme (default). Gray-black neutrals (not pure black) with a tan accent. */
+  /* Dark theme (default). Gray-black neutrals; sections sit close to the background. */
   --bg: #17171b;
-  --surface: #1f1f24;
-  --surface-2: #27272d;
-  --surface-3: #313139;
-  --border: #383840;
-  --border-strong: #4a4a54;
+  --surface: #1c1c21;
+  --surface-2: #222228;
+  --surface-3: #2b2b32;
+  --border: #313139;
+  --border-strong: #42424b;
 
   /* Gray/white text ramp. */
   --text: #f2f2f5;
   --muted: #c3c3cc;
   --faint: #8f8f9a;
 
-  /* Light dusty-pink accent. */
-  --accent: #e0aaa6;
-  --accent-hover: #edbbb8;
-  --accent-soft: rgba(224, 170, 166, 0.17);
-  --accent-ring: rgba(224, 170, 166, 0.42);
-  --on-accent: #1e1613;
+  /* Single dusty-pink accent, shared across themes. */
+  --accent: #c8848a;
+  --accent-hover: #d4959a;
+  --accent-soft: rgba(200, 132, 138, 0.17);
+  --accent-ring: rgba(200, 132, 138, 0.42);
+  --on-accent: #1f1512;
+
+  /* Blue textual hyperlinks. */
+  --link: #7cb2ff;
 
   --danger: #e2635f;
   --warn: #e3ad48;
   --ok: #58c06c;
   --ok-soft: rgba(88, 192, 108, 0.16);
   --danger-soft: rgba(226, 99, 95, 0.16);
+  --warn-soft: rgba(227, 173, 72, 0.17);
 
   --radius: 10px;
   --radius-sm: 7px;
@@ -49,17 +53,21 @@
   --muted: #494952;
   --faint: #6b6b75;
 
-  --accent: #b57078;
-  --accent-hover: #9d5a62;
-  --accent-soft: rgba(181, 112, 120, 0.12);
-  --accent-ring: rgba(181, 112, 120, 0.3);
-  --on-accent: #ffffff;
+  /* Same dusty-pink accent as dark mode, with dark text for contrast on the fill. */
+  --accent: #c8848a;
+  --accent-hover: #b06f76;
+  --accent-soft: rgba(200, 132, 138, 0.14);
+  --accent-ring: rgba(200, 132, 138, 0.32);
+  --on-accent: #1f1512;
+
+  --link: #2563c9;
 
   --danger: #cf3b40;
   --warn: #a97b1c;
   --ok: #1a9d3f;
   --ok-soft: rgba(26, 157, 63, 0.12);
   --danger-soft: rgba(207, 59, 64, 0.12);
+  --warn-soft: rgba(169, 123, 28, 0.14);
 
   --shadow: 0 1px 2px rgba(16, 20, 24, 0.08), 0 10px 28px rgba(16, 20, 24, 0.10);
   --shadow-sm: 0 1px 2px rgba(16, 20, 24, 0.08);
@@ -277,7 +285,9 @@ button.action.secondary:disabled:hover { background: var(--surface-2); border-co
 .icon-btn.act-accent:hover, .action.act-accent:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .icon-btn.act-neutral, .action.act-neutral { background: var(--surface-3); color: var(--muted); border: 1px solid var(--border-strong); }
 .icon-btn.act-neutral:hover, .action.act-neutral:hover { background: var(--border-strong); color: var(--text); border-color: var(--border-strong); }
-.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active { transform: translateY(1px); }
+.icon-btn.act-warn, .action.act-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid transparent; }
+.icon-btn.act-warn:hover, .action.act-warn:hover { background: var(--warn); color: #211803; border-color: var(--warn); }
+.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active, .act-warn:active { transform: translateY(1px); }
 
 /* ---------- Inputs ---------- */
 textarea, input, select {
@@ -390,19 +400,22 @@ label.field { display: block; font-size: 11.5px; color: var(--muted); margin-bot
 
 /* ---------- Clickable rows / links ---------- */
 tr.clickable { cursor: pointer; }
-tr.clickable:hover .link { color: var(--accent-hover); }
-.link { color: var(--accent-hover); }
+tr.clickable:hover .link { color: var(--link); text-decoration: underline; text-underline-offset: 2px; }
+.link { color: var(--link); }
 tr.selected-row { background: var(--accent-soft); }
 .linkbtn {
   background: none;
   border: none;
-  color: var(--accent-hover);
+  color: var(--link);
   cursor: pointer;
   padding: 0;
   font-size: 12px;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
+/* Resource links out to the workspace. */
+.reslink { color: var(--link); text-decoration: none; }
+.reslink:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 /* ---------- Policy detail drawer ---------- */
 .drawer {
@@ -613,8 +626,8 @@ th.sortable:hover { color: var(--text); }
 
 /* ---------- Breadcrumb ---------- */
 .crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 14px; }
-.crumbs button { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 13px; }
-.crumbs button:hover { color: var(--text); }
+.crumbs button { background: none; border: none; color: var(--link); cursor: pointer; padding: 0; font-size: 13px; }
+.crumbs button:hover { text-decoration: underline; text-underline-offset: 2px; }
 .crumbs .sep { color: var(--faint); }
 .crumbs .here { color: var(--text); font-weight: 600; }
 
@@ -629,6 +642,11 @@ th.sortable:hover { color: var(--text); }
 .detail-list { display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; margin-top: 14px; font-size: 13px; }
 .detail-list dt { color: var(--muted); }
 .detail-list dd { margin: 0; color: var(--text); word-break: break-all; }
+/* Scan details laid out across the top of the results page. */
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px 20px; margin-top: 12px; }
+.detail-grid .field-label { margin-bottom: 3px; }
+.metrics-h { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; max-width: 640px; }
+@media (max-width: 620px) { .metrics-h { grid-template-columns: 1fr; } }
 .metrics { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
 .metric .metric-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
 .metric .metric-top .n { font-weight: 700; }
