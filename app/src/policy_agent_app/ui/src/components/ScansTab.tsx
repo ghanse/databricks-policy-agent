@@ -10,7 +10,7 @@ import { ExternalIcon, LightbulbIcon } from "./icons";
 import { SplitButton } from "./SplitButton";
 import { FilterBar } from "./FilterBar";
 import { Select } from "./Select";
-import { DatePicker } from "./DatePicker";
+import { DateRangePicker, type DateRange } from "./DateRangePicker";
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
@@ -44,7 +44,8 @@ export function ScansTab({
   const [fSeverity, setFSeverity] = useState("");
   const [fType, setFType] = useState("");
   const [fSource, setFSource] = useState("");
-  const [fromDate, setFromDate] = useState("");
+  const [startRange, setStartRange] = useState<DateRange>({ from: "", to: "" });
+  const [endRange, setEndRange] = useState<DateRange>({ from: "", to: "" });
   const toast = useToast();
   const histSort = useSort<ScanHeader>("started_at");
   const violSort = useSort<Finding>("severity");
@@ -140,18 +141,26 @@ export function ScansTab({
   const violPager = usePage(sortedViolations, 10);
 
   const filteredHistory = useMemo(() => {
-    const from = fromDate ? new Date(fromDate).getTime() : null;
+    const inRange = (iso: string, r: DateRange) => {
+      if (!r.from && !r.to) return true;
+      const t = new Date(iso).getTime();
+      if (r.from && t < new Date(`${r.from}T00:00:00`).getTime()) return false;
+      if (r.to && t > new Date(`${r.to}T23:59:59`).getTime()) return false;
+      return true;
+    };
     return history.filter(
       (h) =>
         (!fSource || h.triggered_by === fSource) &&
-        (from == null || new Date(h.started_at).getTime() >= from),
+        inRange(h.started_at, startRange) &&
+        inRange(h.finished_at, endRange),
     );
-  }, [history, fSource, fromDate]);
+  }, [history, fSource, startRange, endRange]);
   const sortedHistory = histSort.apply(filteredHistory, {
     started_at: (h) => new Date(h.started_at).getTime(),
     duration: (h) => durationMs(h.started_at, h.finished_at),
     source: (h) => h.triggered_by,
     evaluated: (h) => Number(h.evaluated),
+    compliant: (h) => Number(h.compliant),
     violations: (h) => Number(h.violations),
   });
   const histPager = usePage(sortedHistory, 10);
@@ -177,7 +186,7 @@ export function ScansTab({
               label="Duration"
               value={details.start && details.end ? fmtDuration(durationMs(details.start, details.end)) : "—"}
             />
-            <Field label="Source" value={details.source} />
+            <Field label="Source" value={details.source} mono />
             <div className="df">
               <span className="df-k">Status</span>
               <span className="df-v">
@@ -330,14 +339,13 @@ export function ScansTab({
             />
           </label>
           <label className="filter">
-            <span>Start on or after</span>
-            <DatePicker value={fromDate} onChange={setFromDate} />
+            <span>Start time</span>
+            <DateRangePicker value={startRange} onChange={setStartRange} />
           </label>
-          {fromDate && (
-            <button className="action secondary tiny" onClick={() => setFromDate("")}>
-              Clear
-            </button>
-          )}
+          <label className="filter">
+            <span>End time</span>
+            <DateRangePicker value={endRange} onChange={setEndRange} />
+          </label>
         </div>
         {history.length === 0 ? (
           <div className="empty">No scans yet. Run one above.</div>
@@ -352,6 +360,7 @@ export function ScansTab({
                   <SortTh label="Duration" field="duration" sort={histSort} />
                   <SortTh label="Source" field="source" sort={histSort} />
                   <SortTh label="Evaluated" field="evaluated" sort={histSort} />
+                  <SortTh label="Compliant" field="compliant" sort={histSort} />
                   <SortTh label="Violations" field="violations" sort={histSort} />
                 </tr>
               </thead>
@@ -367,6 +376,9 @@ export function ScansTab({
                     <td>{h.triggered_by}</td>
                     <td>
                       <span className="badge neutral">{h.evaluated}</span>
+                    </td>
+                    <td>
+                      <span className="badge succeeded">{h.compliant}</span>
                     </td>
                     <td>{Number(h.violations) > 0 ? <span className="badge high">{h.violations}</span> : "0"}</td>
                   </tr>

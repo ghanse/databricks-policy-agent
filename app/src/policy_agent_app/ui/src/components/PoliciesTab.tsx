@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy, Settings } from "../types";
 import { effectLabel, resourceTypeLabel, severityLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
 import { transitionsFor } from "../policyActions";
 import { FilterBar } from "./FilterBar";
+import { ImportModal } from "./ImportModal";
 import { PolicyPage } from "./PolicyPage";
 import { Select } from "./Select";
 import { SplitButton } from "./SplitButton";
@@ -55,7 +56,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
   const [fStatus, setFStatus] = useState("");
   const [fSeverity, setFSeverity] = useState("");
   const [fEffect, setFEffect] = useState("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
   const toast = useToast();
   const sort = useSort<Policy>("name");
 
@@ -105,36 +106,6 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
     setForm(EMPTY);
     setValidation("");
     setShowForm(true);
-  };
-
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      const { policies: parsed } = await api.parsePolicies(await file.text());
-      if (!parsed.length) {
-        toast.push("No policies found in that file.", "error");
-        return;
-      }
-      const p = parsed[0];
-      setForm({
-        name: p.policy,
-        description: p.description ?? "",
-        resourceType: p.resource_type,
-        effect: p.effect,
-        severity: p.severity,
-        remediation: p.remediation ?? "",
-        rule: JSON.stringify(p.rule, null, 2),
-        match: p.match ? JSON.stringify(p.match, null, 2) : "",
-      });
-      setShowForm(true);
-      toast.push(
-        parsed.length === 1 ? "Loaded from file — review and save." : `Loaded first of ${parsed.length} — review and save.`,
-        "info",
-      );
-    } catch (e) {
-      toast.push(String(e), "error");
-    }
-    if (fileRef.current) fileRef.current.value = "";
   };
 
   const doTransition = (policy: Policy, action: string, label: string, kind: ToastKind) => {
@@ -211,21 +182,14 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
         <SplitButton
           label="Add a policy"
           onClick={openNew}
-          options={[{ label: "Import from YAML", onSelect: () => fileRef.current?.click() }]}
-        />
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".yaml,.yml,text/yaml"
-          style={{ display: "none" }}
-          onChange={(e) => onFile(e.target.files?.[0])}
+          options={[{ label: "Import from YAML", onSelect: () => setImporting(true) }]}
         />
       </div>
       {error && <div className="error">{error}</div>}
 
       {showForm && (
         <div className="panel">
-          <h3>New / update policy</h3>
+          <h3>Add a policy</h3>
           <div className="row wrap" style={{ marginBottom: 12, alignItems: "flex-end" }}>
             <div style={{ flex: "2 1 200px" }}>
               <label className="field">Name</label>
@@ -279,10 +243,10 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
             onChange={(e) => set({ remediation: e.target.value })}
             style={{ marginBottom: 12 }}
           />
-          <label className="field">Rule (condition tree, JSON)</label>
+          <label className="field">Rule</label>
           <textarea value={form.rule} onChange={(e) => set({ rule: e.target.value })} />
           <label className="field" style={{ marginTop: 12 }}>
-            Match selector (optional JSON)
+            Match selector
           </label>
           <textarea
             style={{ minHeight: 90 }}
@@ -418,6 +382,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
         )}
       </div>
       <NoteDialog request={dialog} onClose={() => setDialog(null)} />
+      {importing && <ImportModal onClose={() => setImporting(false)} onImported={refresh} />}
     </>
   );
 }

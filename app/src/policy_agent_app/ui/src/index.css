@@ -557,7 +557,24 @@ tr.selected-row { background: var(--accent-soft); }
   font-size: 12.5px;
 }
 .dp-day:hover { background: var(--surface-3); }
+.dp-day.in-range { background: var(--accent-soft); border-radius: 0; }
 .dp-day.sel { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+.dp-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+.action.tiny { padding: 5px 12px; font-size: 12px; }
+
+/* ---------- Import drop modal ---------- */
+.dropzone {
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: 26px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+.dropzone:hover { border-color: var(--accent); }
+.dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone .dz-title { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.file-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 13px; }
 
 /* ---------- Settings editors ---------- */
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -696,10 +713,10 @@ th.sortable:hover { color: var(--text); }
 .detail-list dd { margin: 0; color: var(--text); word-break: break-all; }
 /* Scan details laid out across the top of the results page: label left of value. */
 .detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; margin-top: 12px; }
-.df { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.df-k { color: var(--text); font-weight: 600; font-size: 13px; white-space: nowrap; flex: none; }
-.df-v { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; min-width: 0; }
-.df-v.mono { word-break: break-all; }
+.df { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.df-k { color: var(--faint); font-weight: 400; font-size: 11px; }
+.df-v { color: var(--text); font-size: 13px; overflow-wrap: anywhere; min-width: 0; }
+.df-v.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
 .metrics-h { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; max-width: 640px; }
 @media (max-width: 620px) { .metrics-h { grid-template-columns: 1fr; } }
 .metrics { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
