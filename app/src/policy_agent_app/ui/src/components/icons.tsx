@@ -1,0 +1,65 @@
+import type { ReactNode } from "react";
+
+/** Small inline SVG icon set — keeps the UI dependency-free. */
+type IconProps = { className?: string; size?: number };
+
+function svg(path: ReactNode) {
+  return ({ className, size = 18 }: IconProps) => (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      {path}
+    </svg>
+  );
+}
+
+export const PolicyIcon = svg(
+  <>
+    <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
+    <path d="M9 12l2 2 4-4" />
+  </>,
+);
+export const ApprovalIcon = svg(
+  <>
+    <path d="M9 11l3 3L22 4" />
+    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" />
+  </>,
+);
+export const ScanIcon = svg(
+  <>
+    <path d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2" />
+    <path d="M3 12h18" />
+  </>,
+);
+export const RemediationIcon = svg(
+  <>
+    <path d="M14.7 6.3a4 4 0 00-5.6 5.6l-6 6a1.5 1.5 0 002 2l6-6a4 4 0 005.6-5.6l-2.4 2.4-2-2 2.4-2.4z" />
+  </>,
+);
+export const SettingsIcon = svg(
+  <>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-2.9 1.31V21a2 2 0 01-4 0v-.09A1.65 1.65 0 007 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 003 15a1.65 1.65 0 00-1.51-1H1a2 2 0 010-4h.09A1.65 1.65 0 003 8.6a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 007 4.6h.09A1.65 1.65 0 009 3.09V3a2 2 0 014 0v.09A1.65 1.65 0 0016 4.6a1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0021 9v.09a2 2 0 010 4z" />
+  </>,
+);
+export const ChevronIcon = svg(<path d="M6 9l6 6 6-6" />);
+export const LightbulbIcon = svg(
+  <>
+    <path d="M9 18h6M10 22h4" />
+    <path d="M12 2a7 7 0 00-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0012 2z" />
+  </>,
+);
+export const UserIcon = svg(
+  <>
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0116 0" />
+  </>,
+);

@@ -58,33 +58,50 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
   return (
     <>
       <div className="panel">
-        <h3>New / update policy</h3>
+        <h3>
+          New / update policy
+          <span className="hint">saved as a draft for review</span>
+        </h3>
         {error && <div className="error">{error}</div>}
-        <div className="row" style={{ marginBottom: 8 }}>
-          <input placeholder="policy-name" value={name} onChange={(e) => setName(e.target.value)} />
-          <select value={resourceType} onChange={(e) => setResourceType(e.target.value)}>
-            {(settings?.resource_types ?? ["cluster"]).map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-          <select value={effect} onChange={(e) => setEffect(e.target.value)}>
-            <option value="deny">deny</option>
-            <option value="allow">allow</option>
-          </select>
-          <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-            {["low", "medium", "high", "critical"].map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
+        <div className="row wrap" style={{ marginBottom: 12, alignItems: "flex-end" }}>
+          <div style={{ flex: "2 1 200px" }}>
+            <label className="field">Name</label>
+            <input placeholder="policy-name" value={name} onChange={(e) => setName(e.target.value)} />
+          </div>
+          <div style={{ flex: "1 1 120px" }}>
+            <label className="field">Resource type</label>
+            <select value={resourceType} onChange={(e) => setResourceType(e.target.value)}>
+              {(settings?.resource_types ?? ["cluster"]).map((t) => (
+                <option key={t}>{t}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ flex: "1 1 100px" }}>
+            <label className="field">Effect</label>
+            <select value={effect} onChange={(e) => setEffect(e.target.value)}>
+              <option value="deny">deny</option>
+              <option value="allow">allow</option>
+            </select>
+          </div>
+          <div style={{ flex: "1 1 100px" }}>
+            <label className="field">Severity</label>
+            <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
+              {["low", "medium", "high", "critical"].map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </div>
         </div>
+        <label className="field">Remediation guidance</label>
         <input
-          placeholder="remediation guidance"
+          placeholder="What should an owner do to fix a violation?"
           value={remediation}
           onChange={(e) => setRemediation(e.target.value)}
-          style={{ marginBottom: 8 }}
+          style={{ marginBottom: 12 }}
         />
+        <label className="field">Rule (condition tree, JSON)</label>
         <textarea value={rule} onChange={(e) => setRule(e.target.value)} />
-        <div className="row" style={{ marginTop: 8 }}>
+        <div className="row" style={{ marginTop: 12 }}>
           <button className="action secondary" onClick={validate}>
             Validate
           </button>
@@ -96,44 +113,54 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
       </div>
 
       <div className="panel">
-        <h3>Policies</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Effect</th>
-              <th>Severity</th>
-              <th>Status</th>
-              <th>Version</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {policies.map((p) => (
-              <tr key={p.policy}>
-                <td>{p.policy}</td>
-                <td>{p.resource_type}</td>
-                <td>{p.effect}</td>
-                <td>
-                  <span className={`badge ${p.severity}`}>{p.severity}</span>
-                </td>
-                <td>
-                  <span className={`badge ${p.status}`}>{p.status}</span>
-                </td>
-                <td>{p.version}</td>
-                <td>
-                  <button
-                    className="action secondary"
-                    onClick={() => api.deletePolicy(p.policy).then(refresh)}
-                  >
-                    Delete
-                  </button>
-                </td>
+        <h3>
+          Policies
+          <span className="hint">{policies.length} defined</span>
+        </h3>
+        {policies.length === 0 ? (
+          <div className="empty">No policies yet. Create one above to get started.</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Effect</th>
+                <th>Severity</th>
+                <th>Status</th>
+                <th>Ver</th>
+                <th></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {policies.map((p) => (
+                <tr key={p.policy}>
+                  <td>
+                    <div className="cell-strong">{p.policy}</div>
+                    {p.description && <div className="faint">{p.description}</div>}
+                  </td>
+                  <td className="muted">{p.resource_type}</td>
+                  <td className="muted">{p.effect}</td>
+                  <td>
+                    <span className={`badge ${p.severity}`}>{p.severity}</span>
+                  </td>
+                  <td>
+                    <span className={`badge ${p.status}`}>{p.status.replace("_", " ")}</span>
+                  </td>
+                  <td className="muted">{p.version}</td>
+                  <td>
+                    <button
+                      className="action secondary tiny"
+                      onClick={() => api.deletePolicy(p.policy).then(refresh)}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </>
   );
