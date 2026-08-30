@@ -12,11 +12,11 @@
   --muted: #c3c3cc;
   --faint: #8f8f9a;
 
-  /* Light brownish-pink / tan accent. */
-  --accent: #c99a8a;
-  --accent-hover: #d9ab9b;
-  --accent-soft: rgba(201, 154, 138, 0.16);
-  --accent-ring: rgba(201, 154, 138, 0.4);
+  /* Light dusty-pink accent. */
+  --accent: #e0aaa6;
+  --accent-hover: #edbbb8;
+  --accent-soft: rgba(224, 170, 166, 0.17);
+  --accent-ring: rgba(224, 170, 166, 0.42);
   --on-accent: #1e1613;
 
   --danger: #e2635f;
@@ -49,10 +49,10 @@
   --muted: #494952;
   --faint: #6b6b75;
 
-  --accent: #a06a58;
-  --accent-hover: #895748;
-  --accent-soft: rgba(160, 106, 88, 0.12);
-  --accent-ring: rgba(160, 106, 88, 0.3);
+  --accent: #b57078;
+  --accent-hover: #9d5a62;
+  --accent-soft: rgba(181, 112, 120, 0.12);
+  --accent-ring: rgba(181, 112, 120, 0.3);
   --on-accent: #ffffff;
 
   --danger: #cf3b40;
