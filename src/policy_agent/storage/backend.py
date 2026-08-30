@@ -56,10 +56,33 @@ def ensure_storage(executor: SqlExecutor, config: StorageConfig) -> None:
         executor: The SQL executor.
         config: The storage configuration.
     """
-    for statement in schema.create_namespace_statements(config):
+    include_catalog = not (config.is_unity_catalog and _catalog_exists(executor, config.catalog))
+    for statement in schema.create_namespace_statements(config, include_catalog=include_catalog):
         executor.execute(statement)
     for statement in schema.create_table_statements(config):
         executor.execute(statement)
+
+
+def _catalog_exists(executor: SqlExecutor, catalog: str | None) -> bool:
+    """Whether a Unity Catalog catalog is already present and reachable.
+
+    Used to skip ``CREATE CATALOG`` for an existing catalog, which accounts with Default
+    Storage reject. Any failure is treated as "not present" so creation is still attempted.
+
+    Args:
+        executor: The SQL executor.
+        catalog: The catalog name to check.
+
+    Returns:
+        ``True`` if the catalog exists and is reachable.
+    """
+    if not catalog:
+        return False
+    try:
+        executor.query(f"SHOW SCHEMAS IN {catalog}")
+    except Exception:
+        return False
+    return True
 
 
 def save_policy(

@@ -85,7 +85,7 @@ def upsert_policy(
     return policy_to_dict(policy)
 
 
-@router.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{name}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def remove_policy(
     name: str,
     _roles: set[Role] = Depends(require_admin),

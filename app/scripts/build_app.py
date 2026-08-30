@@ -12,6 +12,7 @@ Run from the ``app`` directory: ``uv run python scripts/build_app.py``.
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -70,11 +71,41 @@ def _write_requirements(wheel_name: str) -> None:
 
 
 def _write_app_yaml() -> None:
-    app_yaml = (
+    command = (
         "command:\n"
         '  ["uvicorn", "policy_agent_app.backend.app:app", "--host", "0.0.0.0", "--port", "8000"]\n'
     )
-    (BUILD_DIR / "app.yaml").write_text(app_yaml, encoding="utf-8")
+    (BUILD_DIR / "app.yaml").write_text(command + _env_block(), encoding="utf-8")
+
+
+def _env_block() -> str:
+    """Build the app.yaml ``env`` block from POLICY_AGENT_* config in the build environment.
+
+    Databricks Apps read runtime environment from ``app.yaml``, so the configuration present
+    when the app tree is assembled is baked in here. The SQL warehouse id is resolved at
+    runtime from the app resource named ``policy-agent-warehouse`` rather than as a literal.
+
+    Returns:
+        The YAML ``env:`` block, or an empty string when no configuration is set.
+    """
+    passthrough = (
+        "POLICY_AGENT_STORAGE_BACKEND",
+        "POLICY_AGENT_CATALOG",
+        "POLICY_AGENT_SCHEMA",
+        "POLICY_AGENT_TAGS",
+        "POLICY_AGENT_NOTIFICATION_EMAILS",
+        "POLICY_AGENT_NOTIFICATION_WEBHOOK",
+        "POLICY_AGENT_LAKEBASE_URL",
+    )
+    lines = ["env:"]
+    for name in passthrough:
+        value = os.environ.get(name)
+        if value:
+            lines.append(f"  - name: {name}")
+            lines.append(f'    value: "{value}"')
+    lines.append("  - name: POLICY_AGENT_WAREHOUSE_ID")
+    lines.append('    valueFrom: "policy-agent-warehouse"')
+    return "\n".join(lines) + "\n"
 
 
 def _run(command: list[str], cwd: Path) -> None:

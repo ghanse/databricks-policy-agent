@@ -53,7 +53,7 @@ def grant_role(
     return {"group_name": body.group_name, "role": body.role}
 
 
-@router.delete("/mappings", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/mappings", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def revoke_role(
     body: RoleMappingRequest,
     _roles: set[Role] = Depends(require_admin),
