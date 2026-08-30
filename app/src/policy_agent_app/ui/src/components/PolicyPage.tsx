@@ -144,7 +144,7 @@ export function PolicyPage({
               return (
                 <button
                   key={t.action}
-                  className="action secondary"
+                  className={`action act-${t.color}`}
                   onClick={() => runTransition(t.action, t.label, t.kind)}
                 >
                   <Icon size={14} /> {t.label}
@@ -152,7 +152,7 @@ export function PolicyPage({
               );
             })}
             {isAdmin && (
-              <button className="action secondary danger-btn" onClick={remove}>
+              <button className="action act-danger" onClick={remove}>
                 <TrashIcon size={14} /> Delete
               </button>
             )}

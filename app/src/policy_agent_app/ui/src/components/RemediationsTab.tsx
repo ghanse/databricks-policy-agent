@@ -7,18 +7,20 @@ import { CheckIcon, EditIcon, LightbulbIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { FilterBar } from "./FilterBar";
 import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
+import { usePage, PagerBar } from "../usePage";
+import type { ActionColor } from "../policyActions";
 
 type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
-const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind }[]> = {
+const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind; color: ActionColor }[]> = {
   open: [
-    { action: "advance", label: "Advance", icon: EditIcon, kind: "save" },
-    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save" },
-    { action: "waive", label: "Waive", icon: XIcon, kind: "delete" },
+    { action: "advance", label: "Advance", icon: EditIcon, kind: "save", color: "accent" },
+    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
+    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "neutral" },
   ],
   in_progress: [
-    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save" },
-    { action: "waive", label: "Waive", icon: XIcon, kind: "delete" },
+    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
+    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "neutral" },
   ],
 };
 
@@ -101,6 +103,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
     age: (i) => new Date(i.opened_at).getTime(),
     status: (i) => i.status,
   });
+  const pager = usePage(sorted, 10);
 
   return (
     <div className="panel">
@@ -165,7 +168,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
             </tr>
           </thead>
           <tbody>
-            {sorted.map((item) => (
+            {pager.pageRows.map((item) => (
               <tr key={item.remediation_id}>
                 <td>
                   <span className={`badge ${item.severity}`}>{severityLabel(item.severity)}</span>
@@ -206,7 +209,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
                       return (
                         <button
                           key={a.action}
-                          className="icon-btn"
+                          className={`icon-btn act-${a.color}`}
                           title={a.label}
                           onClick={() => promptAction(item, a.action, a.label, a.kind)}
                         >
@@ -220,6 +223,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
             ))}
           </tbody>
         </table>
+        <PagerBar pager={pager} />
         </div>
       )}
       <NoteDialog request={dialog} onClose={() => setDialog(null)} />

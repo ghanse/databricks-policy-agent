@@ -4,6 +4,7 @@ import type { Finding, ScanHeader, ScanResult, Settings } from "../types";
 import { resourceTypeLabel, severityLabel } from "../labels";
 import { useToast } from "../toast";
 import { useSort, SortTh, SEVERITY_RANK } from "../useSort";
+import { usePage, PagerBar } from "../usePage";
 import { CheckIcon, ChevronIcon, LightbulbIcon } from "./icons";
 import { SplitButton } from "./SplitButton";
 import { FilterBar } from "./FilterBar";
@@ -135,8 +136,10 @@ export function ScansTab({
   const sortedViolations = violSort.apply(filteredViolations, {
     severity: (f) => SEVERITY_RANK[f.severity] ?? -1,
     policy: (f) => f.policy_name.toLowerCase(),
+    type: (f) => f.resource_type,
     resource: (f) => (f.resource_name ?? "").toLowerCase(),
   });
+  const violPager = usePage(sortedViolations, 10);
 
   const filteredHistory = useMemo(() => {
     const from = fromDate ? new Date(fromDate).getTime() : null;
@@ -153,6 +156,7 @@ export function ScansTab({
     evaluated: (h) => Number(h.evaluated),
     violations: (h) => Number(h.violations),
   });
+  const histPager = usePage(sortedHistory, 10);
 
   // ---- Result page ----
   if (mode === "result" && details) {
@@ -193,30 +197,32 @@ export function ScansTab({
             {sortedViolations.length === 0 ? (
               <div className="empty">No violations — everything scanned is compliant. 🎉</div>
             ) : (
+              <>
               <div className="table-wrap">
                 <table>
                   <thead>
                     <tr>
                       <SortTh label="Severity" field="severity" sort={violSort} />
                       <SortTh label="Policy" field="policy" sort={violSort} />
+                      <SortTh label="Type" field="type" sort={violSort} />
                       <SortTh label="Resource" field="resource" sort={violSort} />
                       <th>Recommended fix</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedViolations.map((f, i) => (
+                    {violPager.pageRows.map((f, i) => (
                       <tr key={i}>
                         <td>
                           <span className={`badge ${f.severity}`}>{severityLabel(f.severity)}</span>
                         </td>
-                        <td className="cell-strong">
+                        <td>
                           {f.policy_name}
                           <div className="faint">{f.message}</div>
                         </td>
                         <td>
-                          {f.resource_name}
-                          <div className="faint">{resourceTypeLabel(f.resource_type)}</div>
+                          <span className="badge neutral">{resourceTypeLabel(f.resource_type)}</span>
                         </td>
+                        <td>{f.resource_name}</td>
                         <td style={{ maxWidth: 300 }}>
                           {f.remediation ? (
                             <div className="reco">
@@ -232,6 +238,8 @@ export function ScansTab({
                   </tbody>
                 </table>
               </div>
+              <PagerBar pager={violPager} />
+              </>
             )}
           </div>
 
@@ -264,7 +272,8 @@ export function ScansTab({
                   <div className="metric-top">
                     <span>Compliant</span>
                     <span className="n">
-                      {details.compliant} <span className="faint">({pct(details.compliant)}%)</span>
+                      {details.compliant} of {details.evaluated}{" "}
+                      <span className="faint">({pct(details.compliant)}%)</span>
                     </span>
                   </div>
                   <div className="metric-bar">
@@ -275,14 +284,14 @@ export function ScansTab({
                   <div className="metric-top">
                     <span>Noncompliant</span>
                     <span className="n">
-                      {details.violations} <span className="faint">({pct(details.violations)}%)</span>
+                      {details.violations} of {details.evaluated}{" "}
+                      <span className="faint">({pct(details.violations)}%)</span>
                     </span>
                   </div>
                   <div className="metric-bar">
                     <span style={{ width: `${pct(details.violations)}%` }} />
                   </div>
                 </div>
-                <div className="faint" style={{ fontSize: 12 }}>{details.evaluated} resources evaluated</div>
               </div>
             </div>
           ) : (
@@ -353,7 +362,7 @@ export function ScansTab({
                 </tr>
               </thead>
               <tbody>
-                {sortedHistory.map((h) => (
+                {histPager.pageRows.map((h) => (
                   <tr key={h.scan_id}>
                     <td>
                       <button className="linkbtn" onClick={() => viewScan(h, h.scan_id)}>
@@ -368,6 +377,7 @@ export function ScansTab({
                 ))}
               </tbody>
             </table>
+            <PagerBar pager={histPager} />
           </div>
         )}
       </div>

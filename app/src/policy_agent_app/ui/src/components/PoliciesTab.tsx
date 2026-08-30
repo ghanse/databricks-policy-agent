@@ -10,6 +10,7 @@ import { SplitButton } from "./SplitButton";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { TrashIcon } from "./icons";
 import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
+import { usePage, PagerBar } from "../usePage";
 
 const EXAMPLE_RULE = JSON.stringify(
   { any: [{ attribute: "owner_type", operator: "not_equals", value: "service_principal" }] },
@@ -190,6 +191,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
     status: (p) => p.status,
     version: (p) => p.version,
   });
+  const pager = usePage(sorted, 10);
 
   if (selected) {
     return (
@@ -357,7 +359,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((p) => (
+                {pager.pageRows.map((p) => (
                   <tr key={p.policy} className="clickable" onClick={() => setSelected(p.policy)}>
                     <td>
                       <div className="cell-strong link">{p.policy}</div>
@@ -385,7 +387,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
                           return (
                             <button
                               key={t.action}
-                              className="icon-btn"
+                              className={`icon-btn act-${t.color}`}
                               title={t.label}
                               onClick={() => doTransition(p, t.action, t.label, t.kind)}
                             >
@@ -394,7 +396,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
                           );
                         })}
                         {isAdmin && (
-                          <button className="icon-btn danger" title="Delete" onClick={() => doDelete(p)}>
+                          <button className="icon-btn act-danger" title="Delete" onClick={() => doDelete(p)}>
                             <TrashIcon size={15} />
                           </button>
                         )}
@@ -404,6 +406,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
                 ))}
               </tbody>
             </table>
+            <PagerBar pager={pager} />
           </div>
         )}
       </div>

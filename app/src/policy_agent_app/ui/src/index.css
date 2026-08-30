@@ -1,26 +1,29 @@
 :root {
-  /* Dark theme (default). Near-black neutrals with red primary and green success. */
-  --bg: #0a0a0b;
-  --surface: #141416;
-  --surface-2: #1c1c20;
-  --surface-3: #26262b;
-  --border: #2d2d33;
-  --border-strong: #3f3f47;
+  /* Dark theme (default). Gray-black neutrals (not pure black) with a tan accent. */
+  --bg: #17171b;
+  --surface: #1f1f24;
+  --surface-2: #27272d;
+  --surface-3: #313139;
+  --border: #383840;
+  --border-strong: #4a4a54;
 
-  /* High-contrast text ramp against the dark surfaces. */
-  --text: #f8f8fa;
-  --muted: #d0d0d8;
-  --faint: #9ea4ad;
+  /* Gray/white text ramp. */
+  --text: #f2f2f5;
+  --muted: #c3c3cc;
+  --faint: #8f8f9a;
 
-  /* Red primary, a touch more vivid. */
-  --accent: #f0464b;
-  --accent-hover: #ff5a5f;
-  --accent-soft: rgba(240, 70, 75, 0.16);
-  --accent-ring: rgba(240, 70, 75, 0.38);
+  /* Light brownish-pink / tan accent. */
+  --accent: #c99a8a;
+  --accent-hover: #d9ab9b;
+  --accent-soft: rgba(201, 154, 138, 0.16);
+  --accent-ring: rgba(201, 154, 138, 0.4);
+  --on-accent: #1e1613;
 
-  --danger: #f0464b;
-  --warn: #f2b23a;
-  --ok: #3ecf5c;
+  --danger: #e2635f;
+  --warn: #e3ad48;
+  --ok: #58c06c;
+  --ok-soft: rgba(88, 192, 108, 0.16);
+  --danger-soft: rgba(226, 99, 95, 0.16);
 
   --radius: 10px;
   --radius-sm: 7px;
@@ -35,25 +38,28 @@
 
 /* Light theme. */
 :root[data-theme="light"] {
-  --bg: #f5f5f6;
+  --bg: #eceaec;
   --surface: #ffffff;
-  --surface-2: #f0f0f2;
-  --surface-3: #e6e6ea;
-  --border: #e0e0e4;
-  --border-strong: #c7c7cf;
+  --surface-2: #f2f1f3;
+  --surface-3: #e7e5e8;
+  --border: #dcdade;
+  --border-strong: #c4c2c8;
 
-  --text: #0e0e12;
-  --muted: #3a3a44;
-  --faint: #595963;
+  --text: #1a1a20;
+  --muted: #494952;
+  --faint: #6b6b75;
 
-  --accent: #e02b31;
-  --accent-hover: #c9242a;
-  --accent-soft: rgba(224, 43, 49, 0.11);
-  --accent-ring: rgba(224, 43, 49, 0.28);
+  --accent: #a06a58;
+  --accent-hover: #895748;
+  --accent-soft: rgba(160, 106, 88, 0.12);
+  --accent-ring: rgba(160, 106, 88, 0.3);
+  --on-accent: #ffffff;
 
-  --danger: #d5292f;
-  --warn: #b07d15;
+  --danger: #cf3b40;
+  --warn: #a97b1c;
   --ok: #1a9d3f;
+  --ok-soft: rgba(26, 157, 63, 0.12);
+  --danger-soft: rgba(207, 59, 64, 0.12);
 
   --shadow: 0 1px 2px rgba(16, 20, 24, 0.08), 0 10px 28px rgba(16, 20, 24, 0.10);
   --shadow-sm: 0 1px 2px rgba(16, 20, 24, 0.08);
@@ -108,7 +114,7 @@ h1, h2, h3, h4 { margin: 0; }
   background: var(--accent);
   display: grid;
   place-items: center;
-  color: #fff;
+  color: var(--on-accent);
 }
 .brand .name { font-size: 15px; font-weight: 650; letter-spacing: 0.2px; }
 
@@ -243,7 +249,7 @@ button.action {
   align-items: center;
   gap: 6px;
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   padding: 8px 14px;
@@ -260,6 +266,18 @@ button.action.tiny { padding: 5px 10px; font-size: 12px; }
 button.action:disabled { opacity: 0.45; cursor: not-allowed; }
 button.action:disabled:hover { background: var(--accent); border-color: var(--accent); }
 button.action.secondary:disabled:hover { background: var(--surface-2); border-color: var(--border-strong); }
+
+/* Meaningful action colors, usable on icon-only and labelled buttons. Idle: soft tint;
+   hover: filled in the action's color; active: pressed. */
+.icon-btn.act-ok, .action.act-ok { background: var(--ok-soft); color: var(--ok); border: 1px solid transparent; }
+.icon-btn.act-ok:hover, .action.act-ok:hover { background: var(--ok); color: #0b1a0e; border-color: var(--ok); }
+.icon-btn.act-danger, .action.act-danger { background: var(--danger-soft); color: var(--danger); border: 1px solid transparent; }
+.icon-btn.act-danger:hover, .action.act-danger:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+.icon-btn.act-accent, .action.act-accent { background: var(--accent-soft); color: var(--accent-hover); border: 1px solid transparent; }
+.icon-btn.act-accent:hover, .action.act-accent:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.icon-btn.act-neutral, .action.act-neutral { background: var(--surface-3); color: var(--muted); border: 1px solid var(--border-strong); }
+.icon-btn.act-neutral:hover, .action.act-neutral:hover { background: var(--border-strong); color: var(--text); border-color: var(--border-strong); }
+.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active { transform: translateY(1px); }
 
 /* ---------- Inputs ---------- */
 textarea, input, select {
@@ -329,6 +347,11 @@ label.field { display: block; font-size: 11.5px; color: var(--muted); margin-bot
 .modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+
+/* ---------- Pagination ---------- */
+.pager { display: flex; align-items: center; gap: 16px; margin-top: 12px; }
+.pager .linkbtn:disabled { color: var(--faint); text-decoration: none; cursor: default; opacity: 0.6; }
+.pager .pageinfo { color: var(--faint); font-size: 12px; }
 
 /* ---------- Filter bar ---------- */
 .filterbar { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-bottom: 14px; }
@@ -575,7 +598,7 @@ th, td { overflow-wrap: anywhere; }
 .toast.info { border-left-color: var(--accent); }
 
 /* ---------- Neutral / version badges (no lifecycle tier) ---------- */
-.badge.neutral { background: var(--surface-3); color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 600; }
+.badge.neutral { background: var(--surface-3); color: var(--muted); font-weight: 600; }
 
 /* ---------- Higher-contrast table text ---------- */
 th { color: var(--muted); }
@@ -596,7 +619,7 @@ th.sortable:hover { color: var(--text); }
 .crumbs .here { color: var(--text); font-weight: 600; }
 
 /* ---------- Scan results layout + details pane ---------- */
-.scan-layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+.scan-layout { display: grid; grid-template-columns: minmax(0, 1fr) 272px; gap: 16px; align-items: start; }
 .scan-layout.collapsed { grid-template-columns: 1fr auto; }
 .detail-pane { position: sticky; top: 20px; }
 .detail-pane .pane-head { display: flex; align-items: center; gap: 8px; }
