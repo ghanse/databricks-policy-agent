@@ -15,7 +15,7 @@ type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
 const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind; color: ActionColor }[]> = {
   open: [
-    { action: "advance", label: "Advance", icon: PlayIcon, kind: "save", color: "warn" },
+    { action: "advance", label: "Advance", icon: PlayIcon, kind: "save", color: "neutral" },
     { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
     { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
   ],
@@ -24,6 +24,8 @@ const ACTIONS: Record<string, { action: string; label: string; icon: IconType; k
     { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
   ],
 };
+
+const UNASSIGNED = "__unassigned__";
 
 const ACTION_HELP: Record<string, string> = {
   advance: "Mark this violation as actively being worked on, and optionally assign an owner.",
@@ -47,6 +49,7 @@ export function RemediationsTab({
   const [fStatus, setFStatus] = useState("");
   const [fSeverity, setFSeverity] = useState("");
   const [fType, setFType] = useState("");
+  const [fOwner, setFOwner] = useState("");
   const sort = useSort<Remediation>("severity");
 
   const refresh = () => api.listRemediations().then(setItems).catch((e) => toast.push(String(e), "error"));
@@ -80,6 +83,10 @@ export function RemediationsTab({
   };
 
   const open = items.filter((i) => i.status === "open" || i.status === "in_progress");
+  const owners = useMemo(
+    () => [...new Set(items.map((i) => i.assignee).filter(Boolean))] as string[],
+    [items],
+  );
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return items.filter(
@@ -89,9 +96,10 @@ export function RemediationsTab({
           (i.resource_name ?? "").toLowerCase().includes(q)) &&
         (!fStatus || i.status === fStatus) &&
         (!fSeverity || i.severity === fSeverity) &&
-        (!fType || i.resource_type === fType),
+        (!fType || i.resource_type === fType) &&
+        (!fOwner || (fOwner === UNASSIGNED ? !i.assignee : i.assignee === fOwner)),
     );
-  }, [items, search, fStatus, fSeverity, fType]);
+  }, [items, search, fStatus, fSeverity, fType, fOwner]);
 
   const sorted = sort.apply(filtered, {
     severity: (i) => SEVERITY_RANK[i.severity] ?? -1,
@@ -142,6 +150,15 @@ export function RemediationsTab({
               value: t,
               label: resourceTypeLabel(t),
             })),
+          },
+          {
+            label: "Owner",
+            value: fOwner,
+            onChange: setFOwner,
+            options: [
+              { value: UNASSIGNED, label: "Unassigned" },
+              ...owners.map((o) => ({ value: o, label: o.split("@")[0] })),
+            ],
           },
         ]}
       />
@@ -197,7 +214,7 @@ export function RemediationsTab({
                     <span className="faint">—</span>
                   )}
                 </td>
-                <td>{item.assignee ? item.assignee.split("@")[0] : <span className="faint">unassigned</span>}</td>
+                <td>{item.assignee ? item.assignee.split("@")[0] : <span className="faint">Unassigned</span>}</td>
                 <td>
                   {item.scan_id ? (
                     <button className="linkbtn mono" onClick={() => onOpenScan(item.scan_id)}>

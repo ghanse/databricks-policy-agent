@@ -80,6 +80,12 @@ export const TrashIcon = svg(
 );
 export const ArrowLeftIcon = svg(<path d="M19 12H5M12 19l-7-7 7-7" />);
 export const PlayIcon = svg(<path d="M6 4l14 8-14 8V4z" />);
+export const CalendarIcon = svg(
+  <>
+    <rect x="3" y="4" width="18" height="17" rx="2" />
+    <path d="M3 9h18M8 2v4M16 2v4" />
+  </>,
+);
 export const ExternalIcon = svg(
   <>
     <path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h6" />

@@ -49,3 +49,11 @@ export function effectLabel(value: string): string {
 export function humanize(value: string): string {
   return titleCase(value);
 }
+
+/** Derive a display name from an email, e.g. "gregory.hansen@x.com" -> "Gregory Hansen". */
+export function displayName(user: string): string {
+  const local = user.split("@")[0] || user;
+  const parts = local.split(/[._-]+/).filter(Boolean);
+  if (!parts.length) return user;
+  return parts.map((p) => p[0].toUpperCase() + p.slice(1)).join(" ");
+}

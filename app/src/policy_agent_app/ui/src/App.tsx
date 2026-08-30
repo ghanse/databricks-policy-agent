@@ -63,7 +63,10 @@ export function App() {
           <div className="mark">
             <PolicyIcon size={19} />
           </div>
-          <div className="name">Policy Agent</div>
+          <div>
+            <div className="name">Policy Agent</div>
+            {settings?.workspace_id && <div className="sub">Workspace {settings.workspace_id}</div>}
+          </div>
         </div>
 
         <div className="nav-section">Workspace</div>

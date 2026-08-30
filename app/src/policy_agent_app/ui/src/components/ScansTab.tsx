@@ -6,10 +6,11 @@ import { useToast } from "../toast";
 import { useSort, SortTh, SEVERITY_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
 import { resourceUrl } from "../resourceUrl";
-import { CheckIcon, ExternalIcon, LightbulbIcon } from "./icons";
+import { ExternalIcon, LightbulbIcon } from "./icons";
 import { SplitButton } from "./SplitButton";
 import { FilterBar } from "./FilterBar";
 import { Select } from "./Select";
+import { DatePicker } from "./DatePicker";
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
@@ -179,8 +180,8 @@ export function ScansTab({
             <Field label="Source" value={details.source} />
             <div>
               <div className="field-label">Status</div>
-              <div className="row" style={{ gap: 6 }}>
-                <CheckIcon size={14} className="ok-ico" /> Succeeded
+              <div>
+                <span className="badge succeeded">Succeeded</span>
               </div>
             </div>
           </div>
@@ -330,7 +331,7 @@ export function ScansTab({
           </label>
           <label className="filter">
             <span>Start on or after</span>
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} style={{ width: "auto" }} />
+            <DatePicker value={fromDate} onChange={setFromDate} />
           </label>
           {fromDate && (
             <button className="action secondary tiny" onClick={() => setFromDate("")}>

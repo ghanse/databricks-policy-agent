@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { MyRoles } from "../types";
+import { displayName, humanize } from "../labels";
 import { ChevronIcon, SettingsIcon, UserIcon } from "./icons";
 
 function initials(user: string): string {
@@ -24,6 +25,7 @@ export function ProfileMenu({ roles, onOpenSettings }: { roles: MyRoles | null; 
   }, []);
 
   const user = roles?.user ?? "Unknown user";
+  const name = displayName(user);
   const userRoles = roles?.roles ?? [];
 
   return (
@@ -31,22 +33,22 @@ export function ProfileMenu({ roles, onOpenSettings }: { roles: MyRoles | null; 
       <button className="profile-btn" onClick={() => setOpen((v) => !v)}>
         <span className="avatar">{initials(user)}</span>
         <span className="who">
-          <div className="u">{user.split("@")[0]}</div>
-          <div className="r">{userRoles.join(", ") || "no roles"}</div>
+          <div className="u">{name}</div>
+          <div className="r">{userRoles.map(humanize).join(", ") || "no roles"}</div>
         </span>
         <ChevronIcon className="chev" size={15} />
       </button>
       {open && (
         <div className="menu">
           <div className="head">
-            <div className="u">{user.split("@")[0]}</div>
+            <div className="u">{name}</div>
             <div className="e">{user}</div>
           </div>
           <div className="role-chips">
             {userRoles.length ? (
               userRoles.map((r) => (
                 <span key={r} className="badge pill-outline">
-                  {r}
+                  {humanize(r)}
                 </span>
               ))
             ) : (

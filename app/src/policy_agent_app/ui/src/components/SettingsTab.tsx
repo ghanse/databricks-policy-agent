@@ -116,7 +116,7 @@ export function SettingsTab({
                     </button>
                   ) : (
                     <button
-                      className="icon-btn act-accent"
+                      className="icon-btn act-neutral"
                       title="Edit"
                       onClick={() => setEmails((list) => list.map((v, j) => (j === i ? { ...v, editing: true } : v)))}
                     >
@@ -165,7 +165,7 @@ export function SettingsTab({
                   <CheckIcon size={15} />
                 </button>
               ) : (
-                <button className="icon-btn act-accent" title="Edit" onClick={() => setWebhookEditing(true)}>
+                <button className="icon-btn act-neutral" title="Edit" onClick={() => setWebhookEditing(true)}>
                   <EditIcon size={15} />
                 </button>
               )}
@@ -229,7 +229,7 @@ export function SettingsTab({
                   </button>
                 ) : (
                   <button
-                    className="icon-btn act-accent"
+                    className="icon-btn act-neutral"
                     title="Edit"
                     onClick={() => setTags((t) => t.map((r, j) => (j === i ? { ...r, editing: true } : r)))}
                   >

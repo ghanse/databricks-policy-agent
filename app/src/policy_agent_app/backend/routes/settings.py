@@ -33,7 +33,9 @@ from policy_agent_app.backend.schemas import SettingsUpdateRequest
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
-def _payload(config: PolicyAgentConfig, workspace_url: str = "") -> dict[str, Any]:
+def _payload(
+    config: PolicyAgentConfig, workspace_url: str = "", workspace_id: str = ""
+) -> dict[str, Any]:
     storage = config.storage
     return {
         "storage": {
@@ -52,12 +54,20 @@ def _payload(config: PolicyAgentConfig, workspace_url: str = "") -> dict[str, An
         "operators": list(registered_operators()),
         "roles": [role.value for role in Role],
         "workspace_url": workspace_url,
+        "workspace_id": workspace_id,
     }
 
 
 def _workspace_url(workspace_client: Any) -> str:
     config = getattr(workspace_client, "config", None)
     return (getattr(config, "host", "") or "").rstrip("/")
+
+
+def _workspace_id(workspace_client: Any) -> str:
+    try:
+        return str(workspace_client.get_workspace_id())
+    except Exception:
+        return ""
 
 
 @router.get("")
@@ -67,7 +77,7 @@ def get_settings(
     _user: str = Depends(current_user),
 ) -> dict[str, Any]:
     """Return the effective deployment configuration (deploy-time defaults plus overrides)."""
-    return _payload(config, _workspace_url(workspace_client))
+    return _payload(config, _workspace_url(workspace_client), _workspace_id(workspace_client))
 
 
 @router.put("")
@@ -99,4 +109,4 @@ def update_settings(
             executor, base_config.storage, SETTING_NOTIFICATION_WEBHOOK, body.notification_webhook
         )
     effective = apply_overrides(base_config, read_app_settings(executor, base_config.storage))
-    return _payload(effective, _workspace_url(workspace_client))
+    return _payload(effective, _workspace_url(workspace_client), _workspace_id(workspace_client))
