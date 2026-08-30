@@ -28,8 +28,6 @@ export function App() {
   const [active, setActive] = useState("Policies");
   const [roles, setRoles] = useState<MyRoles | null>(null);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [policyCount, setPolicyCount] = useState<number | null>(null);
-  const [openCount, setOpenCount] = useState<number | null>(null);
   const [theme, setTheme] = useState<Theme>(initialTheme);
   const [focusScanId, setFocusScanId] = useState<string | null>(null);
 
@@ -40,11 +38,6 @@ export function App() {
   useEffect(() => {
     api.getMyRoles().then(setRoles).catch(() => setRoles(null));
     api.getSettings().then(setSettings).catch(() => setSettings(null));
-    api.listPolicies().then((p) => setPolicyCount(p.length)).catch(() => setPolicyCount(null));
-    api
-      .listRemediations()
-      .then((r) => setOpenCount(r.filter((i) => i.status === "open" || i.status === "in_progress").length))
-      .catch(() => setOpenCount(null));
   }, []);
 
   const openScan = (scanId: string) => {
@@ -53,7 +46,6 @@ export function App() {
   };
 
   const section = SECTIONS.find((s) => s.key === active)!;
-  const counts: Record<string, number | null> = { Policies: policyCount, Remediations: openCount };
   const isAdmin = roles?.roles.includes("admin") ?? false;
 
   return (
@@ -64,7 +56,7 @@ export function App() {
             <PolicyIcon size={19} />
           </div>
           <div>
-            <div className="name">Policy Agent</div>
+            <div className="name">Databricks Policy Agent</div>
             {settings?.workspace_id && <div className="sub">Workspace ID: {settings.workspace_id}</div>}
           </div>
         </div>
@@ -72,7 +64,6 @@ export function App() {
         <div className="nav-section">Workspace</div>
         {SECTIONS.filter((s) => s.key !== "Settings").map((s) => {
           const Icon = s.icon;
-          const count = counts[s.key];
           return (
             <button
               key={s.key}
@@ -81,7 +72,6 @@ export function App() {
             >
               <Icon className="ico" size={17} />
               {s.label}
-              {count != null && count > 0 && <span className="count">{count}</span>}
             </button>
           );
         })}

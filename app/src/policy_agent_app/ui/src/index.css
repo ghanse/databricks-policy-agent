@@ -566,14 +566,15 @@ tr.selected-row { background: var(--accent-soft); }
 .dropzone {
   border: 1.5px dashed var(--border-strong);
   border-radius: var(--radius);
-  padding: 26px 16px;
+  background: var(--surface-2);
+  padding: 28px 16px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.12s, background 0.12s;
 }
-.dropzone:hover { border-color: var(--accent); }
+.dropzone:hover { border-color: var(--accent); background: var(--surface-3); }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
-.dropzone .dz-title { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+.dropzone .dz-text { font-size: 12.5px; color: var(--muted); }
 .file-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 13px; }
 
 /* ---------- Settings editors ---------- */
@@ -717,11 +718,19 @@ th.sortable:hover { color: var(--text); }
 .df-k { color: var(--faint); font-weight: 400; font-size: 11px; }
 .df-v { color: var(--text); font-size: 13px; overflow-wrap: anywhere; min-width: 0; }
 .df-v.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
-.metrics-h { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; max-width: 640px; }
+.metrics-h {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  max-width: 640px;
+}
 @media (max-width: 620px) { .metrics-h { grid-template-columns: 1fr; } }
 .metrics { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
-.metric .metric-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
-.metric .metric-top .n { font-weight: 700; }
+.metric .metric-top { display: flex; justify-content: space-between; font-size: 11.5px; margin-bottom: 5px; }
+.metric .metric-top .n { font-weight: 400; }
 .metric-bar { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
 .metric-bar > span { display: block; height: 100%; border-radius: 999px; }
 .metric.ok .metric-bar > span { background: var(--ok); }

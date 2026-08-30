@@ -83,8 +83,7 @@ export function ImportModal({ onClose, onImported }: { onClose: () => void; onIm
           }}
           onClick={() => fileRef.current?.click()}
         >
-          <div className="dz-title">Drag &amp; drop YAML files here</div>
-          <div className="faint">or click to browse</div>
+          <div className="dz-text">Drag and drop YAML files here, or click to browse</div>
           <input
             ref={fileRef}
             type="file"
@@ -121,13 +120,13 @@ export function ImportModal({ onClose, onImported }: { onClose: () => void; onIm
         {validation && <div className="muted" style={{ marginTop: 10 }}>{validation}</div>}
 
         <div className="actions">
-          <button className="action secondary" onClick={onClose}>
+          <button className="action act-danger" onClick={onClose}>
             Cancel
           </button>
-          <button className="action secondary" onClick={validate} disabled={!files.length}>
+          <button className="action act-neutral" onClick={validate} disabled={!files.length}>
             Validate
           </button>
-          <button className="action" onClick={save} disabled={!files.length || busy}>
+          <button className="action act-ok" onClick={save} disabled={!files.length || busy}>
             {busy ? "Saving…" : "Save"}
           </button>
         </div>

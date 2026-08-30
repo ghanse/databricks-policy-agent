@@ -157,7 +157,7 @@ export function RemediationsTab({
             onChange: setFOwner,
             options: [
               { value: UNASSIGNED, label: "Unassigned" },
-              ...owners.map((o) => ({ value: o, label: o.split("@")[0] })),
+              ...owners.map((o) => ({ value: o, label: o })),
             ],
           },
         ]}
@@ -214,7 +214,7 @@ export function RemediationsTab({
                     <span className="faint">—</span>
                   )}
                 </td>
-                <td>{item.assignee ? item.assignee.split("@")[0] : <span className="faint">Unassigned</span>}</td>
+                <td>{item.assignee ? item.assignee : <span className="faint">Unassigned</span>}</td>
                 <td>
                   {item.scan_id ? (
                     <button className="linkbtn mono" onClick={() => onOpenScan(item.scan_id)}>

@@ -255,13 +255,13 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
             onChange={(e) => set({ match: e.target.value })}
           />
           <div className="row" style={{ marginTop: 12 }}>
-            <button className="action secondary" onClick={() => { setShowForm(false); setValidation(""); }}>
+            <button className="action act-danger" onClick={() => { setShowForm(false); setValidation(""); }}>
               Cancel
             </button>
-            <button className="action secondary" onClick={validate}>
+            <button className="action act-neutral" onClick={validate}>
               Validate
             </button>
-            <button className="action" onClick={save} disabled={!form.name}>
+            <button className="action act-ok" onClick={save} disabled={!form.name}>
               Save draft
             </button>
             <span className="muted">{validation}</span>
