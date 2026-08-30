@@ -42,6 +42,11 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ yaml }),
     }),
+  parsePolicies: (yaml: string) =>
+    request<{ policies: Policy[] }>("/policies/parse", {
+      method: "POST",
+      body: JSON.stringify({ yaml }),
+    }),
   validatePolicy: (body: unknown) =>
     request<{ valid: boolean; error?: string }>("/policies/validate", {
       method: "POST",

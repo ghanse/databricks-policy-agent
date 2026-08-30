@@ -70,3 +70,11 @@ export const SunIcon = svg(
   </>,
 );
 export const MoonIcon = svg(<path d="M20 14.5A8 8 0 019.5 4a7 7 0 100 16 8 8 0 0010.5-5.5z" />);
+export const CheckIcon = svg(<path d="M20 6L9 17l-5-5" />);
+export const XIcon = svg(<path d="M18 6L6 18M6 6l12 12" />);
+export const PlusIcon = svg(<path d="M12 5v14M5 12h14" />);
+export const TrashIcon = svg(
+  <>
+    <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+  </>,
+);

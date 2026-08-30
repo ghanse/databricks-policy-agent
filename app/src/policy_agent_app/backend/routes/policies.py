@@ -49,6 +49,17 @@ def validate_policy_request(body: PolicyRequest) -> dict[str, Any]:
     return {"valid": True}
 
 
+@router.post("/parse")
+def parse_policies(body: PolicyImportRequest) -> dict[str, Any]:
+    """Parse OPA-style YAML into policy dictionaries without saving them.
+
+    Used by the UI to populate the authoring form from an uploaded file so the user can
+    review and confirm before saving.
+    """
+    policies = load_policies_from_yaml(body.yaml)
+    return {"policies": [policy_to_dict(policy) for policy in policies]}
+
+
 @router.post("/import", status_code=status.HTTP_201_CREATED)
 def import_policies(
     body: PolicyImportRequest,

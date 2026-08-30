@@ -1,43 +1,37 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Settings } from "../types";
+import type { Theme } from "../theme";
+import { CheckIcon, MoonIcon, PlusIcon, SunIcon, TrashIcon } from "./icons";
 
-function tagsToText(tags: Record<string, string>): string {
-  return Object.entries(tags)
-    .map(([k, v]) => `${k}=${v}`)
-    .join(", ");
-}
-
-function parseTags(text: string): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const pair of text.split(",")) {
-    const [k, ...rest] = pair.split("=");
-    const key = k.trim();
-    if (key) out[key] = rest.join("=").trim();
-  }
-  return out;
+interface TagRow {
+  key: string;
+  value: string;
 }
 
 export function SettingsTab({
   settings,
   isAdmin,
   onSaved,
+  theme,
+  onToggleTheme,
 }: {
   settings: Settings | null;
   isAdmin: boolean;
   onSaved: (s: Settings) => void;
+  theme: Theme;
+  onToggleTheme: () => void;
 }) {
-  const [tags, setTags] = useState("");
-  const [emails, setEmails] = useState("");
+  const [tags, setTags] = useState<TagRow[]>([]);
+  const [emails, setEmails] = useState<string[]>([]);
   const [webhook, setWebhook] = useState("");
-  const [status, setStatus] = useState("");
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (settings) {
-      setTags(tagsToText(settings.storage.object_tags));
-      setEmails(settings.notifications.emails.join(", "));
+      setTags(Object.entries(settings.storage.object_tags).map(([key, value]) => ({ key, value })));
+      setEmails([...settings.notifications.emails]);
       setWebhook(settings.notifications.webhook ?? "");
     }
   }, [settings]);
@@ -46,114 +40,166 @@ export function SettingsTab({
     return <div className="panel muted">Loading settings…</div>;
   }
 
-  const save = async () => {
+  const persist = async (partial: Record<string, unknown>, ok: string) => {
     setError("");
-    setStatus("");
-    setSaving(true);
+    setNote("");
     try {
-      const updated = await api.updateSettings({
-        object_tags: parseTags(tags),
-        notification_emails: emails
-          .split(",")
-          .map((e) => e.trim())
-          .filter(Boolean),
-        notification_webhook: webhook.trim(),
-      });
+      const updated = await api.updateSettings(partial);
       onSaved(updated);
-      setStatus("Saved ✓");
+      setNote(ok);
     } catch (e) {
       setError(String(e));
-    } finally {
-      setSaving(false);
     }
   };
+
+  const saveTags = (rows: TagRow[]) => {
+    const obj: Record<string, string> = {};
+    for (const r of rows) if (r.key.trim()) obj[r.key.trim()] = r.value.trim();
+    return persist({ object_tags: obj }, "Tags saved ✓");
+  };
+  const saveEmails = (list: string[]) =>
+    persist({ notification_emails: list.map((e) => e.trim()).filter(Boolean) }, "Emails saved ✓");
 
   return (
     <>
       <div className="panel">
-        <h3>
-          Storage
-          <span className="hint">fixed at deploy time</span>
-        </h3>
-        <table>
-          <tbody>
-            <tr>
-              <th style={{ width: 160 }}>Backend</th>
-              <td>{settings.storage.backend === "uc" ? "Unity Catalog (Delta)" : settings.storage.backend}</td>
-            </tr>
-            <tr>
-              <th>Schema</th>
-              <td className="mono">{settings.storage.qualified_schema}</td>
-            </tr>
-          </tbody>
-        </table>
-        <p className="faint" style={{ fontSize: 12, marginBottom: 0 }}>
-          The storage backend and schema are set by the deployment bundle and can't be changed here —
-          changing where state lives would separate the app from its existing data.
-        </p>
+        <h3>Storage</h3>
+        <div className="form-grid">
+          <div>
+            <label className="field">Backend</label>
+            <input
+              disabled
+              value={settings.storage.backend === "uc" ? "Unity Catalog (Delta)" : settings.storage.backend}
+            />
+          </div>
+          <div>
+            <label className="field">Schema</label>
+            <input disabled value={settings.storage.qualified_schema} />
+          </div>
+        </div>
       </div>
 
       <div className="panel">
-        <h3>
-          Object tags
-          {!isAdmin && <span className="hint">admins only</span>}
-        </h3>
-        <p className="muted" style={{ marginTop: 0 }}>
-          Stamped on every object the agent creates and on each stored row. A{" "}
-          <code>managed_by=policy-agent</code> marker is always kept.
-        </p>
+        <h3>Object tags</h3>
+        {error && <div className="error">{error}</div>}
         {isAdmin ? (
-          <>
-            <label className="field">Tags (key=value, comma-separated)</label>
-            <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="team=platform, environment=dev" />
-          </>
+          <div className="stack">
+            {tags.map((row, i) => (
+              <div key={i} className="kv-row">
+                <input
+                  placeholder="key"
+                  value={row.key}
+                  onChange={(e) =>
+                    setTags((t) => t.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))
+                  }
+                />
+                <span className="kv-eq">=</span>
+                <input
+                  placeholder="value"
+                  value={row.value}
+                  onChange={(e) =>
+                    setTags((t) => t.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))
+                  }
+                />
+                <button className="icon-btn ok" title="Save" onClick={() => saveTags(tags)}>
+                  <CheckIcon size={15} />
+                </button>
+                <button
+                  className="icon-btn danger"
+                  title="Delete"
+                  onClick={() => {
+                    const next = tags.filter((_, j) => j !== i);
+                    setTags(next);
+                    saveTags(next);
+                  }}
+                >
+                  <TrashIcon size={15} />
+                </button>
+              </div>
+            ))}
+            <div>
+              <button className="action secondary tiny" onClick={() => setTags((t) => [...t, { key: "", value: "" }])}>
+                <PlusIcon size={13} /> Add tag
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="row wrap">
-            {Object.entries(settings.storage.object_tags).map(([k, v]) => (
-              <span key={k} className="badge pill-outline">
-                {k}={v}
+            {tags.map((t) => (
+              <span key={t.key} className="badge pill-outline">
+                {t.key}={t.value}
               </span>
             ))}
           </div>
         )}
+        {note && <div className="muted" style={{ marginTop: 8 }}>{note}</div>}
       </div>
 
       <div className="panel">
-        <h3>
-          Notifications
-          {!isAdmin && <span className="hint">admins only</span>}
-        </h3>
+        <h3>Notifications</h3>
         {isAdmin ? (
           <>
-            <label className="field">On-failure emails (comma-separated)</label>
-            <input
-              value={emails}
-              onChange={(e) => setEmails(e.target.value)}
-              placeholder="team@example.com, oncall@example.com"
-              style={{ marginBottom: 12 }}
-            />
+            <label className="field">On-failure emails</label>
+            <div className="stack" style={{ marginBottom: 14 }}>
+              {emails.map((email, i) => (
+                <div key={i} className="kv-row">
+                  <input
+                    placeholder="owner@example.com"
+                    value={email}
+                    onChange={(e) => setEmails((list) => list.map((v, j) => (j === i ? e.target.value : v)))}
+                  />
+                  <button className="icon-btn ok" title="Save" onClick={() => saveEmails(emails)}>
+                    <CheckIcon size={15} />
+                  </button>
+                  <button
+                    className="icon-btn danger"
+                    title="Delete"
+                    onClick={() => {
+                      const next = emails.filter((_, j) => j !== i);
+                      setEmails(next);
+                      saveEmails(next);
+                    }}
+                  >
+                    <TrashIcon size={15} />
+                  </button>
+                </div>
+              ))}
+              <div>
+                <button className="action secondary tiny" onClick={() => setEmails((l) => [...l, ""])}>
+                  <PlusIcon size={13} /> Add email
+                </button>
+              </div>
+            </div>
             <label className="field">Webhook URL</label>
-            <input value={webhook} onChange={(e) => setWebhook(e.target.value)} placeholder="https://hooks.example/…" />
+            <div className="kv-row">
+              <input value={webhook} onChange={(e) => setWebhook(e.target.value)} placeholder="https://hooks.example/…" />
+              <button
+                className="icon-btn ok"
+                title="Save"
+                onClick={() => persist({ notification_webhook: webhook.trim() }, "Webhook saved ✓")}
+              >
+                <CheckIcon size={15} />
+              </button>
+            </div>
           </>
         ) : (
           <p className="muted">
-            Emails: {settings.notifications.emails.join(", ") || "none"} · Webhook:{" "}
+            Emails: {emails.join(", ") || "none"} · Webhook:{" "}
             {settings.notifications.webhook_configured ? "configured" : "not configured"}
           </p>
         )}
-        {isAdmin && (
-          <div className="row" style={{ marginTop: 14 }}>
-            <button className="action" onClick={save} disabled={saving}>
-              {saving ? "Saving…" : "Save settings"}
-            </button>
-            <span className="muted">{status}</span>
-            {error && <span className="error" style={{ margin: 0 }}>{error}</span>}
-          </div>
-        )}
-        <p className="faint" style={{ fontSize: 12, marginBottom: 0, marginTop: 12 }}>
-          Applies to app-initiated scans and writes. Scheduled scan jobs use the destinations set in
-          the deployment bundle until they are redeployed.
-        </p>
+      </div>
+
+      <div className="panel">
+        <h3>Appearance</h3>
+        <div className="theme-toggle">
+          <button className={theme === "light" ? "on" : ""} onClick={() => theme !== "light" && onToggleTheme()}>
+            <SunIcon size={15} /> Light
+          </button>
+          <button className={theme === "dark" ? "on" : ""} onClick={() => theme !== "dark" && onToggleTheme()}>
+            <MoonIcon size={15} /> Dark
+          </button>
+        </div>
       </div>
     </>
   );

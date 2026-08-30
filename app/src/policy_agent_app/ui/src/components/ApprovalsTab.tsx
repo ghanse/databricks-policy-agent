@@ -82,6 +82,7 @@ export function ApprovalsTab() {
       ) : filtered.length === 0 ? (
         <div className="empty">No matching policies.</div>
       ) : (
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -118,6 +119,7 @@ export function ApprovalsTab() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <NoteDialog request={dialog} onClose={() => setDialog(null)} />
     </div>

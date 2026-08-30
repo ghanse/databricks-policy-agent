@@ -1,3 +1,5 @@
+import { Select } from "./Select";
+
 export interface FilterSpec {
   label: string;
   value: string;
@@ -29,14 +31,12 @@ export function FilterBar({
       {(filters ?? []).map((f) => (
         <label key={f.label} className="filter">
           <span>{f.label}</span>
-          <select value={f.value} onChange={(e) => f.onChange(e.target.value)}>
-            <option value="">All</option>
-            {f.options.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
+          <Select
+            ariaLabel={f.label}
+            value={f.value}
+            onChange={f.onChange}
+            options={[{ value: "", label: "All" }, ...f.options]}
+          />
         </label>
       ))}
     </div>

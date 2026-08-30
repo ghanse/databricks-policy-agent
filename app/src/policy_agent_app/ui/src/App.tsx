@@ -22,40 +22,14 @@ interface Section {
   key: string;
   label: string;
   icon: IconType;
-  description: string;
 }
 
 const SECTIONS: Section[] = [
-  {
-    key: "Policies",
-    label: "Policies",
-    icon: PolicyIcon,
-    description: "Author allow/deny policies and manage the ones already in place.",
-  },
-  {
-    key: "Approvals",
-    label: "Approvals",
-    icon: ApprovalIcon,
-    description: "Move policies through the draft → review → approved workflow. Only approved policies are scanned.",
-  },
-  {
-    key: "Scans",
-    label: "Scans",
-    icon: ScanIcon,
-    description: "Run a compliance scan across the workspace and inspect the violations it finds.",
-  },
-  {
-    key: "Remediations",
-    label: "Remediations",
-    icon: RemediationIcon,
-    description: "Track each violation to resolution, with the recommended fix and an owner.",
-  },
-  {
-    key: "Settings",
-    label: "Settings",
-    icon: SettingsIcon,
-    description: "Storage backend, notification targets, and the vocabulary the agent understands.",
-  },
+  { key: "Policies", label: "Policies", icon: PolicyIcon },
+  { key: "Approvals", label: "Approvals", icon: ApprovalIcon },
+  { key: "Scans", label: "Scans", icon: ScanIcon },
+  { key: "Remediations", label: "Remediations", icon: RemediationIcon },
+  { key: "Settings", label: "Settings", icon: SettingsIcon },
 ];
 
 export function App() {
@@ -94,11 +68,10 @@ export function App() {
     <div className="app">
       <aside className="sidebar">
         <div className="brand">
-          <div className="mark">P</div>
-          <div>
-            <div className="name">Policy Agent</div>
-            <div className="sub">Databricks compliance</div>
+          <div className="mark">
+            <PolicyIcon size={19} />
           </div>
+          <div className="name">Policy Agent</div>
         </div>
 
         <div className="nav-section">Workspace</div>
@@ -119,18 +92,12 @@ export function App() {
         })}
 
         <div className="spacer" />
-        <ProfileMenu
-          roles={roles}
-          onOpenSettings={() => setActive("Settings")}
-          theme={theme}
-          onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-        />
+        <ProfileMenu roles={roles} onOpenSettings={() => setActive("Settings")} />
       </aside>
 
       <div className="content">
         <div className="topbar">
           <h2>{section.label}</h2>
-          <div className="desc">{section.description}</div>
         </div>
         <main>
           {active === "Policies" && <PoliciesTab settings={settings} />}
@@ -144,6 +111,8 @@ export function App() {
               settings={settings}
               isAdmin={isAdmin}
               onSaved={(s) => setSettings(s)}
+              theme={theme}
+              onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
             />
           )}
         </main>

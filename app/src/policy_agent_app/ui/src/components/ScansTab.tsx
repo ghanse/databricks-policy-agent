@@ -115,24 +115,15 @@ export function ScansTab({
 
   return (
     <>
-      <div className="panel">
-        <div className="spread">
-          <div>
-            <h3 style={{ marginBottom: 4 }}>Run a scan</h3>
-            <p className="muted" style={{ margin: 0 }}>
-              Evaluates every approved policy across{" "}
-              {resourceTypes.map(resourceTypeLabel).join(", ") || "all resource types"}.
-            </p>
-          </div>
-          <SplitButton
-            label={running ? "Scanning…" : "Run scan"}
-            disabled={running}
-            onClick={() => run(false)}
-            options={[{ label: "Dry run scan (don't persist)", onSelect: () => run(true) }]}
-          />
-        </div>
-        {error && <div className="error" style={{ marginTop: 12 }}>{error}</div>}
+      <div className="page-actions">
+        <SplitButton
+          label={running ? "Scanning…" : "Run scan"}
+          disabled={running}
+          onClick={() => run(false)}
+          options={[{ label: "Dry run scan (don't persist)", onSelect: () => run(true) }]}
+        />
       </div>
+      {error && <div className="error">{error}</div>}
 
       {stats && (
         <>
@@ -195,6 +186,7 @@ export function ScansTab({
             {filteredViolations.length === 0 ? (
               <div className="empty">No violations — everything scanned is compliant. 🎉</div>
             ) : (
+              <div className="table-wrap">
               <table>
                 <thead>
                   <tr>
@@ -232,6 +224,7 @@ export function ScansTab({
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </>
@@ -245,6 +238,7 @@ export function ScansTab({
         {history.length === 0 ? (
           <div className="empty">No scans yet. Run one above.</div>
         ) : (
+          <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -273,6 +267,7 @@ export function ScansTab({
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
     </>

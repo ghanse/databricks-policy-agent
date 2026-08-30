@@ -128,6 +128,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
       ) : filtered.length === 0 ? (
         <div className="empty">No matching remediation items.</div>
       ) : (
+        <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -194,6 +195,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <NoteDialog request={dialog} onClose={() => setDialog(null)} />
     </div>
