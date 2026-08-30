@@ -78,3 +78,21 @@ export const TrashIcon = svg(
     <path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
   </>,
 );
+export const ArrowLeftIcon = svg(<path d="M19 12H5M12 19l-7-7 7-7" />);
+export const ListIcon = svg(
+  <>
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+  </>,
+);
+export const CodeIcon = svg(<path d="M16 18l6-6-6-6M8 6l-6 6 6 6" />);
+export const SendIcon = svg(<path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" />);
+export const ArchiveIcon = svg(
+  <>
+    <path d="M21 8v13H3V8M1 3h22v5H1zM10 12h4" />
+  </>,
+);
+export const EditIcon = svg(
+  <>
+    <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
+  </>,
+);

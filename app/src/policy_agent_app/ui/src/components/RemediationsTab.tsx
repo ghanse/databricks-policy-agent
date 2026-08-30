@@ -2,13 +2,23 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy, Remediation } from "../types";
 import { resourceTypeLabel, severityLabel, statusLabel } from "../labels";
-import { LightbulbIcon } from "./icons";
+import { useToast, type ToastKind } from "../toast";
+import { CheckIcon, EditIcon, LightbulbIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { FilterBar } from "./FilterBar";
 
-const ACTIONS: Record<string, string[]> = {
-  open: ["advance", "resolve", "waive"],
-  in_progress: ["resolve", "waive"],
+type IconType = (props: { className?: string; size?: number }) => JSX.Element;
+
+const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind }[]> = {
+  open: [
+    { action: "advance", label: "Advance", icon: EditIcon, kind: "save" },
+    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save" },
+    { action: "waive", label: "Waive", icon: XIcon, kind: "delete" },
+  ],
+  in_progress: [
+    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save" },
+    { action: "waive", label: "Waive", icon: XIcon, kind: "delete" },
+  ],
 };
 
 const ACTION_HELP: Record<string, string> = {
@@ -30,14 +40,14 @@ function age(iso: string): string {
 export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) => void }) {
   const [items, setItems] = useState<Remediation[]>([]);
   const [reco, setReco] = useState<Record<string, string>>({});
-  const [error, setError] = useState("");
   const [dialog, setDialog] = useState<NoteRequest | null>(null);
+  const toast = useToast();
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [fSeverity, setFSeverity] = useState("");
   const [fType, setFType] = useState("");
 
-  const refresh = () => api.listRemediations().then(setItems).catch((e) => setError(String(e)));
+  const refresh = () => api.listRemediations().then(setItems).catch((e) => toast.push(String(e), "error"));
   useEffect(() => {
     refresh();
     api
@@ -46,21 +56,22 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
         setReco(Object.fromEntries(policies.map((p) => [p.policy, p.remediation ?? ""]))),
       )
       .catch(() => setReco({}));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const promptAction = (item: Remediation, action: string) => {
-    setError("");
+  const promptAction = (item: Remediation, action: string, label: string, kind: ToastKind) => {
     setDialog({
-      title: `${action[0].toUpperCase()}${action.slice(1)} — ${item.policy_name}`,
+      title: `${label} — ${item.policy_name}`,
       description: ACTION_HELP[action],
-      confirmLabel: action[0].toUpperCase() + action.slice(1),
+      confirmLabel: label,
       withAssignee: action === "advance",
       onConfirm: async (note, assignee) => {
         try {
           await api.remediationAction(item.remediation_id, action, note, assignee);
+          toast.push(`${label} ✓`, kind);
           refresh();
         } catch (e) {
-          setError(String(e));
+          toast.push(String(e), "error");
         }
       },
     });
@@ -88,7 +99,6 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
           {open.length} open · {items.length} total
         </span>
       </h3>
-      {error && <div className="error">{error}</div>}
       <FilterBar
         search={search}
         onSearch={setSearch}
@@ -180,15 +190,19 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
                 </td>
                 <td>
                   <div className="row">
-                    {(ACTIONS[item.status] ?? []).map((action) => (
-                      <button
-                        key={action}
-                        className="action secondary tiny"
-                        onClick={() => promptAction(item, action)}
-                      >
-                        {action}
-                      </button>
-                    ))}
+                    {(ACTIONS[item.status] ?? []).map((a) => {
+                      const Icon = a.icon;
+                      return (
+                        <button
+                          key={a.action}
+                          className="icon-btn"
+                          title={a.label}
+                          onClick={() => promptAction(item, a.action, a.label, a.kind)}
+                        >
+                          <Icon size={15} />
+                        </button>
+                      );
+                    })}
                   </div>
                 </td>
               </tr>

@@ -3,18 +3,11 @@ import { api } from "./api";
 import type { MyRoles, Settings } from "./types";
 import { applyTheme, initialTheme, type Theme } from "./theme";
 import { PoliciesTab } from "./components/PoliciesTab";
-import { ApprovalsTab } from "./components/ApprovalsTab";
 import { ScansTab } from "./components/ScansTab";
 import { RemediationsTab } from "./components/RemediationsTab";
 import { SettingsTab } from "./components/SettingsTab";
 import { ProfileMenu } from "./components/ProfileMenu";
-import {
-  ApprovalIcon,
-  PolicyIcon,
-  RemediationIcon,
-  ScanIcon,
-  SettingsIcon,
-} from "./components/icons";
+import { PolicyIcon, RemediationIcon, ScanIcon, SettingsIcon } from "./components/icons";
 
 type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
@@ -26,7 +19,6 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { key: "Policies", label: "Policies", icon: PolicyIcon },
-  { key: "Approvals", label: "Approvals", icon: ApprovalIcon },
   { key: "Scans", label: "Scans", icon: ScanIcon },
   { key: "Remediations", label: "Remediations", icon: RemediationIcon },
   { key: "Settings", label: "Settings", icon: SettingsIcon },
@@ -100,8 +92,7 @@ export function App() {
           <h2>{section.label}</h2>
         </div>
         <main>
-          {active === "Policies" && <PoliciesTab settings={settings} />}
-          {active === "Approvals" && <ApprovalsTab />}
+          {active === "Policies" && <PoliciesTab settings={settings} isAdmin={isAdmin} />}
           {active === "Scans" && (
             <ScansTab settings={settings} focusScanId={focusScanId} onFocusHandled={() => setFocusScanId(null)} />
           )}

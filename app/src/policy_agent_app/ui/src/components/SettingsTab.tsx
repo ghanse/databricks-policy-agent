@@ -2,11 +2,16 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Settings } from "../types";
 import type { Theme } from "../theme";
-import { CheckIcon, MoonIcon, PlusIcon, SunIcon, TrashIcon } from "./icons";
+import { useToast } from "../toast";
+import { CheckIcon, EditIcon, MoonIcon, PlusIcon, SunIcon, TrashIcon } from "./icons";
 
 interface TagRow {
   key: string;
   value: string;
+}
+interface EmailRow {
+  value: string;
+  editing: boolean;
 }
 
 export function SettingsTab({
@@ -23,15 +28,15 @@ export function SettingsTab({
   onToggleTheme: () => void;
 }) {
   const [tags, setTags] = useState<TagRow[]>([]);
-  const [emails, setEmails] = useState<string[]>([]);
+  const [emails, setEmails] = useState<EmailRow[]>([]);
   const [webhook, setWebhook] = useState("");
-  const [error, setError] = useState("");
-  const [note, setNote] = useState("");
+  const [webhookEditing, setWebhookEditing] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (settings) {
       setTags(Object.entries(settings.storage.object_tags).map(([key, value]) => ({ key, value })));
-      setEmails([...settings.notifications.emails]);
+      setEmails(settings.notifications.emails.map((value) => ({ value, editing: false })));
       setWebhook(settings.notifications.webhook ?? "");
     }
   }, [settings]);
@@ -40,48 +45,139 @@ export function SettingsTab({
     return <div className="panel muted">Loading settings…</div>;
   }
 
-  const persist = async (partial: Record<string, unknown>, ok: string) => {
-    setError("");
-    setNote("");
+  const persist = async (partial: Record<string, unknown>, ok: string, kind: "save" | "delete") => {
     try {
       const updated = await api.updateSettings(partial);
       onSaved(updated);
-      setNote(ok);
+      toast.push(ok, kind);
     } catch (e) {
-      setError(String(e));
+      toast.push(String(e), "error");
     }
   };
 
-  const saveTags = (rows: TagRow[]) => {
+  const saveTags = (rows: TagRow[], kind: "save" | "delete") => {
     const obj: Record<string, string> = {};
     for (const r of rows) if (r.key.trim()) obj[r.key.trim()] = r.value.trim();
-    return persist({ object_tags: obj }, "Tags saved ✓");
+    return persist({ object_tags: obj }, kind === "delete" ? "Tag removed" : "Tags saved", kind);
   };
-  const saveEmails = (list: string[]) =>
-    persist({ notification_emails: list.map((e) => e.trim()).filter(Boolean) }, "Emails saved ✓");
+  const saveEmails = (rows: EmailRow[], kind: "save" | "delete") =>
+    persist(
+      { notification_emails: rows.map((e) => e.value.trim()).filter(Boolean) },
+      kind === "delete" ? "Email removed" : "Emails saved",
+      kind,
+    );
 
   return (
     <>
       <div className="panel">
-        <h3>Storage</h3>
-        <div className="form-grid">
-          <div>
-            <label className="field">Backend</label>
-            <input
-              disabled
-              value={settings.storage.backend === "uc" ? "Unity Catalog (Delta)" : settings.storage.backend}
-            />
-          </div>
-          <div>
-            <label className="field">Schema</label>
-            <input disabled value={settings.storage.qualified_schema} />
-          </div>
+        <h3>Appearance</h3>
+        <div className="theme-toggle">
+          <button className={theme === "light" ? "on" : ""} onClick={() => theme !== "light" && onToggleTheme()}>
+            <SunIcon size={15} /> Light
+          </button>
+          <button className={theme === "dark" ? "on" : ""} onClick={() => theme !== "dark" && onToggleTheme()}>
+            <MoonIcon size={15} /> Dark
+          </button>
         </div>
       </div>
 
       <div className="panel">
+        <h3>Notifications</h3>
+        {isAdmin ? (
+          <>
+            <label className="field">On-failure emails</label>
+            <div className="stack" style={{ marginBottom: 14 }}>
+              {emails.map((row, i) => (
+                <div key={i} className="kv-row">
+                  <input
+                    placeholder="owner@example.com"
+                    disabled={!row.editing}
+                    value={row.value}
+                    onChange={(e) =>
+                      setEmails((list) => list.map((v, j) => (j === i ? { ...v, value: e.target.value } : v)))
+                    }
+                  />
+                  {row.editing ? (
+                    <button
+                      className="icon-btn ok"
+                      title="Save"
+                      onClick={() => {
+                        setEmails((list) => list.map((v, j) => (j === i ? { ...v, editing: false } : v)));
+                        saveEmails(
+                          emails.map((v, j) => (j === i ? { ...v, editing: false } : v)),
+                          "save",
+                        );
+                      }}
+                    >
+                      <CheckIcon size={15} />
+                    </button>
+                  ) : (
+                    <button
+                      className="icon-btn"
+                      title="Edit"
+                      onClick={() => setEmails((list) => list.map((v, j) => (j === i ? { ...v, editing: true } : v)))}
+                    >
+                      <EditIcon size={15} />
+                    </button>
+                  )}
+                  <button
+                    className="icon-btn danger"
+                    title="Remove"
+                    onClick={() => {
+                      const next = emails.filter((_, j) => j !== i);
+                      setEmails(next);
+                      saveEmails(next, "delete");
+                    }}
+                  >
+                    <TrashIcon size={15} />
+                  </button>
+                </div>
+              ))}
+              <div>
+                <button
+                  className="action secondary tiny"
+                  onClick={() => setEmails((l) => [...l, { value: "", editing: true }])}
+                >
+                  <PlusIcon size={13} /> Add email
+                </button>
+              </div>
+            </div>
+            <label className="field">Webhook URL</label>
+            <div className="kv-row">
+              <input
+                disabled={!webhookEditing}
+                value={webhook}
+                onChange={(e) => setWebhook(e.target.value)}
+                placeholder="https://hooks.example/…"
+              />
+              {webhookEditing ? (
+                <button
+                  className="icon-btn ok"
+                  title="Save"
+                  onClick={() => {
+                    setWebhookEditing(false);
+                    persist({ notification_webhook: webhook.trim() }, "Webhook saved", "save");
+                  }}
+                >
+                  <CheckIcon size={15} />
+                </button>
+              ) : (
+                <button className="icon-btn" title="Edit" onClick={() => setWebhookEditing(true)}>
+                  <EditIcon size={15} />
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <p className="muted">
+            Emails: {emails.map((e) => e.value).join(", ") || "none"} · Webhook:{" "}
+            {settings.notifications.webhook_configured ? "configured" : "not configured"}
+          </p>
+        )}
+      </div>
+
+      <div className="panel">
         <h3>Object tags</h3>
-        {error && <div className="error">{error}</div>}
         {isAdmin ? (
           <div className="stack">
             {tags.map((row, i) => (
@@ -89,19 +185,15 @@ export function SettingsTab({
                 <input
                   placeholder="key"
                   value={row.key}
-                  onChange={(e) =>
-                    setTags((t) => t.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))
-                  }
+                  onChange={(e) => setTags((t) => t.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))}
                 />
                 <span className="kv-eq">=</span>
                 <input
                   placeholder="value"
                   value={row.value}
-                  onChange={(e) =>
-                    setTags((t) => t.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))
-                  }
+                  onChange={(e) => setTags((t) => t.map((r, j) => (j === i ? { ...r, value: e.target.value } : r)))}
                 />
-                <button className="icon-btn ok" title="Save" onClick={() => saveTags(tags)}>
+                <button className="icon-btn ok" title="Save" onClick={() => saveTags(tags, "save")}>
                   <CheckIcon size={15} />
                 </button>
                 <button
@@ -110,7 +202,7 @@ export function SettingsTab({
                   onClick={() => {
                     const next = tags.filter((_, j) => j !== i);
                     setTags(next);
-                    saveTags(next);
+                    saveTags(next, "delete");
                   }}
                 >
                   <TrashIcon size={15} />
@@ -132,73 +224,22 @@ export function SettingsTab({
             ))}
           </div>
         )}
-        {note && <div className="muted" style={{ marginTop: 8 }}>{note}</div>}
       </div>
 
       <div className="panel">
-        <h3>Notifications</h3>
-        {isAdmin ? (
-          <>
-            <label className="field">On-failure emails</label>
-            <div className="stack" style={{ marginBottom: 14 }}>
-              {emails.map((email, i) => (
-                <div key={i} className="kv-row">
-                  <input
-                    placeholder="owner@example.com"
-                    value={email}
-                    onChange={(e) => setEmails((list) => list.map((v, j) => (j === i ? e.target.value : v)))}
-                  />
-                  <button className="icon-btn ok" title="Save" onClick={() => saveEmails(emails)}>
-                    <CheckIcon size={15} />
-                  </button>
-                  <button
-                    className="icon-btn danger"
-                    title="Delete"
-                    onClick={() => {
-                      const next = emails.filter((_, j) => j !== i);
-                      setEmails(next);
-                      saveEmails(next);
-                    }}
-                  >
-                    <TrashIcon size={15} />
-                  </button>
-                </div>
-              ))}
-              <div>
-                <button className="action secondary tiny" onClick={() => setEmails((l) => [...l, ""])}>
-                  <PlusIcon size={13} /> Add email
-                </button>
-              </div>
-            </div>
-            <label className="field">Webhook URL</label>
-            <div className="kv-row">
-              <input value={webhook} onChange={(e) => setWebhook(e.target.value)} placeholder="https://hooks.example/…" />
-              <button
-                className="icon-btn ok"
-                title="Save"
-                onClick={() => persist({ notification_webhook: webhook.trim() }, "Webhook saved ✓")}
-              >
-                <CheckIcon size={15} />
-              </button>
-            </div>
-          </>
-        ) : (
-          <p className="muted">
-            Emails: {emails.join(", ") || "none"} · Webhook:{" "}
-            {settings.notifications.webhook_configured ? "configured" : "not configured"}
-          </p>
-        )}
-      </div>
-
-      <div className="panel">
-        <h3>Appearance</h3>
-        <div className="theme-toggle">
-          <button className={theme === "light" ? "on" : ""} onClick={() => theme !== "light" && onToggleTheme()}>
-            <SunIcon size={15} /> Light
-          </button>
-          <button className={theme === "dark" ? "on" : ""} onClick={() => theme !== "dark" && onToggleTheme()}>
-            <MoonIcon size={15} /> Dark
-          </button>
+        <h3>Storage</h3>
+        <div className="stack" style={{ maxWidth: 460 }}>
+          <div>
+            <label className="field">Backend</label>
+            <input
+              disabled
+              value={settings.storage.backend === "uc" ? "Unity Catalog (Delta)" : settings.storage.backend}
+            />
+          </div>
+          <div>
+            <label className="field">Schema</label>
+            <input disabled value={settings.storage.qualified_schema} />
+          </div>
         </div>
       </div>
     </>
