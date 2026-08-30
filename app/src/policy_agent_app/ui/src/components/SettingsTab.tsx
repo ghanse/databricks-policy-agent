@@ -180,6 +180,13 @@ export function SettingsTab({
         <h3>Object tags</h3>
         {isAdmin ? (
           <div className="stack">
+            {tags.length > 0 && (
+              <div className="kv-head">
+                <span className="kv-h" style={{ flex: "1 1 auto" }}>Key</span>
+                <span className="kv-h" style={{ flex: "1 1 auto" }}>Value</span>
+                <span style={{ width: 72, flex: "none" }} />
+              </div>
+            )}
             {tags.map((row, i) => (
               <div key={i} className="kv-row">
                 <input
@@ -187,7 +194,6 @@ export function SettingsTab({
                   value={row.key}
                   onChange={(e) => setTags((t) => t.map((r, j) => (j === i ? { ...r, key: e.target.value } : r)))}
                 />
-                <span className="kv-eq">=</span>
                 <input
                   placeholder="value"
                   value={row.value}

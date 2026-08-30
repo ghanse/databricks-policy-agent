@@ -6,6 +6,7 @@ import { useToast, type ToastKind } from "../toast";
 import { CheckIcon, EditIcon, LightbulbIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { FilterBar } from "./FilterBar";
+import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
 
 type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
@@ -46,6 +47,7 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
   const [fStatus, setFStatus] = useState("");
   const [fSeverity, setFSeverity] = useState("");
   const [fType, setFType] = useState("");
+  const sort = useSort<Remediation>("severity");
 
   const refresh = () => api.listRemediations().then(setItems).catch((e) => toast.push(String(e), "error"));
   useEffect(() => {
@@ -90,6 +92,15 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
         (!fType || i.resource_type === fType),
     );
   }, [items, search, fStatus, fSeverity, fType]);
+
+  const sorted = sort.apply(filtered, {
+    severity: (i) => SEVERITY_RANK[i.severity] ?? -1,
+    policy: (i) => i.policy_name.toLowerCase(),
+    resource: (i) => (i.resource_name ?? "").toLowerCase(),
+    owner: (i) => (i.assignee ?? "").toLowerCase(),
+    age: (i) => new Date(i.opened_at).getTime(),
+    status: (i) => i.status,
+  });
 
   return (
     <div className="panel">
@@ -142,19 +153,19 @@ export function RemediationsTab({ onOpenScan }: { onOpenScan: (scanId: string) =
         <table>
           <thead>
             <tr>
-              <th>Severity</th>
-              <th>Policy</th>
-              <th>Resource</th>
+              <SortTh label="Severity" field="severity" sort={sort} />
+              <SortTh label="Policy" field="policy" sort={sort} />
+              <SortTh label="Resource" field="resource" sort={sort} />
               <th>Recommended action</th>
-              <th>Owner</th>
-              <th>Age</th>
+              <SortTh label="Owner" field="owner" sort={sort} />
+              <SortTh label="Age" field="age" sort={sort} />
               <th>Opened by</th>
-              <th>Status</th>
+              <SortTh label="Status" field="status" sort={sort} />
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((item) => (
+            {sorted.map((item) => (
               <tr key={item.remediation_id}>
                 <td>
                   <span className={`badge ${item.severity}`}>{severityLabel(item.severity)}</span>

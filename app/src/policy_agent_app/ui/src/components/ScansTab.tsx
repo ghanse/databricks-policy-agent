@@ -3,30 +3,28 @@ import { api } from "../api";
 import type { Finding, ScanHeader, ScanResult, Settings } from "../types";
 import { resourceTypeLabel, severityLabel } from "../labels";
 import { useToast } from "../toast";
-import { LightbulbIcon, ArrowLeftIcon } from "./icons";
+import { useSort, SortTh, SEVERITY_RANK } from "../useSort";
+import { CheckIcon, ChevronIcon, LightbulbIcon } from "./icons";
 import { SplitButton } from "./SplitButton";
 import { FilterBar } from "./FilterBar";
 import { Select } from "./Select";
 
-const SEVERITY_ORDER = ["critical", "high", "medium", "low"];
-
 function shortId(id: string): string {
   return id.slice(0, 8);
 }
-
 function fmtTime(iso: string): string {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleString();
 }
-
-function duration(start: string, finish: string): string {
-  const ms = new Date(finish).getTime() - new Date(start).getTime();
+function durationMs(start: string, finish: string): number {
+  return new Date(finish).getTime() - new Date(start).getTime();
+}
+function fmtDuration(ms: number): string {
   if (Number.isNaN(ms) || ms < 0) return "—";
   if (ms < 1000) return `${ms} ms`;
   const s = ms / 1000;
   if (s < 60) return `${s.toFixed(1)}s`;
-  const m = Math.floor(s / 60);
-  return `${m}m ${Math.round(s % 60)}s`;
+  return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
 }
 
 export function ScansTab({
@@ -43,12 +41,15 @@ export function ScansTab({
   const [viewing, setViewing] = useState<{ header: ScanHeader | null; findings: Finding[] } | null>(null);
   const [history, setHistory] = useState<ScanHeader[]>([]);
   const [running, setRunning] = useState(false);
+  const [paneOpen, setPaneOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [fSeverity, setFSeverity] = useState("");
   const [fType, setFType] = useState("");
   const [fSource, setFSource] = useState("");
   const [fromDate, setFromDate] = useState("");
   const toast = useToast();
+  const histSort = useSort<ScanHeader>("started_at");
+  const violSort = useSort<Finding>("severity");
 
   const loadHistory = () => api.listScans().then(setHistory).catch(() => setHistory([]));
   useEffect(() => {
@@ -93,28 +94,32 @@ export function ScansTab({
   const violations: Finding[] = result
     ? result.violations
     : (viewing?.findings ?? []).filter((f) => !f.compliant);
-  const stats = result
+
+  // Unified detail model for the results pane.
+  const details = result
     ? {
+        scanId: result.scan_id,
+        start: result.started_at,
+        end: result.finished_at,
+        source: "app",
         evaluated: result.summary.evaluated,
         compliant: result.summary.compliant,
         violations: result.summary.violations,
-        rate: Math.round(result.summary.compliance_rate * 100),
-        bySeverity: result.summary.violations_by_severity,
       }
     : viewing?.header
       ? {
+          scanId: viewing.header.scan_id,
+          start: viewing.header.started_at,
+          end: viewing.header.finished_at,
+          source: viewing.header.triggered_by,
           evaluated: Number(viewing.header.evaluated),
           compliant: Number(viewing.header.compliant),
           violations: Number(viewing.header.violations),
-          rate:
-            Number(viewing.header.evaluated) > 0
-              ? Math.round((Number(viewing.header.compliant) / Number(viewing.header.evaluated)) * 100)
-              : 0,
-          bySeverity: {} as Record<string, number>,
         }
-      : null;
+      : viewing
+        ? { scanId: "", start: "", end: "", source: "—", evaluated: 0, compliant: 0, violations: 0 }
+        : null;
 
-  const shownScanId = result?.scan_id ?? viewing?.header?.scan_id ?? null;
   const resourceTypes = settings?.resource_types ?? [];
   const sources = useMemo(() => [...new Set(history.map((h) => h.triggered_by))], [history]);
 
@@ -127,6 +132,11 @@ export function ScansTab({
         (!fType || f.resource_type === fType),
     );
   }, [violations, search, fSeverity, fType]);
+  const sortedViolations = violSort.apply(filteredViolations, {
+    severity: (f) => SEVERITY_RANK[f.severity] ?? -1,
+    policy: (f) => f.policy_name.toLowerCase(),
+    resource: (f) => (f.resource_name ?? "").toLowerCase(),
+  });
 
   const filteredHistory = useMemo(() => {
     const from = fromDate ? new Date(fromDate).getTime() : null;
@@ -136,114 +146,153 @@ export function ScansTab({
         (from == null || new Date(h.started_at).getTime() >= from),
     );
   }, [history, fSource, fromDate]);
+  const sortedHistory = histSort.apply(filteredHistory, {
+    started_at: (h) => new Date(h.started_at).getTime(),
+    duration: (h) => durationMs(h.started_at, h.finished_at),
+    source: (h) => h.triggered_by,
+    evaluated: (h) => Number(h.evaluated),
+    violations: (h) => Number(h.violations),
+  });
 
   // ---- Result page ----
-  if (mode === "result") {
+  if (mode === "result" && details) {
+    const pct = (n: number) => (details.evaluated > 0 ? Math.round((n / details.evaluated) * 100) : 0);
     return (
       <>
-        <button className="backlink" onClick={() => setMode("list")}>
-          <ArrowLeftIcon size={15} /> Scans
-        </button>
-        {stats && (
-          <>
-            <div className="panel grid">
-              <div className="stat">
-                <div className="value">{stats.evaluated}</div>
-                <div className="label">Evaluated</div>
-              </div>
-              <div className="stat danger">
-                <div className="value">{stats.violations}</div>
-                <div className="label">Violations</div>
-              </div>
-              <div className="stat ok">
-                <div className="value">{stats.compliant}</div>
-                <div className="label">Compliant</div>
-              </div>
-              <div className="stat accent">
-                <div className="value">{stats.rate}%</div>
-                <div className="label">Compliance</div>
-                <div className="meter">
-                  <span style={{ width: `${stats.rate}%` }} />
-                </div>
-              </div>
-            </div>
-            <div className="panel">
-              <h3>
-                Violations
-                {shownScanId && <span className="hint">scan {shortId(shownScanId)}</span>}
-                <span className="hint">
-                  {SEVERITY_ORDER.filter((s) => stats.bySeverity[s]).map((s) => (
-                    <span key={s} className={`badge ${s}`} style={{ marginLeft: 6 }}>
-                      {stats.bySeverity[s]} {severityLabel(s)}
-                    </span>
-                  ))}
-                </span>
-              </h3>
-              <FilterBar
-                search={search}
-                onSearch={setSearch}
-                placeholder="Search by policy or resource…"
-                filters={[
-                  {
-                    label: "Severity",
-                    value: fSeverity,
-                    onChange: setFSeverity,
-                    options: ["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) })),
-                  },
-                  {
-                    label: "Type",
-                    value: fType,
-                    onChange: setFType,
-                    options: resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) })),
-                  },
-                ]}
-              />
-              {filteredViolations.length === 0 ? (
-                <div className="empty">No violations — everything scanned is compliant. 🎉</div>
-              ) : (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Severity</th>
-                        <th>Policy</th>
-                        <th>Resource</th>
-                        <th>Recommended fix</th>
+        <div className="crumbs">
+          <button onClick={() => setMode("list")}>Scans</button>
+          <span className="sep">/</span>
+          <span className="here mono">{shortId(details.scanId) || "result"}</span>
+        </div>
+
+        <div className={`scan-layout ${paneOpen ? "" : "collapsed"}`}>
+          <div className="panel" style={{ marginBottom: 0 }}>
+            <h3>
+              Violations
+              <span className="hint">{sortedViolations.length} shown</span>
+            </h3>
+            <FilterBar
+              search={search}
+              onSearch={setSearch}
+              placeholder="Search by policy or resource…"
+              filters={[
+                {
+                  label: "Severity",
+                  value: fSeverity,
+                  onChange: setFSeverity,
+                  options: ["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) })),
+                },
+                {
+                  label: "Type",
+                  value: fType,
+                  onChange: setFType,
+                  options: resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) })),
+                },
+              ]}
+            />
+            {sortedViolations.length === 0 ? (
+              <div className="empty">No violations — everything scanned is compliant. 🎉</div>
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <SortTh label="Severity" field="severity" sort={violSort} />
+                      <SortTh label="Policy" field="policy" sort={violSort} />
+                      <SortTh label="Resource" field="resource" sort={violSort} />
+                      <th>Recommended fix</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedViolations.map((f, i) => (
+                      <tr key={i}>
+                        <td>
+                          <span className={`badge ${f.severity}`}>{severityLabel(f.severity)}</span>
+                        </td>
+                        <td className="cell-strong">
+                          {f.policy_name}
+                          <div className="faint">{f.message}</div>
+                        </td>
+                        <td>
+                          {f.resource_name}
+                          <div className="faint">{resourceTypeLabel(f.resource_type)}</div>
+                        </td>
+                        <td style={{ maxWidth: 300 }}>
+                          {f.remediation ? (
+                            <div className="reco">
+                              <LightbulbIcon className="ico" size={15} />
+                              <span>{f.remediation}</span>
+                            </div>
+                          ) : (
+                            <span className="faint">—</span>
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {filteredViolations.map((f, i) => (
-                        <tr key={i}>
-                          <td>
-                            <span className={`badge ${f.severity}`}>{severityLabel(f.severity)}</span>
-                          </td>
-                          <td className="cell-strong">
-                            {f.policy_name}
-                            <div className="faint">{f.message}</div>
-                          </td>
-                          <td>
-                            {f.resource_name}
-                            <div className="faint">{resourceTypeLabel(f.resource_type)}</div>
-                          </td>
-                          <td style={{ maxWidth: 300 }}>
-                            {f.remediation ? (
-                              <div className="reco">
-                                <LightbulbIcon className="ico" size={15} />
-                                <span>{f.remediation}</span>
-                              </div>
-                            ) : (
-                              <span className="faint">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {paneOpen ? (
+            <div className="panel detail-pane" style={{ marginBottom: 0 }}>
+              <div className="pane-head">
+                <h3>Scan details</h3>
+                <button className="chev" title="Collapse" onClick={() => setPaneOpen(false)}>
+                  <ChevronIcon size={16} />
+                </button>
+              </div>
+              <dl className="detail-list">
+                <dt>Scan ID</dt>
+                <dd className="mono">{details.scanId || "—"}</dd>
+                <dt>Start Time</dt>
+                <dd>{details.start ? fmtTime(details.start) : "—"}</dd>
+                <dt>End Time</dt>
+                <dd>{details.end ? fmtTime(details.end) : "—"}</dd>
+                <dt>Duration</dt>
+                <dd>{details.start && details.end ? fmtDuration(durationMs(details.start, details.end)) : "—"}</dd>
+                <dt>Source</dt>
+                <dd>{details.source}</dd>
+                <dt>Status</dt>
+                <dd className="row" style={{ gap: 6 }}>
+                  <CheckIcon size={14} className="ok-ico" /> Succeeded
+                </dd>
+              </dl>
+              <div className="metrics">
+                <div className="metric ok">
+                  <div className="metric-top">
+                    <span>Compliant</span>
+                    <span className="n">
+                      {details.compliant} <span className="faint">({pct(details.compliant)}%)</span>
+                    </span>
+                  </div>
+                  <div className="metric-bar">
+                    <span style={{ width: `${pct(details.compliant)}%` }} />
+                  </div>
                 </div>
-              )}
+                <div className="metric bad">
+                  <div className="metric-top">
+                    <span>Noncompliant</span>
+                    <span className="n">
+                      {details.violations} <span className="faint">({pct(details.violations)}%)</span>
+                    </span>
+                  </div>
+                  <div className="metric-bar">
+                    <span style={{ width: `${pct(details.violations)}%` }} />
+                  </div>
+                </div>
+                <div className="faint" style={{ fontSize: 12 }}>{details.evaluated} resources evaluated</div>
+              </div>
             </div>
-          </>
-        )}
+          ) : (
+            <div className="collapsed-rail">
+              <button title="Show scan details" onClick={() => setPaneOpen(true)}>
+                <ChevronIcon size={16} />
+              </button>
+            </div>
+          )}
+        </div>
       </>
     );
   }
@@ -264,7 +313,7 @@ export function ScansTab({
         <h3>
           Scan history
           <span className="hint">
-            {filteredHistory.length} of {history.length}
+            {sortedHistory.length} of {history.length}
           </span>
         </h3>
         <div className="filterbar">
@@ -289,30 +338,30 @@ export function ScansTab({
         </div>
         {history.length === 0 ? (
           <div className="empty">No scans yet. Run one above.</div>
-        ) : filteredHistory.length === 0 ? (
+        ) : sortedHistory.length === 0 ? (
           <div className="empty">No scans match the filter.</div>
         ) : (
           <div className="table-wrap">
             <table>
               <thead>
                 <tr>
-                  <th>Start Time</th>
-                  <th>Duration</th>
-                  <th>Source</th>
-                  <th>Evaluated</th>
-                  <th>Violations</th>
+                  <SortTh label="Start Time" field="started_at" sort={histSort} />
+                  <SortTh label="Duration" field="duration" sort={histSort} />
+                  <SortTh label="Source" field="source" sort={histSort} />
+                  <SortTh label="Evaluated" field="evaluated" sort={histSort} />
+                  <SortTh label="Violations" field="violations" sort={histSort} />
                 </tr>
               </thead>
               <tbody>
-                {filteredHistory.map((h) => (
+                {sortedHistory.map((h) => (
                   <tr key={h.scan_id}>
                     <td>
                       <button className="linkbtn" onClick={() => viewScan(h, h.scan_id)}>
                         {fmtTime(h.started_at)}
                       </button>
                     </td>
-                    <td className="muted">{duration(h.started_at, h.finished_at)}</td>
-                    <td className="muted">{h.triggered_by}</td>
+                    <td>{fmtDuration(durationMs(h.started_at, h.finished_at))}</td>
+                    <td>{h.triggered_by}</td>
                     <td>{h.evaluated}</td>
                     <td>{Number(h.violations) > 0 ? <span className="badge high">{h.violations}</span> : "0"}</td>
                   </tr>

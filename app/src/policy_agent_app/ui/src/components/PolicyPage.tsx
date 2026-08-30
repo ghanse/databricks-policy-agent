@@ -5,7 +5,7 @@ import { effectLabel, resourceTypeLabel, severityLabel, statusLabel } from "../l
 import { useToast, type ToastKind } from "../toast";
 import { transitionsFor } from "../policyActions";
 import { highlightJson, highlightYaml } from "../highlight";
-import { ArrowLeftIcon, CodeIcon, ListIcon, TrashIcon } from "./icons";
+import { CodeIcon, ListIcon, TrashIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 
 type View = "fields" | "yaml";
@@ -75,9 +75,11 @@ export function PolicyPage({
 
   return (
     <>
-      <button className="backlink" onClick={onBack}>
-        <ArrowLeftIcon size={15} /> All policies
-      </button>
+      <div className="crumbs">
+        <button onClick={onBack}>Policies</button>
+        <span className="sep">/</span>
+        <span className="here">{name}</span>
+      </div>
 
       <div className="panel">
         <div className="spread" style={{ marginBottom: 16 }}>
@@ -86,7 +88,7 @@ export function PolicyPage({
             {policy && (
               <div className="row" style={{ gap: 8, marginTop: 6 }}>
                 <span className={`badge ${policy.status}`}>{statusLabel(policy.status)}</span>
-                <span className="faint" style={{ fontSize: 12 }}>version {policy.version}</span>
+                <span className="badge neutral">Version {policy.version}</span>
               </div>
             )}
           </div>

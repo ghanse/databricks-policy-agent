@@ -9,6 +9,7 @@ import { PolicyPage } from "./PolicyPage";
 import { SplitButton } from "./SplitButton";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { TrashIcon } from "./icons";
+import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
 
 const EXAMPLE_RULE = JSON.stringify(
   { any: [{ attribute: "owner_type", operator: "not_equals", value: "service_principal" }] },
@@ -54,6 +55,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
   const [fEffect, setFEffect] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
+  const sort = useSort<Policy>("name");
 
   const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
   const refresh = () => api.listPolicies().then(setPolicies).catch((e) => setError(String(e)));
@@ -179,6 +181,15 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
         (!fEffect || p.effect === fEffect),
     );
   }, [policies, search, fType, fStatus, fSeverity, fEffect]);
+
+  const sorted = sort.apply(filtered, {
+    name: (p) => p.policy.toLowerCase(),
+    type: (p) => p.resource_type,
+    effect: (p) => p.effect,
+    severity: (p) => SEVERITY_RANK[p.severity] ?? -1,
+    status: (p) => p.status,
+    version: (p) => p.version,
+  });
 
   if (selected) {
     return (
@@ -336,31 +347,37 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Effect</th>
-                  <th>Severity</th>
-                  <th>Status</th>
-                  <th>Version</th>
+                  <SortTh label="Name" field="name" sort={sort} />
+                  <SortTh label="Type" field="type" sort={sort} />
+                  <SortTh label="Effect" field="effect" sort={sort} />
+                  <SortTh label="Severity" field="severity" sort={sort} />
+                  <SortTh label="Status" field="status" sort={sort} />
+                  <SortTh label="Version" field="version" sort={sort} />
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((p) => (
+                {sorted.map((p) => (
                   <tr key={p.policy} className="clickable" onClick={() => setSelected(p.policy)}>
                     <td>
                       <div className="cell-strong link">{p.policy}</div>
                       {p.description && <div className="faint">{p.description}</div>}
                     </td>
-                    <td className="muted">{resourceTypeLabel(p.resource_type)}</td>
-                    <td className="muted">{effectLabel(p.effect)}</td>
+                    <td>
+                      <span className="badge neutral">{resourceTypeLabel(p.resource_type)}</span>
+                    </td>
+                    <td>
+                      <span className="badge neutral">{effectLabel(p.effect)}</span>
+                    </td>
                     <td>
                       <span className={`badge ${p.severity}`}>{severityLabel(p.severity)}</span>
                     </td>
                     <td>
                       <span className={`badge ${p.status}`}>{statusLabel(p.status)}</span>
                     </td>
-                    <td className="muted">{p.version}</td>
+                    <td>
+                      <span className="badge neutral">Version {p.version}</span>
+                    </td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="row">
                         {transitionsFor(p.status).map((t) => {

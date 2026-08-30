@@ -8,19 +8,19 @@
   --border-strong: #3f3f47;
 
   /* High-contrast text ramp against the dark surfaces. */
-  --text: #f7f7f8;
-  --muted: #c4c4cc;
-  --faint: #8a8a93;
+  --text: #f8f8fa;
+  --muted: #d0d0d8;
+  --faint: #9ea4ad;
 
-  /* Red primary. */
-  --accent: #e5484d;
-  --accent-hover: #f05a5f;
-  --accent-soft: rgba(229, 72, 77, 0.15);
-  --accent-ring: rgba(229, 72, 77, 0.35);
+  /* Red primary, a touch more vivid. */
+  --accent: #f0464b;
+  --accent-hover: #ff5a5f;
+  --accent-soft: rgba(240, 70, 75, 0.16);
+  --accent-ring: rgba(240, 70, 75, 0.38);
 
-  --danger: #e5484d;
-  --warn: #e0a83a;
-  --ok: #45b859;
+  --danger: #f0464b;
+  --warn: #f2b23a;
+  --ok: #3ecf5c;
 
   --radius: 10px;
   --radius-sm: 7px;
@@ -42,18 +42,18 @@
   --border: #e0e0e4;
   --border-strong: #c7c7cf;
 
-  --text: #111113;
-  --muted: #45454d;
-  --faint: #6a6a73;
+  --text: #0e0e12;
+  --muted: #3a3a44;
+  --faint: #595963;
 
-  --accent: #d63a3f;
-  --accent-hover: #c02f34;
-  --accent-soft: rgba(214, 58, 63, 0.10);
-  --accent-ring: rgba(214, 58, 63, 0.28);
+  --accent: #e02b31;
+  --accent-hover: #c9242a;
+  --accent-soft: rgba(224, 43, 49, 0.11);
+  --accent-ring: rgba(224, 43, 49, 0.28);
 
-  --danger: #cf3b40;
-  --warn: #a97b1c;
-  --ok: #2a9c43;
+  --danger: #d5292f;
+  --warn: #b07d15;
+  --ok: #1a9d3f;
 
   --shadow: 0 1px 2px rgba(16, 20, 24, 0.08), 0 10px 28px rgba(16, 20, 24, 0.10);
   --shadow-sm: 0 1px 2px rgba(16, 20, 24, 0.08);
@@ -105,11 +105,10 @@ h1, h2, h3, h4 { margin: 0; }
   width: 32px;
   height: 32px;
   border-radius: 9px;
-  background: linear-gradient(135deg, var(--accent), #a5292d);
+  background: var(--accent);
   display: grid;
   place-items: center;
   color: #fff;
-  box-shadow: 0 2px 10px var(--accent-ring);
 }
 .brand .name { font-size: 15px; font-weight: 650; letter-spacing: 0.2px; }
 
@@ -159,12 +158,13 @@ h1, h2, h3, h4 { margin: 0; }
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e5484d, #8f2427);
+  background: var(--surface-3);
+  border: 1px solid var(--border-strong);
   display: grid;
   place-items: center;
   font-size: 12px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text);
   flex: none;
 }
 .profile-btn .who { min-width: 0; }
@@ -488,14 +488,15 @@ input:disabled, textarea:disabled {
   height: 32px;
   display: grid;
   place-items: center;
-  background: transparent;
+  background: var(--surface-3);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  color: var(--muted);
+  color: var(--text);
   cursor: pointer;
   padding: 0;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
-.icon-btn:hover { background: var(--surface-2); }
+.icon-btn:hover { background: var(--surface-2); border-color: var(--accent); }
 .icon-btn.ok:hover { color: var(--ok); border-color: var(--ok); }
 .icon-btn.danger:hover { color: var(--danger); border-color: var(--danger); }
 
@@ -573,6 +574,61 @@ th, td { overflow-wrap: anywhere; }
 .toast.error { border-left-color: var(--danger); }
 .toast.info { border-left-color: var(--accent); }
 
+/* ---------- Neutral / version badges (no lifecycle tier) ---------- */
+.badge.neutral { background: var(--surface-3); color: var(--muted); text-transform: none; letter-spacing: 0; font-weight: 600; }
+
+/* ---------- Higher-contrast table text ---------- */
+th { color: var(--muted); }
+td { color: var(--text); }
+td .faint { color: var(--faint); }
+tbody tr:hover td { color: var(--text); }
+
+/* ---------- Sortable headers ---------- */
+th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+th.sortable:hover { color: var(--text); }
+.sort-ind { display: inline-block; width: 10px; margin-left: 4px; color: var(--accent-hover); font-size: 10px; }
+
+/* ---------- Breadcrumb ---------- */
+.crumbs { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 14px; }
+.crumbs button { background: none; border: none; color: var(--muted); cursor: pointer; padding: 0; font-size: 13px; }
+.crumbs button:hover { color: var(--text); }
+.crumbs .sep { color: var(--faint); }
+.crumbs .here { color: var(--text); font-weight: 600; }
+
+/* ---------- Scan results layout + details pane ---------- */
+.scan-layout { display: grid; grid-template-columns: 1fr 320px; gap: 16px; align-items: start; }
+.scan-layout.collapsed { grid-template-columns: 1fr auto; }
+.detail-pane { position: sticky; top: 20px; }
+.detail-pane .pane-head { display: flex; align-items: center; gap: 8px; }
+.detail-pane .pane-head h3 { margin: 0; }
+.detail-pane .pane-head .chev { margin-left: auto; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px; display: grid; place-items: center; }
+.detail-pane .pane-head .chev:hover { color: var(--text); }
+.detail-list { display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; margin-top: 14px; font-size: 13px; }
+.detail-list dt { color: var(--muted); }
+.detail-list dd { margin: 0; color: var(--text); word-break: break-all; }
+.metrics { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }
+.metric .metric-top { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 5px; }
+.metric .metric-top .n { font-weight: 700; }
+.metric-bar { height: 8px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.metric-bar > span { display: block; height: 100%; border-radius: 999px; }
+.metric.ok .metric-bar > span { background: var(--ok); }
+.metric.bad .metric-bar > span { background: var(--danger); }
+.collapsed-rail { display: flex; }
+.collapsed-rail button {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted);
+  cursor: pointer;
+  padding: 10px 8px;
+}
+.collapsed-rail button:hover { color: var(--text); border-color: var(--accent); }
+.ok-ico { color: var(--ok); }
+
+/* ---------- Tag editor key/value labels ---------- */
+.kv-head { display: flex; gap: 8px; margin-bottom: 2px; }
+.kv-head .kv-h { font-size: 11px; color: var(--muted); font-weight: 500; }
+
 /* ---------- Code blocks with syntax highlighting ---------- */
 .code {
   background: var(--bg);
@@ -602,4 +658,6 @@ th, td { overflow-wrap: anywhere; }
   .grid { grid-template-columns: repeat(2, 1fr); }
   .detail { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
+  .scan-layout, .scan-layout.collapsed { grid-template-columns: 1fr; }
+  .detail-pane { position: static; }
 }
