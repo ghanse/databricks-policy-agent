@@ -15,19 +15,36 @@ from policy_agent.storage.backend import (
 )
 
 from policy_agent_app.backend.auth import current_roles, current_user, require_admin
-from policy_agent_app.backend.dependencies import get_config, get_executor
+from policy_agent_app.backend.dependencies import get_config, get_executor, get_workspace_client
 from policy_agent_app.backend.schemas import RoleMappingRequest
 
 router = APIRouter(prefix="/roles", tags=["roles"])
+
+
+def _display_name(workspace_client: Any, user: str) -> str:
+    # Best-effort SCIM lookup of the caller's display name; falls back to empty.
+    try:
+        for scim_user in workspace_client.users.list(filter=f'userName eq "{user}"'):
+            name = getattr(scim_user, "display_name", None)
+            if name:
+                return str(name)
+    except Exception:
+        return ""
+    return ""
 
 
 @router.get("/me")
 def my_roles(
     user: str = Depends(current_user),
     roles: set[Role] = Depends(current_roles),
+    workspace_client=Depends(get_workspace_client),
 ) -> dict[str, Any]:
-    """Return the caller's identity and effective roles."""
-    return {"user": user, "roles": sorted(role.value for role in roles)}
+    """Return the caller's identity, display name, and effective roles."""
+    return {
+        "user": user,
+        "display_name": _display_name(workspace_client, user),
+        "roles": sorted(role.value for role in roles),
+    }
 
 
 @router.get("/mappings")

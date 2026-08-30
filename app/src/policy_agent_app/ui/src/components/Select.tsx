@@ -13,11 +13,13 @@ export function Select({
   options,
   onChange,
   ariaLabel,
+  block,
 }: {
   value: string;
   options: Option[];
   onChange: (value: string) => void;
   ariaLabel?: string;
+  block?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -33,7 +35,7 @@ export function Select({
   const current = options.find((o) => o.value === value);
 
   return (
-    <div className={`sel ${open ? "open" : ""}`} ref={ref}>
+    <div className={`sel ${open ? "open" : ""} ${block ? "sel-block" : ""}`} ref={ref}>
       <button type="button" className="sel-btn" aria-label={ariaLabel} onClick={() => setOpen((v) => !v)}>
         <span className={current ? "" : "faint"}>{current ? current.label : "All"}</span>
         <ChevronIcon className="sel-chev" size={14} />

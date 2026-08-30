@@ -48,7 +48,9 @@ def act_on_remediation(
 def _apply_action(item: RemediationItem, body: RemediationActionRequest) -> RemediationItem:
     now = datetime.now(UTC)
     if body.action == "advance":
-        return advance(item, now, body.note)
+        advanced = advance(item, now, body.note)
+        # Advancing may also assign an owner when one is supplied.
+        return assign(advanced, body.assignee, now) if body.assignee else advanced
     if body.action == "resolve":
         return resolve(item, now, body.note)
     if body.action == "waive":

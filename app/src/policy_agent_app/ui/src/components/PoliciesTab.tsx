@@ -6,6 +6,7 @@ import { useToast, type ToastKind } from "../toast";
 import { transitionsFor } from "../policyActions";
 import { FilterBar } from "./FilterBar";
 import { PolicyPage } from "./PolicyPage";
+import { Select } from "./Select";
 import { SplitButton } from "./SplitButton";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { TrashIcon } from "./icons";
@@ -232,30 +233,36 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
             </div>
             <div style={{ flex: "1 1 120px" }}>
               <label className="field">Resource type</label>
-              <select value={form.resourceType} onChange={(e) => set({ resourceType: e.target.value })}>
-                {resourceTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {resourceTypeLabel(t)}
-                  </option>
-                ))}
-              </select>
+              <Select
+                block
+                ariaLabel="Resource type"
+                value={form.resourceType}
+                onChange={(v) => set({ resourceType: v })}
+                options={resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) }))}
+              />
             </div>
             <div style={{ flex: "1 1 100px" }}>
               <label className="field">Effect</label>
-              <select value={form.effect} onChange={(e) => set({ effect: e.target.value })}>
-                <option value="deny">Deny</option>
-                <option value="allow">Allow</option>
-              </select>
+              <Select
+                block
+                ariaLabel="Effect"
+                value={form.effect}
+                onChange={(v) => set({ effect: v })}
+                options={[
+                  { value: "deny", label: "Deny" },
+                  { value: "allow", label: "Allow" },
+                ]}
+              />
             </div>
             <div style={{ flex: "1 1 100px" }}>
               <label className="field">Severity</label>
-              <select value={form.severity} onChange={(e) => set({ severity: e.target.value })}>
-                {["low", "medium", "high", "critical"].map((s) => (
-                  <option key={s} value={s}>
-                    {severityLabel(s)}
-                  </option>
-                ))}
-              </select>
+              <Select
+                block
+                ariaLabel="Severity"
+                value={form.severity}
+                onChange={(v) => set({ severity: v })}
+                options={["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) }))}
+              />
             </div>
           </div>
           <label className="field">Description</label>

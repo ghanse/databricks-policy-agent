@@ -92,5 +92,6 @@ export interface ScanHeader {
 
 export interface MyRoles {
   user: string;
+  display_name?: string;
   roles: string[];
 }

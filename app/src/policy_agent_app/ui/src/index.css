@@ -125,7 +125,7 @@ h1, h2, h3, h4 { margin: 0; }
   color: var(--on-accent);
 }
 .brand .name { font-size: 15px; font-weight: 650; letter-spacing: 0.2px; }
-.brand .sub { font-size: 11px; color: var(--faint); margin-top: 1px; }
+.brand .sub { font-size: 9.5px; color: var(--faint); margin-top: 2px; white-space: nowrap; letter-spacing: 0.1px; }
 
 .nav-section { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--faint); padding: 10px 10px 4px; }
 
@@ -466,6 +466,7 @@ tr.selected-row { background: var(--accent-soft); }
 
 /* ---------- Custom select (styled option list) ---------- */
 .sel { position: relative; }
+.sel-block, .sel-block .sel-btn { width: 100%; }
 .sel-btn {
   display: inline-flex;
   align-items: center;
@@ -693,13 +694,12 @@ th.sortable:hover { color: var(--text); }
 .detail-list { display: grid; grid-template-columns: auto 1fr; gap: 9px 14px; margin-top: 14px; font-size: 13px; }
 .detail-list dt { color: var(--muted); }
 .detail-list dd { margin: 0; color: var(--text); word-break: break-all; }
-/* Scan details laid out across the top of the results page. */
-.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px 20px; margin-top: 12px; }
-.detail-grid > div { min-width: 0; }
-.detail-grid .field-label { margin-bottom: 3px; }
-/* Uniform, compact value size across all detail fields (matches the Scan ID). */
-.detail-grid > div > div { overflow-wrap: anywhere; font-size: 13px; }
-.detail-grid .mono { word-break: break-all; font-size: 13px; }
+/* Scan details laid out across the top of the results page: label left of value. */
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px 24px; margin-top: 12px; }
+.df { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.df-k { color: var(--text); font-weight: 600; font-size: 13px; white-space: nowrap; flex: none; }
+.df-v { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; min-width: 0; }
+.df-v.mono { word-break: break-all; }
 .metrics-h { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 18px; max-width: 640px; }
 @media (max-width: 620px) { .metrics-h { grid-template-columns: 1fr; } }
 .metrics { margin-top: 18px; display: flex; flex-direction: column; gap: 12px; }

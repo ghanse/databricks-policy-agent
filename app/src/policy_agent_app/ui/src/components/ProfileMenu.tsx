@@ -25,7 +25,7 @@ export function ProfileMenu({ roles, onOpenSettings }: { roles: MyRoles | null; 
   }, []);
 
   const user = roles?.user ?? "Unknown user";
-  const name = displayName(user);
+  const name = roles?.display_name || displayName(user);
   const userRoles = roles?.roles ?? [];
 
   return (

@@ -178,11 +178,11 @@ export function ScansTab({
               value={details.start && details.end ? fmtDuration(durationMs(details.start, details.end)) : "—"}
             />
             <Field label="Source" value={details.source} />
-            <div>
-              <div className="field-label">Status</div>
-              <div>
+            <div className="df">
+              <span className="df-k">Status</span>
+              <span className="df-v">
                 <span className="badge succeeded">Succeeded</span>
-              </div>
+              </span>
             </div>
           </div>
           <div className="metrics-h">
@@ -383,9 +383,9 @@ export function ScansTab({
 
 function Field({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div>
-      <div className="field-label">{label}</div>
-      <div className={mono ? "mono" : ""}>{value}</div>
+    <div className="df">
+      <span className="df-k">{label}</span>
+      <span className={`df-v ${mono ? "mono" : ""}`}>{value}</span>
     </div>
   );
 }

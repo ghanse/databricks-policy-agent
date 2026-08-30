@@ -65,7 +65,7 @@ export function App() {
           </div>
           <div>
             <div className="name">Policy Agent</div>
-            {settings?.workspace_id && <div className="sub">Workspace {settings.workspace_id}</div>}
+            {settings?.workspace_id && <div className="sub">Workspace ID: {settings.workspace_id}</div>}
           </div>
         </div>
 
