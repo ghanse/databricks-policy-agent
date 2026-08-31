@@ -12,6 +12,7 @@ Run from the ``app`` directory: ``uv run python scripts/build_app.py``.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -106,7 +107,10 @@ def _env_block() -> str:
         value = os.environ.get(name)
         if value:
             lines.append(f"  - name: {name}")
-            lines.append(f'    value: "{value}"')
+            # json.dumps yields a double-quoted scalar that escapes quotes/backslashes,
+            # which is a valid YAML double-quoted string — so values like a webhook URL or
+            # a JSON-encoded tags string never produce malformed app.yaml.
+            lines.append(f"    value: {json.dumps(value)}")
     lines.append("  - name: POLICY_AGENT_WAREHOUSE_ID")
     lines.append('    valueFrom: "policy-agent-warehouse"')
     return "\n".join(lines) + "\n"

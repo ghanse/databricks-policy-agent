@@ -37,7 +37,9 @@ export function ScansTab({
 }) {
   const [mode, setMode] = useState<"list" | "result">("list");
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [viewing, setViewing] = useState<{ header: ScanHeader | null; findings: Finding[] } | null>(null);
+  const [viewing, setViewing] = useState<
+    { header: ScanHeader | null; findings: Finding[]; scanId: string } | null
+  >(null);
   const [history, setHistory] = useState<ScanHeader[]>([]);
   const [running, setRunning] = useState(false);
   const [search, setSearch] = useState("");
@@ -59,7 +61,7 @@ export function ScansTab({
     try {
       const findings = await api.scanFindings(scanId);
       setResult(null);
-      setViewing({ header, findings });
+      setViewing({ header, findings, scanId });
       setMode("result");
     } catch (e) {
       toast.push(String(e), "error");
@@ -73,6 +75,18 @@ export function ScansTab({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusScanId]);
+
+  // If a scan was opened before its history row loaded (e.g. via a remediation link),
+  // backfill the header once history arrives so the details pane shows its metadata.
+  useEffect(() => {
+    setViewing((v) => {
+      if (v && !v.header) {
+        const header = history.find((h) => h.scan_id === v.scanId);
+        if (header) return { ...v, header };
+      }
+      return v;
+    });
+  }, [history]);
 
   const run = async (dryRun: boolean) => {
     setRunning(true);
@@ -116,7 +130,7 @@ export function ScansTab({
           violations: Number(viewing.header.violations),
         }
       : viewing
-        ? { scanId: "", start: "", end: "", source: "—", evaluated: 0, compliant: 0, violations: 0 }
+        ? { scanId: viewing.scanId, start: "", end: "", source: "—", evaluated: 0, compliant: 0, violations: 0 }
         : null;
 
   const resourceTypes = settings?.resource_types ?? [];
