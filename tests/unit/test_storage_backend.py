@@ -118,7 +118,10 @@ def test_ensure_storage_skips_catalog_creation_when_catalog_exists():
     executor = RecordingExecutor(catalog_present=True)
     ensure_storage(executor, _uc_config())
     assert not any(s.startswith("CREATE CATALOG") for s in executor.executed)
-    assert any(s.startswith("CREATE SCHEMA IF NOT EXISTS governance.policy_agent") for s in executor.executed)
+    assert any(
+        s.startswith("CREATE SCHEMA IF NOT EXISTS governance.policy_agent")
+        for s in executor.executed
+    )
 
 
 def test_ensure_storage_creates_catalog_when_absent():
