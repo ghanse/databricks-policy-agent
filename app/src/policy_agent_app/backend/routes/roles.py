@@ -15,19 +15,36 @@ from policy_agent.storage.backend import (
 )
 
 from policy_agent_app.backend.auth import current_roles, current_user, require_admin
-from policy_agent_app.backend.dependencies import get_config, get_executor
+from policy_agent_app.backend.dependencies import get_config, get_executor, get_workspace_client
 from policy_agent_app.backend.schemas import RoleMappingRequest
 
 router = APIRouter(prefix="/roles", tags=["roles"])
+
+
+def _display_name(workspace_client: Any, user: str) -> str:
+    # Best-effort SCIM lookup of the caller's display name; falls back to empty.
+    try:
+        for scim_user in workspace_client.users.list(filter=f'userName eq "{user}"'):
+            name = getattr(scim_user, "display_name", None)
+            if name:
+                return str(name)
+    except Exception:
+        return ""
+    return ""
 
 
 @router.get("/me")
 def my_roles(
     user: str = Depends(current_user),
     roles: set[Role] = Depends(current_roles),
+    workspace_client=Depends(get_workspace_client),
 ) -> dict[str, Any]:
-    """Returns the caller's identity and effective roles."""
-    return {"user": user, "roles": sorted(role.value for role in roles)}
+    """Return the caller's identity, display name, and effective roles."""
+    return {
+        "user": user,
+        "display_name": _display_name(workspace_client, user),
+        "roles": sorted(role.value for role in roles),
+    }
 
 
 @router.get("/mappings")
@@ -36,7 +53,7 @@ def list_role_mappings(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, list[str]]:
-    """Returns every group-to-role grant."""
+    """Return every group-to-role grant."""
     mappings = read_role_mappings(executor, config.storage)
     return {group: sorted(role.value for role in roles) for group, roles in mappings.items()}
 
@@ -48,17 +65,17 @@ def grant_role(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, str]:
-    """Grants a role to a workspace group."""
+    """Grant a role to a workspace group."""
     save_role_mapping(executor, config.storage, body.group_name, Role(body.role))
     return {"group_name": body.group_name, "role": body.role}
 
 
-@router.delete("/mappings", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/mappings", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def revoke_role(
     body: RoleMappingRequest,
     _roles: set[Role] = Depends(require_admin),
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> None:
-    """Revokes a role from a workspace group."""
+    """Revoke a role from a workspace group."""
     delete_role_mapping(executor, config.storage, body.group_name, Role(body.role))

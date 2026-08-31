@@ -11,7 +11,7 @@ export interface Policy {
   policy: string;
   resource_type: string;
   effect: string;
-  enforcement_level: string;
+  severity: string;
   status: string;
   version: number;
   description?: string;
@@ -25,7 +25,7 @@ export interface ScanSummary {
   compliant: number;
   violations: number;
   compliance_rate: number;
-  violations_by_enforcement_level: Record<string, number>;
+  violations_by_severity: Record<string, number>;
   violations_by_resource_type: Record<string, number>;
 }
 
@@ -35,7 +35,7 @@ export interface Finding {
   resource_id: string;
   resource_name: string;
   compliant: boolean;
-  enforcement_level: string;
+  severity: string;
   message: string;
   remediation: string;
   owner: string | null;
@@ -55,10 +55,11 @@ export interface Remediation {
   resource_type: string;
   resource_id: string;
   resource_name: string;
-  enforcement_level: string;
+  severity: string;
   status: string;
   assignee: string | null;
   note: string;
+  scan_id: string;
   opened_at: string;
   updated_at: string;
 }
@@ -74,10 +75,23 @@ export interface Settings {
   resource_types: string[];
   operators: string[];
   roles: string[];
-  notifications: { emails: string[]; webhook_configured: boolean };
+  notifications: { emails: string[]; webhook_configured: boolean; webhook?: string };
+  workspace_url?: string;
+  workspace_id?: string;
+}
+
+export interface ScanHeader {
+  scan_id: string;
+  started_at: string;
+  finished_at: string;
+  triggered_by: string;
+  evaluated: string | number;
+  compliant: string | number;
+  violations: string | number;
 }
 
 export interface MyRoles {
   user: string;
+  display_name?: string;
   roles: string[];
 }
