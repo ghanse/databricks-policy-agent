@@ -58,4 +58,4 @@ export function SortTh({
   );
 }
 
-export const SEVERITY_RANK: Record<string, number> = { low: 0, medium: 1, high: 2, critical: 3 };
+export const ENFORCEMENT_RANK: Record<string, number> = { advisory: 0, soft: 1, hard: 2 };

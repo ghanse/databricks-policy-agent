@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy, Settings } from "../types";
-import { effectLabel, resourceTypeLabel, severityLabel, statusLabel } from "../labels";
+import { effectLabel, resourceTypeLabel, enforcementLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
 import { transitionsFor } from "../policyActions";
 import { FilterBar } from "./FilterBar";
@@ -11,7 +11,7 @@ import { Select } from "./Select";
 import { SplitButton } from "./SplitButton";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { TrashIcon } from "./icons";
-import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
+import { SortTh, useSort, ENFORCEMENT_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
 
 const EXAMPLE_RULE = JSON.stringify(
@@ -25,7 +25,7 @@ interface FormState {
   description: string;
   resourceType: string;
   effect: string;
-  severity: string;
+  enforcement_level: string;
   remediation: string;
   rule: string;
   match: string;
@@ -43,7 +43,7 @@ const EMPTY: FormState = {
   description: "",
   resourceType: "cluster",
   effect: "deny",
-  severity: "medium",
+  enforcement_level: "advisory",
   remediation: "",
   rule: EXAMPLE_RULE,
   match: "",
@@ -61,7 +61,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
   const [search, setSearch] = useState("");
   const [fType, setFType] = useState("");
   const [fStatus, setFStatus] = useState("");
-  const [fSeverity, setFSeverity] = useState("");
+  const [fEnforcement, setFEnforcement] = useState("");
   const [fEffect, setFEffect] = useState("");
   const [importing, setImporting] = useState(false);
   const toast = useToast();
@@ -78,7 +78,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
       name: form.name,
       resource_type: form.resourceType,
       effect: form.effect,
-      severity: form.severity,
+      enforcement_level: form.enforcement_level,
       description: form.description,
       remediation: form.remediation,
       rule: JSON.parse(form.rule),
@@ -173,16 +173,16 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
         (!q || p.policy.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q)) &&
         (!fType || p.resource_type === fType) &&
         (!fStatus || p.status === fStatus) &&
-        (!fSeverity || p.severity === fSeverity) &&
+        (!fEnforcement || p.enforcement_level === fEnforcement) &&
         (!fEffect || p.effect === fEffect),
     );
-  }, [policies, search, fType, fStatus, fSeverity, fEffect]);
+  }, [policies, search, fType, fStatus, fEnforcement, fEffect]);
 
   const sorted = sort.apply(filtered, {
     name: (p) => p.policy.toLowerCase(),
     type: (p) => p.resource_type,
     effect: (p) => p.effect,
-    severity: (p) => SEVERITY_RANK[p.severity] ?? -1,
+    enforcement_level: (p) => ENFORCEMENT_RANK[p.enforcement_level] ?? -1,
     status: (p) => p.status,
     version: (p) => p.version,
   });
@@ -242,13 +242,13 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
               />
             </div>
             <div style={{ flex: "1 1 100px" }}>
-              <label className="field">Severity</label>
+              <label className="field">Enforcement</label>
               <Select
                 block
-                ariaLabel="Severity"
-                value={form.severity}
-                onChange={(v) => set({ severity: v })}
-                options={["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) }))}
+                ariaLabel="Enforcement"
+                value={form.enforcement_level}
+                onChange={(v) => set({ enforcement_level: v })}
+                options={["advisory", "soft", "hard"].map((s) => ({ value: s, label: enforcementLabel(s) }))}
               />
             </div>
           </div>
@@ -326,12 +326,12 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
               })),
             },
             {
-              label: "Severity",
-              value: fSeverity,
-              onChange: setFSeverity,
-              options: ["low", "medium", "high", "critical"].map((s) => ({
+              label: "Enforcement",
+              value: fEnforcement,
+              onChange: setFEnforcement,
+              options: ["advisory", "soft", "hard"].map((s) => ({
                 value: s,
-                label: severityLabel(s),
+                label: enforcementLabel(s),
               })),
             },
           ]}
@@ -346,7 +346,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
                   <SortTh label="Name" field="name" sort={sort} />
                   <SortTh label="Type" field="type" sort={sort} />
                   <SortTh label="Effect" field="effect" sort={sort} />
-                  <SortTh label="Severity" field="severity" sort={sort} />
+                  <SortTh label="Enforcement" field="enforcement_level" sort={sort} />
                   <SortTh label="Status" field="status" sort={sort} />
                   <SortTh label="Version" field="version" sort={sort} />
                   <th>Actions</th>
@@ -366,7 +366,7 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
                       <span className="badge neutral">{effectLabel(p.effect)}</span>
                     </td>
                     <td>
-                      <span className={`badge ${p.severity}`}>{severityLabel(p.severity)}</span>
+                      <span className={`badge ${p.enforcement_level}`}>{enforcementLabel(p.enforcement_level)}</span>
                     </td>
                     <td>
                       <span className={`badge ${p.status}`}>{statusLabel(p.status)}</span>

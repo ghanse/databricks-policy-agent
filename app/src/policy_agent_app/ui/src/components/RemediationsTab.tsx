@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy, Remediation } from "../types";
-import { resourceTypeLabel, severityLabel, statusLabel } from "../labels";
+import { resourceTypeLabel, enforcementLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
 import { AssignIcon, CheckIcon, ExternalIcon, LightbulbIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { FilterBar } from "./FilterBar";
-import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
+import { SortTh, useSort, ENFORCEMENT_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
 import { resourceUrl } from "../resourceUrl";
 import type { ActionColor } from "../policyActions";
@@ -47,10 +47,10 @@ export function RemediationsTab({
   const toast = useToast();
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
-  const [fSeverity, setFSeverity] = useState("");
+  const [fEnforcement, setFEnforcement] = useState("");
   const [fType, setFType] = useState("");
   const [fOwner, setFOwner] = useState("");
-  const sort = useSort<Remediation>("severity");
+  const sort = useSort<Remediation>("enforcement_level");
 
   const refresh = () => api.listRemediations().then(setItems).catch((e) => toast.push(String(e), "error"));
   useEffect(() => {
@@ -122,14 +122,14 @@ export function RemediationsTab({
           i.policy_name.toLowerCase().includes(q) ||
           (i.resource_name ?? "").toLowerCase().includes(q)) &&
         (!fStatus || i.status === fStatus) &&
-        (!fSeverity || i.severity === fSeverity) &&
+        (!fEnforcement || i.enforcement_level === fEnforcement) &&
         (!fType || i.resource_type === fType) &&
         (!fOwner || (fOwner === UNASSIGNED ? !i.assignee : i.assignee === fOwner)),
     );
-  }, [items, search, fStatus, fSeverity, fType, fOwner]);
+  }, [items, search, fStatus, fEnforcement, fType, fOwner]);
 
   const sorted = sort.apply(filtered, {
-    severity: (i) => SEVERITY_RANK[i.severity] ?? -1,
+    enforcement_level: (i) => ENFORCEMENT_RANK[i.enforcement_level] ?? -1,
     policy: (i) => i.policy_name.toLowerCase(),
     type: (i) => i.resource_type,
     resource: (i) => (i.resource_name ?? "").toLowerCase(),
@@ -161,12 +161,12 @@ export function RemediationsTab({
             })),
           },
           {
-            label: "Severity",
-            value: fSeverity,
-            onChange: setFSeverity,
-            options: ["low", "medium", "high", "critical"].map((s) => ({
+            label: "Enforcement",
+            value: fEnforcement,
+            onChange: setFEnforcement,
+            options: ["advisory", "soft", "hard"].map((s) => ({
               value: s,
-              label: severityLabel(s),
+              label: enforcementLabel(s),
             })),
           },
           {
@@ -198,7 +198,7 @@ export function RemediationsTab({
         <table>
           <thead>
             <tr>
-              <SortTh label="Severity" field="severity" sort={sort} />
+              <SortTh label="Enforcement" field="enforcement_level" sort={sort} />
               <SortTh label="Policy" field="policy" sort={sort} />
               <SortTh label="Type" field="type" sort={sort} />
               <SortTh label="Resource" field="resource" sort={sort} />
@@ -213,7 +213,7 @@ export function RemediationsTab({
             {pager.pageRows.map((item) => (
               <tr key={item.remediation_id}>
                 <td>
-                  <span className={`badge ${item.severity}`}>{severityLabel(item.severity)}</span>
+                  <span className={`badge ${item.enforcement_level}`}>{enforcementLabel(item.enforcement_level)}</span>
                 </td>
                 <td className="cell-strong">{item.policy_name}</td>
                 <td>

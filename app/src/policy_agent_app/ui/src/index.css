@@ -312,9 +312,9 @@ label.field { display: block; font-size: 11.5px; color: var(--muted); margin-bot
 
 /* ---------- Badges ---------- */
 .badge { padding: 2px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; display: inline-block; white-space: nowrap; }
-.badge.critical, .badge.high { background: rgba(248, 81, 73, 0.15); color: var(--danger); }
-.badge.medium { background: rgba(217, 164, 65, 0.16); color: var(--warn); }
-.badge.low { background: rgba(63, 185, 80, 0.15); color: var(--ok); }
+.badge.critical, .badge.high, .badge.hard { background: var(--danger-soft); color: var(--danger); }
+.badge.medium, .badge.soft { background: var(--warn-soft); color: var(--warn); }
+.badge.low, .badge.advisory { background: var(--surface-3); color: var(--muted); }
 .badge.draft { background: rgba(139, 151, 165, 0.15); color: var(--muted); }
 .badge.in_review, .badge.in_progress { background: var(--accent-soft); color: var(--accent-hover); }
 .badge.approved, .badge.resolved { background: rgba(63, 185, 80, 0.15); color: var(--ok); }

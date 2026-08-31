@@ -37,7 +37,7 @@ export function statusLabel(value: string): string {
   return STATUSES[value] ?? titleCase(value);
 }
 
-export function severityLabel(value: string): string {
+export function enforcementLabel(value: string): string {
   return titleCase(value);
 }
 

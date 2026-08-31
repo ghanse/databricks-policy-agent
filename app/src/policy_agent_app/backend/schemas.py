@@ -83,6 +83,20 @@ class ScheduleRequest(BaseModel):
     schedule_id: str | None = None
 
 
+class PolicyImportRequest(BaseModel):
+    """Request body carrying one or more policies as OPA-style YAML text."""
+
+    yaml: str
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Admin-editable configuration overrides. Fields left unset are not changed."""
+
+    object_tags: dict[str, str] | None = None
+    notification_emails: list[str] | None = None
+    notification_webhook: str | None = None
+
+
 def remediation_to_dict(item: RemediationItem) -> dict[str, Any]:
     """Serialises a remediation item for a JSON response.
 

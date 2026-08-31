@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import type { Policy } from "../types";
-import { effectLabel, resourceTypeLabel, severityLabel, statusLabel } from "../labels";
+import { effectLabel, resourceTypeLabel, enforcementLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
 import { transitionsFor } from "../policyActions";
 import { highlightJson, highlightYaml } from "../highlight";
@@ -128,7 +128,7 @@ export function PolicyPage({
             <div className="form-grid">
               <ReadField label="Resource type" value={resourceTypeLabel(policy.resource_type)} />
               <ReadField label="Effect" value={effectLabel(policy.effect)} />
-              <ReadField label="Severity" value={severityLabel(policy.severity)} />
+              <ReadField label="Enforcement" value={enforcementLabel(policy.enforcement_level)} />
               <ReadField label="Status" value={statusLabel(policy.status)} />
             </div>
             <div style={{ marginTop: 14 }}>

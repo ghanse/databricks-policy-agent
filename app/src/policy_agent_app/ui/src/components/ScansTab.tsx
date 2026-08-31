@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Finding, ScanHeader, ScanResult, Settings } from "../types";
-import { resourceTypeLabel, severityLabel } from "../labels";
+import { resourceTypeLabel, enforcementLabel } from "../labels";
 import { useToast } from "../toast";
-import { useSort, SortTh, SEVERITY_RANK } from "../useSort";
+import { useSort, SortTh, ENFORCEMENT_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
 import { resourceUrl } from "../resourceUrl";
 import { ExternalIcon, LightbulbIcon } from "./icons";
@@ -41,14 +41,14 @@ export function ScansTab({
   const [history, setHistory] = useState<ScanHeader[]>([]);
   const [running, setRunning] = useState(false);
   const [search, setSearch] = useState("");
-  const [fSeverity, setFSeverity] = useState("");
+  const [fEnforcement, setFEnforcement] = useState("");
   const [fType, setFType] = useState("");
   const [fSource, setFSource] = useState("");
   const [startRange, setStartRange] = useState<DateRange>({ from: "", to: "" });
   const [endRange, setEndRange] = useState<DateRange>({ from: "", to: "" });
   const toast = useToast();
   const histSort = useSort<ScanHeader>("started_at");
-  const violSort = useSort<Finding>("severity");
+  const violSort = useSort<Finding>("enforcement_level");
 
   const loadHistory = () => api.listScans().then(setHistory).catch(() => setHistory([]));
   useEffect(() => {
@@ -128,12 +128,12 @@ export function ScansTab({
     return violations.filter(
       (f) =>
         (!q || f.policy_name.toLowerCase().includes(q) || (f.resource_name ?? "").toLowerCase().includes(q)) &&
-        (!fSeverity || f.severity === fSeverity) &&
+        (!fEnforcement || f.enforcement_level === fEnforcement) &&
         (!fType || f.resource_type === fType),
     );
-  }, [violations, search, fSeverity, fType]);
+  }, [violations, search, fEnforcement, fType]);
   const sortedViolations = violSort.apply(filteredViolations, {
-    severity: (f) => SEVERITY_RANK[f.severity] ?? -1,
+    enforcement_level: (f) => ENFORCEMENT_RANK[f.enforcement_level] ?? -1,
     policy: (f) => f.policy_name.toLowerCase(),
     type: (f) => f.resource_type,
     resource: (f) => (f.resource_name ?? "").toLowerCase(),
@@ -233,10 +233,10 @@ export function ScansTab({
             placeholder="Search by policy or resource…"
             filters={[
               {
-                label: "Severity",
-                value: fSeverity,
-                onChange: setFSeverity,
-                options: ["low", "medium", "high", "critical"].map((s) => ({ value: s, label: severityLabel(s) })),
+                label: "Enforcement",
+                value: fEnforcement,
+                onChange: setFEnforcement,
+                options: ["advisory", "soft", "hard"].map((s) => ({ value: s, label: enforcementLabel(s) })),
               },
               {
                 label: "Type",
@@ -254,7 +254,7 @@ export function ScansTab({
                 <table>
                   <thead>
                     <tr>
-                      <SortTh label="Severity" field="severity" sort={violSort} />
+                      <SortTh label="Enforcement" field="enforcement_level" sort={violSort} />
                       <SortTh label="Policy" field="policy" sort={violSort} />
                       <SortTh label="Type" field="type" sort={violSort} />
                       <SortTh label="Resource" field="resource" sort={violSort} />
@@ -267,7 +267,7 @@ export function ScansTab({
                       return (
                         <tr key={i}>
                           <td>
-                            <span className={`badge ${f.severity}`}>{severityLabel(f.severity)}</span>
+                            <span className={`badge ${f.enforcement_level}`}>{enforcementLabel(f.enforcement_level)}</span>
                           </td>
                           <td>
                             {f.policy_name}
