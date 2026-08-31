@@ -23,9 +23,13 @@ def test_env_block_escapes_quotes_and_backslashes(monkeypatch):
     # A value with a double quote and a backslash would break a naive value: "..." line.
     monkeypatch.setenv("POLICY_AGENT_CATALOG", "main")
     monkeypatch.setenv("POLICY_AGENT_TAGS", 'team="a\\b",x=y')
-    for unused in ("POLICY_AGENT_STORAGE_BACKEND", "POLICY_AGENT_SCHEMA",
-                   "POLICY_AGENT_NOTIFICATION_EMAILS", "POLICY_AGENT_NOTIFICATION_WEBHOOK",
-                   "POLICY_AGENT_LAKEBASE_URL"):
+    for unused in (
+        "POLICY_AGENT_STORAGE_BACKEND",
+        "POLICY_AGENT_SCHEMA",
+        "POLICY_AGENT_NOTIFICATION_EMAILS",
+        "POLICY_AGENT_NOTIFICATION_WEBHOOK",
+        "POLICY_AGENT_LAKEBASE_URL",
+    ):
         monkeypatch.delenv(unused, raising=False)
 
     parsed = yaml.safe_load(build_app._env_block())
