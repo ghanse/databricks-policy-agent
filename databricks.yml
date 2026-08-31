@@ -19,6 +19,12 @@ bundle:
 include:
   - "target.*.yml"
 
+# The assembled app tree (app/.build) is a build output and is git-ignored, but the app
+# resource's source_code_path points at it, so force it into the deployed bundle files.
+sync:
+  include:
+    - "app/.build/**"
+
 variables:
   catalog_name:
     description: Unity Catalog catalog holding policy-agent storage.
@@ -68,7 +74,7 @@ variables:
         - name: POLICY_AGENT_TAGS
           value: "${var.object_tags}"
         - name: POLICY_AGENT_WAREHOUSE_ID
-          valueFrom: "policy-agent-warehouse"
+          value_from: "policy-agent-warehouse"
         - name: POLICY_AGENT_NOTIFICATION_EMAILS
           value: "${var.notification_email}"
         - name: POLICY_AGENT_NOTIFICATION_WEBHOOK
@@ -109,13 +115,14 @@ resources:
       description: "Databricks Policy Agent — author policies, scan, review, remediate"
       source_code_path: ./app/.build
       config: ${var.app_config}
-      # Scopes for on-behalf-of reads of the resources the agent scans.
+      # On-behalf-of scopes. Databricks Apps expose no OBO scope for reading jobs or
+      # clusters, so those resource types are scanned by the provisioned scan jobs
+      # (which run as an admin), not from the app UI. The app itself only needs SQL
+      # (its storage) plus apps/model-serving reads.
       user_api_scopes:
         - sql
-        - clusters.read
-        - jobs.read
-        - apps.read
-        - serving.serving-endpoints
+        - apps
+        - model-serving
       resources:
         - name: "policy-agent-warehouse"
           description: "SQL warehouse policy-agent queries and stores state through."
