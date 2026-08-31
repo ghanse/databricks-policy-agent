@@ -53,11 +53,11 @@
   --muted: #494952;
   --faint: #6b6b75;
 
-  /* Lighter dusty-pink; still deep enough for white button text. */
-  --accent: #d29aa0;
-  --accent-hover: #bd828a;
-  --accent-soft: rgba(210, 154, 160, 0.14);
-  --accent-ring: rgba(210, 154, 160, 0.32);
+  /* Deeper dusty-pink for light mode so white button text stays readable. */
+  --accent: #b57078;
+  --accent-hover: #9d5a62;
+  --accent-soft: rgba(181, 112, 120, 0.13);
+  --accent-ring: rgba(181, 112, 120, 0.3);
   --on-accent: #ffffff;
 
   --link: #2563c9;
