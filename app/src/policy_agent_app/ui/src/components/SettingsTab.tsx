@@ -45,7 +45,7 @@ export function SettingsTab({
   }, [settings]);
 
   if (!settings) {
-    return <div className="panel muted">Loading settings…</div>;
+    return <div className="panel loading">Loading settings…</div>;
   }
 
   const persist = async (partial: Record<string, unknown>, ok: string, kind: "save" | "delete") => {
@@ -88,7 +88,7 @@ export function SettingsTab({
         <h3>Notifications</h3>
         {isAdmin ? (
           <>
-            <label className="field">On-failure emails</label>
+            <label className="field">Email Address</label>
             <div className="stack" style={{ marginBottom: 14 }}>
               {emails.map((row, i) => (
                 <div key={i} className="kv-row">

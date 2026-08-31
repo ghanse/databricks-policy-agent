@@ -8,6 +8,13 @@ interface Toast {
   kind: ToastKind;
 }
 
+const TITLES: Record<ToastKind, string> = {
+  save: "Success",
+  delete: "Removed",
+  error: "Error",
+  info: "Note",
+};
+
 interface ToastApi {
   push: (message: string, kind?: ToastKind) => void;
 }
@@ -35,7 +42,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toasts">
         {toasts.map((t) => (
           <div key={t.id} className={`toast ${t.kind}`} onClick={() => setToasts((c) => c.filter((x) => x.id !== t.id))}>
-            {t.message}
+            <div className="toast-title">{TITLES[t.kind]}</div>
+            <div className="toast-msg">{t.message}</div>
           </div>
         ))}
       </div>

@@ -3,7 +3,7 @@ import { api } from "../api";
 import type { Policy, Remediation } from "../types";
 import { resourceTypeLabel, severityLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
-import { CheckIcon, ExternalIcon, LightbulbIcon, PlayIcon, XIcon } from "./icons";
+import { AssignIcon, CheckIcon, ExternalIcon, LightbulbIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
 import { FilterBar } from "./FilterBar";
 import { SortTh, useSort, SEVERITY_RANK } from "../useSort";
@@ -15,7 +15,7 @@ type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
 const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind; color: ActionColor }[]> = {
   open: [
-    { action: "advance", label: "Advance", icon: PlayIcon, kind: "save", color: "neutral" },
+    { action: "advance", label: "Assign", icon: AssignIcon, kind: "save", color: "neutral" },
     { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
     { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
   ],
@@ -28,7 +28,7 @@ const ACTIONS: Record<string, { action: string; label: string; icon: IconType; k
 const UNASSIGNED = "__unassigned__";
 
 const ACTION_HELP: Record<string, string> = {
-  advance: "Mark this violation as actively being worked on, and optionally assign an owner.",
+  advance: "Assign an owner and mark this violation as in progress.",
   resolve: "Record that the underlying violation has been fixed.",
   waive: "Knowingly accept this violation; it stays on the audit trail.",
 };
@@ -114,7 +114,7 @@ export function RemediationsTab({
   return (
     <div className="panel">
       <h3>
-        Remediation cycle
+        Remediations
         <span className="hint">
           {open.length} open · {items.length} total
         </span>

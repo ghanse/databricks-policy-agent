@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { api } from "../api";
 import { useToast } from "../toast";
-import { TrashIcon } from "./icons";
+import { TrashIcon, UploadIcon } from "./icons";
 
 interface Upload {
   name: string;
@@ -83,6 +83,7 @@ export function ImportModal({ onClose, onImported }: { onClose: () => void; onIm
           }}
           onClick={() => fileRef.current?.click()}
         >
+          <UploadIcon className="dz-icon" size={30} />
           <div className="dz-text">Drag and drop YAML files here, or click to browse</div>
           <input
             ref={fileRef}

@@ -323,7 +323,7 @@ export function ScansTab({
 
       <div className="panel">
         <h3>
-          Scan history
+          Scans
           <span className="hint">
             {sortedHistory.length} of {history.length}
           </span>

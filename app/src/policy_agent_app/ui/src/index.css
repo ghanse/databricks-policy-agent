@@ -12,11 +12,11 @@
   --muted: #c3c3cc;
   --faint: #8f8f9a;
 
-  /* Single dusty-pink accent, shared across themes. */
-  --accent: #c8848a;
-  --accent-hover: #d4959a;
-  --accent-soft: rgba(200, 132, 138, 0.17);
-  --accent-ring: rgba(200, 132, 138, 0.42);
+  /* Light dusty-pink accent. */
+  --accent: #d9a6aa;
+  --accent-hover: #e6b8bb;
+  --accent-soft: rgba(217, 166, 170, 0.18);
+  --accent-ring: rgba(217, 166, 170, 0.44);
   --on-accent: #1f1512;
 
   /* Blue textual hyperlinks. */
@@ -29,9 +29,9 @@
   --danger-soft: rgba(226, 99, 95, 0.16);
   --warn-soft: rgba(227, 173, 72, 0.17);
 
-  --radius: 10px;
-  --radius-sm: 7px;
-  --radius-lg: 14px;
+  --radius: 5px;
+  --radius-sm: 3px;
+  --radius-lg: 7px;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --sidebar-w: 244px;
@@ -53,11 +53,11 @@
   --muted: #494952;
   --faint: #6b6b75;
 
-  /* Deeper dusty-pink for light mode so white button text stays readable. */
-  --accent: #b57078;
-  --accent-hover: #9d5a62;
-  --accent-soft: rgba(181, 112, 120, 0.13);
-  --accent-ring: rgba(181, 112, 120, 0.3);
+  /* Slightly lighter dusty-pink; still deep enough for white button text. */
+  --accent: #bd7a82;
+  --accent-hover: #a5636b;
+  --accent-soft: rgba(189, 122, 130, 0.13);
+  --accent-ring: rgba(189, 122, 130, 0.3);
   --on-accent: #ffffff;
 
   --link: #2563c9;
@@ -350,6 +350,7 @@ label.field { display: block; font-size: 11.5px; color: var(--muted); margin-bot
 .reco .ico { color: var(--accent-hover); flex: none; margin-top: 1px; }
 
 .empty { text-align: center; color: var(--faint); padding: 32px 16px; font-size: 13px; }
+.loading { color: var(--faint); font-size: 12px; }
 
 /* Meter for compliance rate. */
 .meter { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; margin-top: 10px; }
@@ -567,13 +568,15 @@ tr.selected-row { background: var(--accent-soft); }
   border: 1.5px dashed var(--border-strong);
   border-radius: var(--radius);
   background: var(--surface-2);
-  padding: 28px 16px;
+  padding: 48px 16px;
   text-align: center;
   cursor: pointer;
   transition: border-color 0.12s, background 0.12s;
 }
 .dropzone:hover { border-color: var(--accent); background: var(--surface-3); }
 .dropzone.over { border-color: var(--accent); background: var(--accent-soft); }
+.dropzone .dz-icon { color: var(--faint); margin-bottom: 12px; }
+.dropzone:hover .dz-icon, .dropzone.over .dz-icon { color: var(--accent-hover); }
 .dropzone .dz-text { font-size: 12.5px; color: var(--muted); }
 .file-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 7px 10px; font-size: 13px; }
 
@@ -666,15 +669,20 @@ th, td { overflow-wrap: anywhere; }
   border-left-width: 4px;
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow);
-  padding: 11px 16px;
-  font-size: 13px;
+  padding: 9px 14px;
   color: var(--text);
   min-width: 200px;
-  max-width: 360px;
+  max-width: 340px;
   cursor: pointer;
   animation: toast-in 0.18s ease-out;
 }
 @keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.toast-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 2px; }
+.toast-msg { font-size: 12px; color: var(--muted); }
+.toast.save .toast-title { color: var(--ok); }
+.toast.delete .toast-title { color: var(--warn); }
+.toast.error .toast-title { color: var(--danger); }
+.toast.info .toast-title { color: var(--accent-hover); }
 .toast.save { border-left-color: var(--ok); }
 .toast.delete { border-left-color: var(--warn); }
 .toast.error { border-left-color: var(--danger); }

@@ -134,7 +134,7 @@ export function PolicyPage({
             )}
           </>
         ) : (
-          <div className="muted">Loading…</div>
+          <div className="loading">Loading…</div>
         )}
 
         {policy && (

@@ -86,6 +86,18 @@ export const CalendarIcon = svg(
     <path d="M3 9h18M8 2v4M16 2v4" />
   </>,
 );
+export const UploadIcon = svg(
+  <>
+    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+    <path d="M17 8l-5-5-5 5M12 3v13" />
+  </>,
+);
+export const AssignIcon = svg(
+  <>
+    <circle cx="9" cy="8" r="4" />
+    <path d="M3 21a6 6 0 0112 0M17 8v6M20 11h-6" />
+  </>,
+);
 export const ExternalIcon = svg(
   <>
     <path d="M14 4h6v6M20 4l-9 9M18 13v6a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h6" />
