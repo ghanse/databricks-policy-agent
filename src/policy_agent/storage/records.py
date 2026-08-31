@@ -330,6 +330,28 @@ def role_mapping_to_row(
     }
 
 
+def app_setting_to_row(
+    key: str, value: str, config: StorageConfig, updated_at: datetime
+) -> dict[str, Any]:
+    """Serialise an app-settings key/value override to an ``app_settings`` row.
+
+    Args:
+        key: The setting key.
+        value: The setting value (already serialised to text).
+        config: Storage config supplying object tags.
+        updated_at: Timestamp recorded on the row.
+
+    Returns:
+        A row mapping ready for insertion.
+    """
+    return {
+        "setting_key": key,
+        "setting_value": value,
+        "object_tags": _object_tags(config),
+        "updated_at": updated_at,
+    }
+
+
 def _object_tags(config: StorageConfig) -> str:
     return json.dumps(dict(config.object_tags), sort_keys=True)
 

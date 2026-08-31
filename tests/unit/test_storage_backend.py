@@ -92,6 +92,44 @@ def _ws(clusters):
     )
 
 
+class RecordingExecutor:
+    """Records executed DDL and answers the catalog-existence probe."""
+
+    def __init__(self, catalog_present):
+        self.catalog_present = catalog_present
+        self.executed = []
+
+    def execute(self, statement, parameters=None):
+        self.executed.append(statement.strip())
+
+    def query(self, statement, parameters=None):
+        if statement.strip().upper().startswith("SHOW SCHEMAS IN"):
+            if not self.catalog_present:
+                raise RuntimeError("catalog not found")
+            return [{"databaseName": "default"}]
+        return []
+
+
+def _uc_config():
+    return StorageConfig(backend="uc", catalog="governance", schema="policy_agent")
+
+
+def test_ensure_storage_skips_catalog_creation_when_catalog_exists():
+    executor = RecordingExecutor(catalog_present=True)
+    ensure_storage(executor, _uc_config())
+    assert not any(s.startswith("CREATE CATALOG") for s in executor.executed)
+    assert any(
+        s.startswith("CREATE SCHEMA IF NOT EXISTS governance.policy_agent")
+        for s in executor.executed
+    )
+
+
+def test_ensure_storage_creates_catalog_when_absent():
+    executor = RecordingExecutor(catalog_present=False)
+    ensure_storage(executor, _uc_config())
+    assert any(s.startswith("CREATE CATALOG IF NOT EXISTS governance") for s in executor.executed)
+
+
 def test_save_and_load_policy_round_trip():
     executor, config = FakeExecutor(), _config()
     ensure_storage(executor, config)
@@ -183,3 +221,22 @@ def test_remediation_upsert_and_read_round_trip():
     assert len(stored) == 1
     assert stored[0].status.value == "resolved"
     assert stored[0].note == "fixed"
+
+
+def test_app_settings_round_trip():
+    from policy_agent.storage.backend import read_app_settings, save_app_setting
+
+    executor, config = FakeExecutor(), _config()
+    ensure_storage(executor, config)
+    assert read_app_settings(executor, config) == {}
+
+    save_app_setting(executor, config, "object_tags", '{"team": "x"}')
+    save_app_setting(executor, config, "notification_webhook", "https://hooks.example/x")
+    assert read_app_settings(executor, config) == {
+        "object_tags": '{"team": "x"}',
+        "notification_webhook": "https://hooks.example/x",
+    }
+
+    # Upsert replaces the prior value rather than appending a second row.
+    save_app_setting(executor, config, "object_tags", '{"team": "y"}')
+    assert read_app_settings(executor, config)["object_tags"] == '{"team": "y"}'

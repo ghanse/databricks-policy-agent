@@ -71,6 +71,20 @@ class RoleMappingRequest(BaseModel):
     role: str
 
 
+class PolicyImportRequest(BaseModel):
+    """Request body carrying one or more policies as OPA-style YAML text."""
+
+    yaml: str
+
+
+class SettingsUpdateRequest(BaseModel):
+    """Admin-editable configuration overrides. Fields left unset are not changed."""
+
+    object_tags: dict[str, str] | None = None
+    notification_emails: list[str] | None = None
+    notification_webhook: str | None = None
+
+
 class ScheduleRequest(BaseModel):
     """Request body for creating or updating a scan schedule."""
 

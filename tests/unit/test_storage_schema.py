@@ -41,6 +41,12 @@ def test_unity_catalog_namespace_and_tags():
     assert any("SET TAGS ('team' = 'platform')" in s for s in statements)
 
 
+def test_unity_catalog_namespace_can_skip_catalog_creation():
+    statements = schema.create_namespace_statements(_uc(), include_catalog=False)
+    assert not any(s.startswith("CREATE CATALOG") for s in statements)
+    assert "CREATE SCHEMA IF NOT EXISTS governance.policy_agent" in statements
+
+
 def test_postgres_namespace_uses_comment_for_tags():
     statements = schema.create_namespace_statements(_pg())
     assert "CREATE SCHEMA IF NOT EXISTS policy_agent" in statements
