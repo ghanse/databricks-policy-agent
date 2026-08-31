@@ -13,10 +13,10 @@
   --faint: #8f8f9a;
 
   /* Light dusty-pink accent. */
-  --accent: #d9a6aa;
-  --accent-hover: #e6b8bb;
-  --accent-soft: rgba(217, 166, 170, 0.18);
-  --accent-ring: rgba(217, 166, 170, 0.44);
+  --accent: #e6bcbf;
+  --accent-hover: #f0cdcf;
+  --accent-soft: rgba(230, 188, 191, 0.18);
+  --accent-ring: rgba(230, 188, 191, 0.44);
   --on-accent: #1f1512;
 
   /* Blue textual hyperlinks. */
@@ -53,11 +53,11 @@
   --muted: #494952;
   --faint: #6b6b75;
 
-  /* Slightly lighter dusty-pink; still deep enough for white button text. */
-  --accent: #bd7a82;
-  --accent-hover: #a5636b;
-  --accent-soft: rgba(189, 122, 130, 0.13);
-  --accent-ring: rgba(189, 122, 130, 0.3);
+  /* Lighter dusty-pink; still deep enough for white button text. */
+  --accent: #c58089;
+  --accent-hover: #ac6971;
+  --accent-soft: rgba(197, 128, 137, 0.13);
+  --accent-ring: rgba(197, 128, 137, 0.3);
   --on-accent: #ffffff;
 
   --link: #2563c9;

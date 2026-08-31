@@ -31,6 +31,13 @@ interface FormState {
   match: string;
 }
 
+const POLICY_PAST: Record<string, string> = {
+  submit: "submitted for review",
+  approve: "approved",
+  reject: "rejected",
+  archive: "archived",
+};
+
 const EMPTY: FormState = {
   name: "",
   description: "",
@@ -90,12 +97,18 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
   };
 
   const save = async () => {
+    const name = form.name;
     try {
       await api.savePolicy(body());
       setForm(EMPTY);
       setShowForm(false);
       setValidation("");
-      toast.push("Policy saved as draft", "save");
+      toast.push(
+        <>
+          Policy <strong>{name}</strong> saved as a draft.
+        </>,
+        "save",
+      );
       refresh();
     } catch (e) {
       toast.push(String(e), "error");
@@ -116,7 +129,12 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
       onConfirm: async (note) => {
         try {
           await api.transition(policy.policy, action, note);
-          toast.push(`${label} ✓`, kind);
+          toast.push(
+            <>
+              Policy <strong>{policy.policy}</strong> {POLICY_PAST[action] ?? action}.
+            </>,
+            kind,
+          );
           refresh();
         } catch (e) {
           toast.push(String(e), "error");
@@ -133,7 +151,12 @@ export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; 
       onConfirm: async () => {
         try {
           await api.deletePolicy(policy.policy);
-          toast.push("Policy deleted", "delete");
+          toast.push(
+            <>
+              Policy <strong>{policy.policy}</strong> deleted.
+            </>,
+            "delete",
+          );
           refresh();
         } catch (e) {
           toast.push(String(e), "error");

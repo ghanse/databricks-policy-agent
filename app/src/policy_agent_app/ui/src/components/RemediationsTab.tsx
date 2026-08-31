@@ -64,6 +64,33 @@ export function RemediationsTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const resourceNode = (item: Remediation) => {
+    const url = resourceUrl(workspaceUrl, item.resource_type, item.resource_id);
+    return url ? (
+      <a className="reslink" href={url} target="_blank" rel="noreferrer">
+        {item.resource_name}
+      </a>
+    ) : (
+      <strong>{item.resource_name}</strong>
+    );
+  };
+
+  const toastMessage = (item: Remediation, action: string, assignee?: string) => {
+    const res = resourceNode(item);
+    if (action === "advance") {
+      return assignee ? (
+        <>
+          Remediation for {res} assigned to <strong>{assignee}</strong>.
+        </>
+      ) : (
+        <>Remediation for {res} marked in progress.</>
+      );
+    }
+    if (action === "resolve") return <>Remediation for {res} marked resolved.</>;
+    if (action === "waive") return <>Remediation for {res} waived.</>;
+    return <>Remediation for {res} updated.</>;
+  };
+
   const promptAction = (item: Remediation, action: string, label: string, kind: ToastKind) => {
     setDialog({
       title: `${label} — ${item.policy_name}`,
@@ -73,7 +100,7 @@ export function RemediationsTab({
       onConfirm: async (note, assignee) => {
         try {
           await api.remediationAction(item.remediation_id, action, note, assignee);
-          toast.push(`${label} ✓`, kind);
+          toast.push(toastMessage(item, action, assignee), kind);
           refresh();
         } catch (e) {
           toast.push(String(e), "error");

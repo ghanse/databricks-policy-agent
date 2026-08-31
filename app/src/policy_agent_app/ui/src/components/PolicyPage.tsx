@@ -10,6 +10,13 @@ import { NoteDialog, type NoteRequest } from "./NoteDialog";
 
 type View = "fields" | "yaml";
 
+const POLICY_PAST: Record<string, string> = {
+  submit: "submitted for review",
+  approve: "approved",
+  reject: "rejected",
+  archive: "archived",
+};
+
 /** Full-page policy view (replaces the old modal): read-only fields, a YAML view, and the
  *  approval actions available for the policy's current status. */
 export function PolicyPage({
@@ -45,7 +52,12 @@ export function PolicyPage({
       onConfirm: async (note) => {
         try {
           await api.transition(name, action, note);
-          toast.push(`${label} ✓`, kind);
+          toast.push(
+            <>
+              Policy <strong>{name}</strong> {POLICY_PAST[action] ?? action}.
+            </>,
+            kind,
+          );
           load();
           onChanged();
         } catch (e) {
@@ -63,7 +75,12 @@ export function PolicyPage({
       onConfirm: async () => {
         try {
           await api.deletePolicy(name);
-          toast.push("Policy deleted", "delete");
+          toast.push(
+            <>
+              Policy <strong>{name}</strong> deleted.
+            </>,
+            "delete",
+          );
           onChanged();
           onBack();
         } catch (e) {

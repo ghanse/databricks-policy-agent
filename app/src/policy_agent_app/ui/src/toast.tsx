@@ -4,7 +4,7 @@ export type ToastKind = "save" | "delete" | "error" | "info";
 
 interface Toast {
   id: number;
-  message: string;
+  message: ReactNode;
   kind: ToastKind;
 }
 
@@ -16,7 +16,7 @@ const TITLES: Record<ToastKind, string> = {
 };
 
 interface ToastApi {
-  push: (message: string, kind?: ToastKind) => void;
+  push: (message: ReactNode, kind?: ToastKind) => void;
 }
 
 const ToastContext = createContext<ToastApi>({ push: () => {} });
@@ -30,7 +30,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextId = useRef(1);
 
-  const push = useCallback((message: string, kind: ToastKind = "info") => {
+  const push = useCallback((message: ReactNode, kind: ToastKind = "info") => {
     const id = nextId.current++;
     setToasts((t) => [...t, { id, message, kind }]);
     window.setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3800);

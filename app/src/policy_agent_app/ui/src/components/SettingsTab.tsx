@@ -88,7 +88,7 @@ export function SettingsTab({
         <h3>Notifications</h3>
         {isAdmin ? (
           <>
-            <label className="field">Email Address</label>
+            <label className="field">Email address</label>
             <div className="stack" style={{ marginBottom: 14 }}>
               {emails.map((row, i) => (
                 <div key={i} className="kv-row">
