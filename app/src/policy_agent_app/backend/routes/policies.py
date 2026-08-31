@@ -50,11 +50,15 @@ def validate_policy_request(body: PolicyRequest) -> dict[str, Any]:
 
 
 @router.post("/parse")
-def parse_policies(body: PolicyImportRequest) -> dict[str, Any]:
+def parse_policies(
+    body: PolicyImportRequest,
+    _roles: set[Role] = Depends(require_author),
+) -> dict[str, Any]:
     """Parse OPA-style YAML into policy dictionaries without saving them.
 
-    Used by the UI to populate the authoring form from an uploaded file so the user can
-    review and confirm before saving.
+    Requires author permission (same as importing), so the parser is not reachable
+    anonymously. Used by the UI to populate the authoring form from an uploaded file so the
+    user can review and confirm before saving.
     """
     policies = load_policies_from_yaml(body.yaml)
     return {"policies": [policy_to_dict(policy) for policy in policies]}

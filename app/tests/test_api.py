@@ -87,3 +87,22 @@ def test_unknown_policy_returns_404(client):
 def test_unknown_resource_type_returns_400(client):
     response = client.post("/api/v1/policies", json={**CLUSTER_POLICY, "resource_type": "INVALID"})
     assert response.status_code == 400
+
+
+def test_settings_webhook_visible_to_admin_hidden_from_others(make_client):
+    admin = make_client(roles={Role.ADMIN})
+    saved = admin.put("/api/v1/settings", json={"notification_webhook": "https://hooks/secret"})
+    assert saved.status_code == 200
+    assert saved.json()["notifications"]["webhook"] == "https://hooks/secret"
+
+    # A non-admin sees that a webhook is configured but never its (possibly secret) URL.
+    viewer = make_client(roles={Role.VIEWER})
+    body = viewer.get("/api/v1/settings").json()["notifications"]
+    assert body["webhook_configured"] is True
+    assert "webhook" not in body
+
+
+def test_parse_endpoint_requires_author(make_client):
+    viewer = make_client(roles={Role.VIEWER})
+    resp = viewer.post("/api/v1/policies/parse", json={"yaml": "policy: x"})
+    assert resp.status_code == 403

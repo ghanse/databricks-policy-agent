@@ -50,10 +50,17 @@ export function SortTh({
   style?: CSSProperties;
 }) {
   const active = sort.key === field;
+  const ariaSort = active ? (sort.dir === "asc" ? "ascending" : "descending") : "none";
   return (
-    <th className="sortable" style={style} onClick={() => sort.toggle(field)}>
-      {label}
-      <span className="sort-ind">{active ? (sort.dir === "asc" ? "▲" : "▼") : ""}</span>
+    <th className="sortable" style={style} aria-sort={ariaSort}>
+      <button
+        type="button"
+        className="sort-btn"
+        onClick={() => sort.toggle(field)}
+      >
+        {label}
+        <span className="sort-ind">{active ? (sort.dir === "asc" ? "▲" : "▼") : ""}</span>
+      </button>
     </th>
   );
 }

@@ -73,12 +73,23 @@ def apply_overrides(base: PolicyAgentConfig, overrides: dict[str, str]) -> Polic
     storage = base.storage
     emails = base.notification_emails
     webhook = base.notification_webhook
-    if overrides.get(SETTING_OBJECT_TAGS):
-        parsed = json.loads(overrides[SETTING_OBJECT_TAGS])
-        tags = managed_tags({str(k): str(v) for k, v in parsed.items()})
-        storage = replace(storage, object_tags=tags)
-    if overrides.get(SETTING_NOTIFICATION_EMAILS):
-        emails = tuple(str(e) for e in json.loads(overrides[SETTING_NOTIFICATION_EMAILS]))
+    # Each override is parsed independently and defensively: a corrupted or malformed row
+    # falls back to the deploy-time value rather than breaking every request that reads the
+    # effective config.
+    tags_raw = overrides.get(SETTING_OBJECT_TAGS)
+    if tags_raw:
+        try:
+            parsed = json.loads(tags_raw)
+            tags = managed_tags({str(k): str(v) for k, v in parsed.items()})
+            storage = replace(storage, object_tags=tags)
+        except (ValueError, AttributeError):
+            pass
+    emails_raw = overrides.get(SETTING_NOTIFICATION_EMAILS)
+    if emails_raw:
+        try:
+            emails = tuple(str(e) for e in json.loads(emails_raw))
+        except ValueError:
+            pass
     if SETTING_NOTIFICATION_WEBHOOK in overrides:
         webhook = overrides[SETTING_NOTIFICATION_WEBHOOK] or None
     return replace(base, storage=storage, notification_emails=emails, notification_webhook=webhook)

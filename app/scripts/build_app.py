@@ -84,9 +84,13 @@ def _env_block() -> str:
     Databricks Apps read runtime environment from ``app.yaml``, so the configuration present
     when the app tree is assembled is baked in here. The SQL warehouse id is resolved at
     runtime from the app resource named ``policy-agent-warehouse`` rather than as a literal.
+    ``valueFrom`` is intentionally camelCase: the app.yaml runtime schema differs from the
+    bundle schema in ``databricks.yml`` (which uses ``value_from``).
 
     Returns:
-        The YAML ``env:`` block, or an empty string when no configuration is set.
+        The YAML ``env:`` block. It always contains at least ``POLICY_AGENT_WAREHOUSE_ID``
+        (resolved from the app resource); other vars are included only when set in the build
+        environment.
     """
     passthrough = (
         "POLICY_AGENT_STORAGE_BACKEND",

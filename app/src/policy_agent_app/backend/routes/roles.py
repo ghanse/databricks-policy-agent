@@ -23,8 +23,10 @@ router = APIRouter(prefix="/roles", tags=["roles"])
 
 def _display_name(workspace_client: Any, user: str) -> str:
     # Best-effort SCIM lookup of the caller's display name; falls back to empty.
+    # Escape double quotes so a username can't break out of the quoted filter literal.
+    escaped = user.replace('\\', '\\\\').replace('"', '\\"')
     try:
-        for scim_user in workspace_client.users.list(filter=f'userName eq "{user}"'):
+        for scim_user in workspace_client.users.list(filter=f'userName eq "{escaped}"'):
             name = getattr(scim_user, "display_name", None)
             if name:
                 return str(name)

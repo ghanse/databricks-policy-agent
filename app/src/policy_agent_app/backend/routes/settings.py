@@ -6,7 +6,7 @@ import json
 from typing import Any
 
 from fastapi import APIRouter, Depends
-from policy_agent.approval.roles import Role
+from policy_agent.approval.roles import Role, can_administer
 from policy_agent.config import PolicyAgentConfig
 from policy_agent.policy.conditions import registered_operators
 from policy_agent.scan.registry import supported_resource_types
@@ -17,7 +17,7 @@ from policy_agent.storage.backend import (
     save_app_setting,
 )
 
-from policy_agent_app.backend.auth import current_user, require_admin
+from policy_agent_app.backend.auth import current_roles, current_user, require_admin
 from policy_agent_app.backend.dependencies import (
     SETTING_NOTIFICATION_EMAILS,
     SETTING_NOTIFICATION_WEBHOOK,
@@ -34,9 +34,20 @@ router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 def _payload(
-    config: PolicyAgentConfig, workspace_url: str = "", workspace_id: str = ""
+    config: PolicyAgentConfig,
+    workspace_url: str = "",
+    workspace_id: str = "",
+    include_webhook: bool = False,
 ) -> dict[str, Any]:
     storage = config.storage
+    # The webhook URL can embed a secret token, so only expose it to admins (who can
+    # already edit it); everyone else sees whether one is configured.
+    notifications = {
+        "emails": list(config.notification_emails),
+        "webhook_configured": bool(config.notification_webhook),
+    }
+    if include_webhook:
+        notifications["webhook"] = config.notification_webhook or ""
     return {
         "storage": {
             "backend": storage.backend,
@@ -45,11 +56,7 @@ def _payload(
             "qualified_schema": storage.qualified_schema,
             "object_tags": dict(storage.object_tags),
         },
-        "notifications": {
-            "emails": list(config.notification_emails),
-            "webhook_configured": bool(config.notification_webhook),
-            "webhook": config.notification_webhook or "",
-        },
+        "notifications": notifications,
         "resource_types": [rt.value for rt in supported_resource_types()],
         "operators": list(registered_operators()),
         "roles": [role.value for role in Role],
@@ -74,10 +81,16 @@ def _workspace_id(workspace_client: Any) -> str:
 def get_settings(
     config: PolicyAgentConfig = Depends(get_effective_config),
     workspace_client=Depends(get_workspace_client),
+    roles: set[Role] = Depends(current_roles),
     _user: str = Depends(current_user),
 ) -> dict[str, Any]:
     """Return the effective deployment configuration (deploy-time defaults plus overrides)."""
-    return _payload(config, _workspace_url(workspace_client), _workspace_id(workspace_client))
+    return _payload(
+        config,
+        _workspace_url(workspace_client),
+        _workspace_id(workspace_client),
+        include_webhook=can_administer(roles),
+    )
 
 
 @router.put("")
@@ -109,4 +122,10 @@ def update_settings(
             executor, base_config.storage, SETTING_NOTIFICATION_WEBHOOK, body.notification_webhook
         )
     effective = apply_overrides(base_config, read_app_settings(executor, base_config.storage))
-    return _payload(effective, _workspace_url(workspace_client), _workspace_id(workspace_client))
+    # The caller is an admin (require_admin), so the webhook is safe to echo back.
+    return _payload(
+        effective,
+        _workspace_url(workspace_client),
+        _workspace_id(workspace_client),
+        include_webhook=True,
+    )

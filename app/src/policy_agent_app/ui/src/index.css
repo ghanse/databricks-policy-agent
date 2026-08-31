@@ -698,8 +698,24 @@ td .faint { color: var(--faint); }
 tbody tr:hover td { color: var(--text); }
 
 /* ---------- Sortable headers ---------- */
-th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
-th.sortable:hover { color: var(--text); }
+th.sortable { white-space: nowrap; padding: 0; }
+.sort-btn {
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  text-align: left;
+  padding: 10px 12px;
+}
+.sort-btn:hover { color: var(--text); }
+.sort-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .sort-ind { display: inline-block; width: 10px; margin-left: 4px; color: var(--accent-hover); font-size: 10px; }
 
 /* ---------- Breadcrumb ---------- */
