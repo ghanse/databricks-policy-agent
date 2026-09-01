@@ -211,6 +211,7 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 | `stopped`                     | Whether the instance is currently stopped                            |
 | `enable_readable_secondaries` | Whether readable secondary (standby) nodes are enabled               |
 | `retention_window_in_days`    | Days of point-in-time restore history the instance retains           |
+
 ### SQL alert attributes
 
 | Field name            | Description                                                             |
@@ -226,18 +227,6 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 <Callout type="warn" title="Unsupported common attributes for SQL alerts">
 SQL alerts are not taggable and do not support the `tags` attribute.
 </Callout>
-
-### Database instance attributes
-
-| Field name                    | Description                                                          |
-|-------------------------------|----------------------------------------------------------------------|
-| `capacity`                    | Compute capacity of the instance (e.g. "CU_1", "CU_2", "CU_4")       |
-| `state`                       | Current lifecycle state (e.g. "AVAILABLE", "STOPPED", "STARTING")    |
-| `node_count`                  | Number of nodes serving the instance (primary plus any secondaries)  |
-| `pg_version`                  | Postgres major version the instance runs                             |
-| `stopped`                     | Whether the instance is currently stopped                            |
-| `enable_readable_secondaries` | Whether readable secondary (standby) nodes are enabled               |
-| `retention_window_in_days`    | Days of point-in-time restore history the instance retains           |
 
 ## Operators
 Leaf comparisons use one of the following operators.
