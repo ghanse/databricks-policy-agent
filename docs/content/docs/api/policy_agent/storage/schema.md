@@ -51,7 +51,8 @@ A logical table definition shared by both backends.
 #### create\_namespace\_statements
 
 ```python
-def create_namespace_statements(config: StorageConfig) -> list[str]
+def create_namespace_statements(config: StorageConfig,
+                                include_catalog: bool = True) -> list[str]
 ```
 
 Builds the statements that create the catalog/schema and apply object tags.
@@ -59,6 +60,9 @@ Builds the statements that create the catalog/schema and apply object tags.
 **Arguments**:
 
 - `config` - The storage configuration.
+- `include_catalog` - Whether to emit ``CREATE CATALOG`` (Unity Catalog only). Skip it
+  when the catalog already exists: accounts with Default Storage reject
+  ``CREATE CATALOG`` for an existing catalog because it has no explicit location.
   
 
 **Returns**:

@@ -339,3 +339,4 @@ Classifies a principal identifier as a service principal, user, or unknown.
 
   One of the ``OWNER_TYPE_*`` constants: ``service_principal`` for a UUID, ``user`` for an
   email-shaped value, and ``unknown`` for an empty identifier or any other value.
+

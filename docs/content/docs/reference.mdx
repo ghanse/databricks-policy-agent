@@ -212,8 +212,7 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 | `has_schedule`        | Whether the alert runs on a schedule                                    |
 
 <Callout type="warn" title="Unsupported common attributes for SQL alerts">
-SQL alerts expose `id`, `name`, `owner`, `owner_type`, and `created_time`, but not `tags` —
-their tags are not scanned.
+SQL alerts are not taggable and do not support the `tags` attribute.
 </Callout>
 
 ## Operators
