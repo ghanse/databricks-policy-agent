@@ -18,6 +18,7 @@ from policy_agent.scan.resources import (
     scan_schemas,
     scan_secret_scopes,
     scan_serving_endpoints,
+    scan_sql_alerts,
     scan_sql_warehouses,
     scan_volumes,
 )
@@ -527,6 +528,64 @@ def test_scan_genie_spaces_without_genie_service_raises():
     # with a clear, actionable error rather than an opaque AttributeError.
     with pytest.raises(UnsupportedResourceError):
         scan_genie_spaces(_ws())
+
+
+class _FakeAlertsV2:
+    def __init__(self, alerts):
+        self._alerts = alerts
+
+    def list_alerts(self):
+        # The v2 SDK returns an auto-paginated iterator of AlertV2 objects.
+        return list(self._alerts)
+
+
+def test_scan_sql_alerts_reads_evaluation_and_owner():
+    alert = SimpleNamespace(
+        id="a-1",
+        display_name="prod_row_count",
+        owner_user_name="alice@example.com",
+        create_time="2026-01-02T03:04:05Z",
+        warehouse_id="wh-9",
+        run_as_user_name="alice@example.com",
+        lifecycle_state=SimpleNamespace(value="ACTIVE"),
+        schedule=SimpleNamespace(quartz_cron_schedule="0 0 * * * ?"),
+        evaluation=SimpleNamespace(
+            state=SimpleNamespace(value="OK"),
+            comparison_operator=SimpleNamespace(value="GREATER_THAN"),
+            empty_result_state=SimpleNamespace(value="UNKNOWN"),
+        ),
+    )
+    (snapshot,) = scan_sql_alerts(_ws(alerts_v2=_FakeAlertsV2([alert])))
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.SQL_ALERT
+    assert attrs["name"] == "prod_row_count"
+    assert attrs["owner_type"] == "user"
+    assert attrs["created_time"] is not None
+    assert attrs["warehouse_id"] == "wh-9"
+    assert attrs["state"] == "OK"
+    assert attrs["lifecycle_state"] == "ACTIVE"
+    assert attrs["comparison_operator"] == "GREATER_THAN"
+    assert attrs["empty_result_state"] == "UNKNOWN"
+    assert attrs["has_schedule"] is True
+    assert "tags" not in attrs  # alerts do not advertise tags
+
+
+def test_scan_sql_alerts_handles_missing_evaluation_and_schedule():
+    alert = SimpleNamespace(
+        id="a-2", display_name="adhoc", owner_user_name=None, evaluation=None, schedule=None
+    )
+    (snapshot,) = scan_sql_alerts(_ws(alerts_v2=_FakeAlertsV2([alert])))
+    attrs = snapshot.attributes
+    assert attrs["owner_type"] == "unknown"
+    assert attrs["state"] is None
+    assert attrs["comparison_operator"] is None
+    assert attrs["has_schedule"] is False
+
+
+def test_scan_sql_alerts_without_alerts_v2_service_raises():
+    # An older SDK without the v2 alerts API should fail with a clear, actionable error.
+    with pytest.raises(UnsupportedResourceError):
+        scan_sql_alerts(_ws())
 
 
 class _FakeDataQuality:

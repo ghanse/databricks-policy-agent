@@ -84,6 +84,7 @@ def test_supported_resource_types_match_registry():
         ResourceType.PIPELINE,
         ResourceType.GENIE_SPACE,
         ResourceType.QUALITY_MONITOR,
+        ResourceType.SQL_ALERT,
     }
 
 

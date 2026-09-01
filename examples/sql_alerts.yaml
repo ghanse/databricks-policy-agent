@@ -1,0 +1,33 @@
+# SQL alert policies.
+policy: sql-alerts-must-run-on-a-warehouse
+description: Every SQL alert must be attached to a SQL warehouse so it can evaluate its query.
+resource_type: sql_alert
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: warehouse_id, operator: exists }
+remediation: Attach a SQL warehouse to the alert.
+---
+policy: sql-alerts-must-be-scheduled
+description: SQL alerts must run on a schedule so failures are detected without manual checks.
+resource_type: sql_alert
+effect: allow
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: has_schedule, operator: equals, value: true }
+remediation: Add a schedule to the alert.
+---
+policy: production-alerts-must-be-active
+description: Production alerts must not be left in the trash where they never fire.
+resource_type: sql_alert
+effect: deny
+enforcement_level: hard
+match:
+  all:
+    - { attribute: name, operator: matches_regex, value: "^prod_.+$" }
+rule:
+  all:
+    - { attribute: lifecycle_state, operator: equals, value: TRASHED }
+remediation: Restore the alert from the trash, or rename it if it is no longer a production alert.

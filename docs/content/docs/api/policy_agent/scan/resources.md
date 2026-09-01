@@ -296,6 +296,32 @@ Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monit
 - `ScanError` - If listing monitors fails — for example a workspace without the data-quality
   monitoring feature enabled.
 
+#### scan\_sql\_alerts
+
+```python
+def scan_sql_alerts(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every SQL alert in the workspace.
+
+**Notes**:
+
+  Uses the v2 alerts API (*alerts_v2.list_alerts*), whose model matches the ``alerts``
+  resource declared in a Databricks Asset Bundle, so a live scan and a bundle gate
+  evaluate the same attributes. Evaluation attributes (e.g. state, comparison operator)
+  are read from the nested *evaluation* block.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each SQL alert.
+
 #### classify\_principal
 
 ```python

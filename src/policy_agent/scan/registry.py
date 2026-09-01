@@ -25,6 +25,7 @@ from policy_agent.scan.resources import (
     scan_schemas,
     scan_secret_scopes,
     scan_serving_endpoints,
+    scan_sql_alerts,
     scan_sql_warehouses,
     scan_volumes,
 )
@@ -49,6 +50,7 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.SECRET_SCOPE: scan_secret_scopes,
     ResourceType.PIPELINE: scan_pipelines,
     ResourceType.GENIE_SPACE: scan_genie_spaces,
+    ResourceType.SQL_ALERT: scan_sql_alerts,
     ResourceType.QUALITY_MONITOR: scan_quality_monitors,
 }
 """The resource types the framework can scan, keyed to their fetch functions. A type without a

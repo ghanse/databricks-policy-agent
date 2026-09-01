@@ -297,6 +297,60 @@ def test_snapshot_bundle_maps_declared_genie_spaces():
     assert {f.resource_id for f in result.blocking} == {"adhoc"}
 
 
+def test_snapshot_bundle_maps_declared_alerts():
+    # Alerts are declared under the `alerts` group using the v2 schema.
+    config = {
+        "resources": {
+            "alerts": {
+                "row_count": {
+                    "display_name": "prod_row_count",
+                    "warehouse_id": "wh-1",
+                    "run_as_user_name": "alice@example.com",
+                    "schedule": {"quartz_cron_schedule": "0 0 * * * ?"},
+                    "evaluation": {
+                        "comparison_operator": "GREATER_THAN",
+                        "empty_result_state": "UNKNOWN",
+                    },
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.SQL_ALERT
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_row_count"
+    assert attrs["warehouse_id"] == "wh-1"
+    assert attrs["run_as_user_name"] == "alice@example.com"
+    assert attrs["comparison_operator"] == "GREATER_THAN"
+    assert attrs["has_schedule"] is True
+    # State is runtime-only and unknown from a bundle; alerts carry no tags.
+    assert attrs["state"] is None
+    assert "tags" not in attrs
+
+    # An alert without a warehouse violates a "must run on a warehouse" policy at the gate.
+    needs_warehouse = allow("alert-warehouse", "sql_alert", leaf("warehouse_id", "exists"))
+    unattached = {"resources": {"alerts": {"orphan": {"display_name": "orphan"}}}}
+    result = run_gate(
+        [needs_warehouse], snapshot_bundle(unattached), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"orphan"}
+
+
+def test_snapshot_bundle_alert_run_as_from_nested_shapes():
+    # Some bundles nest run_as under a `run_as` block naming a user or a service principal,
+    # rather than the flat `run_as_user_name` the v2 model and live scan use. Either shape must
+    # resolve to the same attribute so a bundle gate and a live scan agree.
+    as_user = {"resources": {"alerts": {"u": {"run_as": {"user_name": "bob@example.com"}}}}}
+    (snapshot,) = snapshot_bundle(as_user)
+    assert snapshot.attributes["run_as_user_name"] == "bob@example.com"
+
+    sp = "11111111-1111-1111-1111-111111111111"
+    as_sp = {"resources": {"alerts": {"s": {"run_as": {"service_principal_name": sp}}}}}
+    (snapshot,) = snapshot_bundle(as_sp)
+    assert snapshot.attributes["run_as_user_name"] == sp
+
+
 def test_snapshot_bundle_derives_job_task_attributes():
     # has_retry_policy / uses_serverless_compute come from the declared tasks, matching the
     # live scanner; otherwise they default to None and every job falsely violates such policies.

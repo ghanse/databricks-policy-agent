@@ -109,6 +109,14 @@ def test_validate_allows_tags_on_taggable_genie_space():
     validate_policy(valid)
 
 
+def test_validate_rejects_tags_on_non_taggable_sql_alert():
+    # SQL alerts cannot be tagged, so `tags` is not in their attribute set and a policy that
+    # references it is rejected at author time.
+    invalid = deny("bad", "sql_alert", leaf("tags", "not_empty"))
+    with pytest.raises(InvalidPolicyError):
+        validate_policy(invalid)
+
+
 def test_validate_rejects_unknown_operator():
     invalid = deny("bad", "job", leaf("name", "sounds_like", "x"))
     with pytest.raises(UnknownConditionError):
