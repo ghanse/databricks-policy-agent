@@ -33,6 +33,7 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "quality_monitors": ResourceType.QUALITY_MONITOR,
     "pipelines": ResourceType.PIPELINE,
     "genie_spaces": ResourceType.GENIE_SPACE,
+    "database_instances": ResourceType.DATABASE_INSTANCE,
     "alerts": ResourceType.SQL_ALERT,
 }
 
@@ -270,6 +271,28 @@ def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, A
     }
 
 
+def _database_instance_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    # Lakebase instances carry native custom tags and are owned at runtime. The lifecycle
+    # `state` is runtime-only, but the declared settings (capacity, node count, the `stopped`
+    # flag, etc.) come from the bundle so the gate evaluates the same values a scan would.
+    return {
+        **_common(
+            key,
+            definition.get("name"),
+            None,
+            OWNER_TYPE_UNKNOWN,
+            definition.get("custom_tags"),
+        ),
+        "capacity": definition.get("capacity"),
+        "state": None,
+        "node_count": definition.get("node_count"),
+        "pg_version": definition.get("pg_version"),
+        "stopped": definition.get("stopped"),
+        "enable_readable_secondaries": definition.get("enable_readable_secondaries"),
+        "retention_window_in_days": definition.get("retention_window_in_days"),
+    }
+
+
 def _sql_alert_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     # Alerts are declared under `resources.alerts` using the v2 schema. Owner and evaluation
     # state are runtime-only and unknown from a bundle; the comparison is declared inline.
@@ -322,18 +345,25 @@ def _run_as_owner(run_as: Any) -> tuple[str | None, str]:
 
 
 def _normalize_tags(tags: Any) -> dict[str, str]:
+    if isinstance(tags, list):
+        # Lakebase database instances declare custom_tags as a top-level [{"key", "value"}] list.
+        return _pairs_to_tags(tags)
     if isinstance(tags, dict):
         # SQL warehouses declare tags as {"custom_tags": [{"key": ..., "value": ...}]};
         # jobs and clusters use a flat {key: value} mapping.
         custom_tags = tags.get("custom_tags")
         if isinstance(custom_tags, list):
-            return {
-                str(pair["key"]): str(pair.get("value", ""))
-                for pair in custom_tags
-                if isinstance(pair, dict) and "key" in pair
-            }
+            return _pairs_to_tags(custom_tags)
         return {str(key): str(value) for key, value in tags.items()}
     return {}
+
+
+def _pairs_to_tags(pairs: list[Any]) -> dict[str, str]:
+    return {
+        str(pair["key"]): ("" if pair.get("value") is None else str(pair.get("value")))
+        for pair in pairs
+        if isinstance(pair, dict) and "key" in pair
+    }
 
 
 _COMMON = {
@@ -351,5 +381,6 @@ _COMMON = {
     ResourceType.QUALITY_MONITOR: _quality_monitor_attributes,
     ResourceType.PIPELINE: _pipeline_attributes,
     ResourceType.GENIE_SPACE: _genie_space_attributes,
+    ResourceType.DATABASE_INSTANCE: _database_instance_attributes,
     ResourceType.SQL_ALERT: _sql_alert_attributes,
 }

@@ -24,6 +24,7 @@ Policies target one of the following resource types.
 | `secret_scope`      | Secret scopes                     |
 | `genie_space`       | Genie spaces                      |
 | `pipeline`          | Spark Declarative Pipelines       |
+| `database_instance` | Lakebase database instances       |
 | `sql_alert`         | SQL alerts                        |
 
 <Callout type="info" title="Adding new resource types">
@@ -198,6 +199,18 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 | `photon`      | Whether Photon acceleration is enabled                                      |
 | `serverless`  | Whether the pipeline uses serverless compute                                |
 | `development` | Whether the pipeline runs in development mode                               |
+
+### Database instance attributes
+
+| Field name                    | Description                                                          |
+|-------------------------------|----------------------------------------------------------------------|
+| `capacity`                    | Compute capacity of the instance (e.g. "CU_1", "CU_2", "CU_4")       |
+| `state`                       | Current lifecycle state (e.g. "AVAILABLE", "STOPPED", "STARTING")    |
+| `node_count`                  | Number of nodes serving the instance (primary plus any secondaries)  |
+| `pg_version`                  | Postgres major version the instance runs                             |
+| `stopped`                     | Whether the instance is currently stopped                            |
+| `enable_readable_secondaries` | Whether readable secondary (standby) nodes are enabled               |
+| `retention_window_in_days`    | Days of point-in-time restore history the instance retains           |
 
 ### SQL alert attributes
 

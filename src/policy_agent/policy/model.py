@@ -30,6 +30,7 @@ class ResourceType(str, Enum):
     PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
     SQL_ALERT = "sql_alert"
+    DATABASE_INSTANCE = "database_instance"
 
 
 class Effect(str, Enum):
@@ -190,6 +191,7 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.SERVING_ENDPOINT,
         ResourceType.PIPELINE,
         ResourceType.APP,
+        ResourceType.DATABASE_INSTANCE,
         ResourceType.GENIE_SPACE,
         ResourceType.CATALOG,
         ResourceType.SCHEMA,
@@ -309,6 +311,17 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "comparison_operator",
         "empty_result_state",
         "has_schedule",
+    },
+    # Lakebase database instances are owned, timestamped, and carry native custom tags.
+    ResourceType.DATABASE_INSTANCE: COMMON_RESOURCE_ATTRIBUTES
+    | {
+        "capacity",
+        "state",
+        "node_count",
+        "pg_version",
+        "stopped",
+        "enable_readable_secondaries",
+        "retention_window_in_days",
     },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set

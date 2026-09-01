@@ -546,6 +546,53 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
             return snapshots
 
 
+def scan_database_instances(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every Lakebase database instance in the workspace.
+
+    Note:
+        Instances are identified by their (workspace-unique) name, which is also the key a
+        Databricks Asset Bundle declares them under, so a live scan and a bundle gate agree on
+        the resource id. Older SDKs without the *database* API raise `UnsupportedResourceError`.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each database instance.
+    """
+    database_client = getattr(workspace_client, "database", None)
+    if not database_client:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceError(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'database' API. Upgrade the Databricks SDK to scan Lakebase database instances."
+        )
+    snapshots = []
+    for instance in database_client.list_database_instances():
+        creator = getattr(instance, "creator", None)
+        name = getattr(instance, "name", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.DATABASE_INSTANCE,
+                id=name,
+                name=name,
+                owner=creator,
+                owner_type=classify_principal(creator),
+                tags=_normalize_tags(getattr(instance, "custom_tags", None)),
+                created_time=_rfc3339_seconds(getattr(instance, "creation_time", None)),
+                capacity=getattr(instance, "capacity", None),
+                state=_enum_value(getattr(instance, "state", None)),
+                node_count=getattr(instance, "node_count", None),
+                pg_version=getattr(instance, "pg_version", None),
+                stopped=getattr(instance, "stopped", None),
+                enable_readable_secondaries=getattr(instance, "enable_readable_secondaries", None),
+                retention_window_in_days=getattr(instance, "retention_window_in_days", None),
+            )
+        )
+    return snapshots
+
+
 def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     """Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monitor.
 

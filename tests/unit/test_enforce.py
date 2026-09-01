@@ -297,6 +297,49 @@ def test_snapshot_bundle_maps_declared_genie_spaces():
     assert {f.resource_id for f in result.blocking} == {"adhoc"}
 
 
+def test_snapshot_bundle_maps_declared_database_instances():
+    config = {
+        "resources": {
+            "database_instances": {
+                "prod_orders": {
+                    "name": "prod_orders",
+                    "capacity": "CU_2",
+                    "node_count": 2,
+                    "pg_version": "16",
+                    "stopped": False,
+                    "enable_readable_secondaries": True,
+                    "retention_window_in_days": 7,
+                    # Lakebase custom_tags are a top-level list of {key, value}.
+                    "custom_tags": [{"key": "team", "value": "data"}],
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.DATABASE_INSTANCE
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_orders"
+    assert attrs["capacity"] == "CU_2"
+    assert attrs["enable_readable_secondaries"] is True
+    assert attrs["retention_window_in_days"] == 7
+    # `stopped` is a declared setting (like capacity), so it maps from the bundle and a policy
+    # can gate on it; only the lifecycle `state` is runtime-only.
+    assert attrs["stopped"] is False
+    # The list-shaped custom_tags is normalized to a flat mapping.
+    assert attrs["tags"] == {"team": "data"}
+    # Runtime-only compute state is unknown from a bundle.
+    assert attrs["state"] is None
+
+    # An untagged instance violates a "must be tagged" policy at the gate.
+    must_be_tagged = allow("db-tagged", "database_instance", leaf("tags", "not_empty"))
+    untagged = {"resources": {"database_instances": {"scratch": {"name": "scratch"}}}}
+    result = run_gate(
+        [must_be_tagged], snapshot_bundle(untagged), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"scratch"}
+
+
 def test_snapshot_bundle_maps_declared_alerts():
     # Alerts are declared under the `alerts` group using the v2 schema.
     config = {

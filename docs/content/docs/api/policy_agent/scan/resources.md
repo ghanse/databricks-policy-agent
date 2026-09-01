@@ -257,6 +257,31 @@ Fetches and normalizes every Genie space in the workspace.
 
   A list of *ResourceSnapshots* for each Genie space.
 
+#### scan\_database\_instances
+
+```python
+def scan_database_instances(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every Lakebase database instance in the workspace.
+
+**Notes**:
+
+  Instances are identified by their (workspace-unique) name, which is also the key a
+  Databricks Asset Bundle declares them under, so a live scan and a bundle gate agree on
+  the resource id. Older SDKs without the *database* API raise `UnsupportedResourceError`.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each database instance.
+
 #### scan\_quality\_monitors
 
 ```python
@@ -339,4 +364,3 @@ Classifies a principal identifier as a service principal, user, or unknown.
 
   One of the ``OWNER_TYPE_*`` constants: ``service_principal`` for a UUID, ``user`` for an
   email-shaped value, and ``unknown`` for an empty identifier or any other value.
-

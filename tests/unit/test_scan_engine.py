@@ -83,6 +83,7 @@ def test_supported_resource_types_match_registry():
         ResourceType.SECRET_SCOPE,
         ResourceType.PIPELINE,
         ResourceType.GENIE_SPACE,
+        ResourceType.DATABASE_INSTANCE,
         ResourceType.QUALITY_MONITOR,
         ResourceType.SQL_ALERT,
     }
