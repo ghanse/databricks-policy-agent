@@ -306,6 +306,7 @@ def test_snapshot_bundle_maps_declared_database_instances():
                     "capacity": "CU_2",
                     "node_count": 2,
                     "pg_version": "16",
+                    "stopped": False,
                     "enable_readable_secondaries": True,
                     "retention_window_in_days": 7,
                     # Lakebase custom_tags are a top-level list of {key, value}.
@@ -321,6 +322,9 @@ def test_snapshot_bundle_maps_declared_database_instances():
     assert attrs["capacity"] == "CU_2"
     assert attrs["enable_readable_secondaries"] is True
     assert attrs["retention_window_in_days"] == 7
+    # `stopped` is a declared setting (like capacity), so it maps from the bundle and a policy
+    # can gate on it; only the lifecycle `state` is runtime-only.
+    assert attrs["stopped"] is False
     # The list-shaped custom_tags is normalized to a flat mapping.
     assert attrs["tags"] == {"team": "data"}
     # Runtime-only compute state is unknown from a bundle.

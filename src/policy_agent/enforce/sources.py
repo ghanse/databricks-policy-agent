@@ -272,8 +272,9 @@ def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, A
 
 
 def _database_instance_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
-    # Lakebase instances carry native custom tags and are owned at runtime; the compute state
-    # (stopped/state) is runtime-only, but capacity and node count are declared in the bundle.
+    # Lakebase instances carry native custom tags and are owned at runtime. The lifecycle
+    # `state` is runtime-only, but the declared settings (capacity, node count, the `stopped`
+    # flag, etc.) come from the bundle so the gate evaluates the same values a scan would.
     return {
         **_common(
             key,
