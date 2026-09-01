@@ -25,6 +25,7 @@ Policies target one of the following resource types.
 | `genie_space`       | Genie spaces                      |
 | `pipeline`          | Spark Declarative Pipelines       |
 | `database_instance` | Lakebase database instances       |
+| `sql_alert`         | SQL alerts                        |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
@@ -133,6 +134,11 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `catalog_name` | Name of the catalog the model belongs to        |
 | `schema_name`  | Name of the schema the model belongs to         |
 
+<Callout type="warn" title="Unsupported attributes for registered models">
+Only *model versions* are taggable in Databricks. Registered models do not support the
+`tags` attribute.
+</Callout>
+
 ### External location attributes
 
 | Field name        | Description                                             |
@@ -143,23 +149,19 @@ common and type-specific attributes. A type only advertises valid resource attri
 | `read_only`       | Whether the location is read-only                       |
 | `isolation_mode`  | Whether the location is open or isolated to workspaces  |
 
-<Callout type="warn" title="Unsupported common attributes for Unity Catalog objects">
-Catalogs, schemas, volumes, registered models, and external locations expose `id`, `name`,
-`owner`, `owner_type`, and `created_time`, but not `tags` — their tags are not scanned.
-</Callout>
-
 ### Quality monitor attributes
 
-| Field name           | Description                                                     |
-|----------------------|-----------------------------------------------------------------|
-| `table_name`         | Fully-qualified name of the monitored table                     |
-| `output_schema_name` | Schema where the monitor writes its metric tables               |
-| `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log)     |
-| `has_schedule`       | Whether the monitor runs on a schedule                          |
+| Field name           | Description                                                 |
+|----------------------|-------------------------------------------------------------|
+| `table_name`         | Fully-qualified name of the monitored table                 |
+| `output_schema_name` | Schema where the monitor writes its metric tables           |
+| `output_schema_id`   | Unity Catalog system ID of the output schema                |
+| `monitor_type`       | Type of monitor (e.g. snapshot, time series, inference log) |
+| `has_schedule`       | Whether the monitor runs on a schedule                      |
 
-<Callout type="info" title="Quality monitors are enforce-only">
-Quality monitors have no APIs for listing. They are evaluated only from the bundle at deploy time,
-never scanned. They expose only `id` and `name` from the common attributes.
+<Callout type="warn" title="Unsupported attributes for quality monitors">
+* Quality monitors do not support the `owner`, `owner_type`, `created_time`, or `tags` attributes
+* `output_schema_id` cannot be validated when running scans
 </Callout>
 
 ### Secret scope attributes
@@ -168,9 +170,8 @@ never scanned. They expose only `id` and `name` from the common attributes.
 |----------------|-------------------------------------------------------------------|
 | `backend_type` | Backend storing the scope's secrets (e.g. "DATABRICKS", "AZURE_KEYVAULT") |
 
-<Callout type="warn" title="Unsupported common attributes for secret scopes">
-Secret scopes expose only `id` and `name` from the common attributes. They have no `owner`, 
-`owner_type`, `created_time`, or `tags`.
+<Callout type="warn" title="Unsupported attributes for secret scopes">
+Secret scopes do not support the `owner`, `owner_type`, `created_time`, or `tags` attributes.
 </Callout>
 
 ### Genie space attributes
@@ -181,8 +182,8 @@ Secret scopes expose only `id` and `name` from the common attributes. They have 
 | `description`     | Free-text description of the space                   |
 | `has_description` | Whether the space has a non-empty description        |
 
-<Callout type="warn" title="Unsupported common attributes for Genie spaces">
-Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` attributes.
+<Callout type="warn" title="Unsupported attributes for Genie spaces">
+Genie spaces do not support the `owner`, `owner_type`, or `created_time` attributes.
 </Callout>
 
 ### Spark Declarative Pipelines attributes
@@ -198,6 +199,33 @@ Genie spaces do not expose the `owner`, `owner_type`, `created_time`, or `tags` 
 | `photon`      | Whether Photon acceleration is enabled                                      |
 | `serverless`  | Whether the pipeline uses serverless compute                                |
 | `development` | Whether the pipeline runs in development mode                               |
+
+### Database instance attributes
+
+| Field name                    | Description                                                          |
+|-------------------------------|----------------------------------------------------------------------|
+| `capacity`                    | Compute capacity of the instance (e.g. "CU_1", "CU_2", "CU_4")       |
+| `state`                       | Current lifecycle state (e.g. "AVAILABLE", "STOPPED", "STARTING")    |
+| `node_count`                  | Number of nodes serving the instance (primary plus any secondaries)  |
+| `pg_version`                  | Postgres major version the instance runs                             |
+| `stopped`                     | Whether the instance is currently stopped                            |
+| `enable_readable_secondaries` | Whether readable secondary (standby) nodes are enabled               |
+| `retention_window_in_days`    | Days of point-in-time restore history the instance retains           |
+### SQL alert attributes
+
+| Field name            | Description                                                             |
+|-----------------------|-------------------------------------------------------------------------|
+| `warehouse_id`        | SQL warehouse the alert runs its query on                               |
+| `run_as_user_name`    | Principal the alert query runs as                                       |
+| `state`               | Latest evaluation state (e.g. "OK", "TRIGGERED", "UNKNOWN", "ERROR")    |
+| `lifecycle_state`     | Whether the alert is active or trashed (e.g. "ACTIVE", "TRASHED")       |
+| `comparison_operator` | Operator the alert compares its query result against a threshold with   |
+| `empty_result_state`  | State reported when the alert query returns no rows                     |
+| `has_schedule`        | Whether the alert runs on a schedule                                    |
+
+<Callout type="warn" title="Unsupported common attributes for SQL alerts">
+SQL alerts are not taggable and do not support the `tags` attribute.
+</Callout>
 
 ### Database instance attributes
 

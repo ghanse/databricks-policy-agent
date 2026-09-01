@@ -7,18 +7,26 @@ routes stay decoupled from construction and tests can override them.
 
 from __future__ import annotations
 
+import json
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 from fastapi import Request
 from policy_agent.config import PolicyAgentConfig
-from policy_agent.storage.backend import SqlExecutor
+from policy_agent.storage.backend import SqlExecutor, read_app_settings
+from policy_agent.tagging import managed_tags
 
 if TYPE_CHECKING:
     from databricks.sdk import WorkspaceClient
 
+# Keys under which admin-editable overrides are persisted in the ``app_settings`` table.
+SETTING_OBJECT_TAGS = "object_tags"
+SETTING_NOTIFICATION_EMAILS = "notification_emails"
+SETTING_NOTIFICATION_WEBHOOK = "notification_webhook"
+
 
 def get_config(request: Request) -> PolicyAgentConfig:
-    """Returns the runtime configuration built at startup.
+    """Return the runtime configuration built at startup.
 
     Args:
         request: The incoming request.
@@ -29,8 +37,66 @@ def get_config(request: Request) -> PolicyAgentConfig:
     return request.app.state.config
 
 
+def get_effective_config(request: Request) -> PolicyAgentConfig:
+    """Return the runtime configuration with admin-set overrides layered on top.
+
+    Object tags and notification destinations an administrator saves through the app are
+    persisted in ``app_settings`` and applied here over the deploy-time defaults. The storage
+    backend and schema are never overridden — they are fixed at deploy time. A missing or
+    unreadable settings table falls back to the base configuration.
+
+    Args:
+        request: The incoming request.
+
+    Returns:
+        The effective :class:`PolicyAgentConfig`.
+    """
+    base: PolicyAgentConfig = request.app.state.config
+    executor: SqlExecutor = request.app.state.executor
+    try:
+        overrides = read_app_settings(executor, base.storage)
+    except Exception:
+        return base
+    return apply_overrides(base, overrides)
+
+
+def apply_overrides(base: PolicyAgentConfig, overrides: dict[str, str]) -> PolicyAgentConfig:
+    """Layer stored overrides onto a base configuration.
+
+    Args:
+        base: The deploy-time configuration.
+        overrides: Raw text values keyed by ``SETTING_*``.
+
+    Returns:
+        The configuration with any provided overrides applied.
+    """
+    storage = base.storage
+    emails = base.notification_emails
+    webhook = base.notification_webhook
+    # Each override is parsed independently and defensively: a corrupted or malformed row
+    # falls back to the deploy-time value rather than breaking every request that reads the
+    # effective config.
+    tags_raw = overrides.get(SETTING_OBJECT_TAGS)
+    if tags_raw:
+        try:
+            parsed = json.loads(tags_raw)
+            tags = managed_tags({str(k): str(v) for k, v in parsed.items()})
+            storage = replace(storage, object_tags=tags)
+        except (ValueError, AttributeError):
+            pass
+    emails_raw = overrides.get(SETTING_NOTIFICATION_EMAILS)
+    if emails_raw:
+        try:
+            emails = tuple(str(e) for e in json.loads(emails_raw))
+        except ValueError:
+            pass
+    if SETTING_NOTIFICATION_WEBHOOK in overrides:
+        webhook = overrides[SETTING_NOTIFICATION_WEBHOOK] or None
+    return replace(base, storage=storage, notification_emails=emails, notification_webhook=webhook)
+
+
 def get_executor(request: Request) -> SqlExecutor:
-    """Returns the storage executor built at startup.
+    """Return the storage executor built at startup.
 
     Args:
         request: The incoming request.
@@ -42,7 +108,7 @@ def get_executor(request: Request) -> SqlExecutor:
 
 
 def get_workspace_client(request: Request) -> WorkspaceClient:
-    """Returns the workspace client built at startup.
+    """Return the workspace client built at startup.
 
     Args:
         request: The incoming request.

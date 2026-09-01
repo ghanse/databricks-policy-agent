@@ -34,6 +34,7 @@ _RESOURCE_GROUPS: dict[str, ResourceType] = {
     "pipelines": ResourceType.PIPELINE,
     "genie_spaces": ResourceType.GENIE_SPACE,
     "database_instances": ResourceType.DATABASE_INSTANCE,
+    "alerts": ResourceType.SQL_ALERT,
 }
 
 
@@ -152,6 +153,7 @@ def _serving_endpoint_attributes(key: str, definition: dict[str, Any]) -> dict[s
 def _catalog_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "catalog_type": definition.get("catalog_type"),
         "isolation_mode": definition.get("isolation_mode"),
@@ -162,6 +164,7 @@ def _catalog_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
 def _schema_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "catalog_name": definition.get("catalog_name"),
     }
@@ -170,6 +173,7 @@ def _schema_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
 def _volume_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "catalog_name": definition.get("catalog_name"),
         "schema_name": definition.get("schema_name"),
@@ -189,6 +193,7 @@ def _registered_model_attributes(key: str, definition: dict[str, Any]) -> dict[s
 def _external_location_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
     return {
         **_owned(key, definition.get("name")),
+        "tags": _normalize_tags(definition.get("tags")),
         "comment": definition.get("comment"),
         "url": definition.get("url"),
         "credential_name": definition.get("credential_name"),
@@ -210,7 +215,10 @@ def _quality_monitor_attributes(key: str, definition: dict[str, Any]) -> dict[st
         "id": key,
         "name": definition.get("table_name") or key,
         "table_name": definition.get("table_name"),
+        # Bundles declare the output schema by name; the id is a live-scan-only attribute, so it
+        # stays None here unless a bundle happens to declare one.
         "output_schema_name": definition.get("output_schema_name"),
+        "output_schema_id": definition.get("output_schema_id"),
         "monitor_type": _monitor_type(definition),
         "has_schedule": bool(definition.get("schedule")),
     }
@@ -225,7 +233,6 @@ def _monitor_type(definition: dict[str, Any]) -> str | None:
 
 
 def _owned(key: str, name: str | None) -> dict[str, Any]:
-    # UC objects have an owner and a creation time (unknown from a bundle) but no tags.
     return {
         "id": key,
         "name": name or key,
@@ -251,11 +258,13 @@ def _pipeline_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]
 
 
 def _genie_space_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
-    # NOTE: Genie spaces have no owner or tags, so this does not use _common
+    # NOTE: Genie spaces have no owner and are tagged through workspace tag assignments rather
+    # than a native bundle field; Tags are typically empty at deploy time.
     description = definition.get("description")
     return {
         "id": key,
         "name": definition.get("title") or definition.get("name") or key,
+        "tags": _normalize_tags(definition.get("tags")),
         "warehouse_id": definition.get("warehouse_id"),
         "description": description,
         "has_description": bool(description),
@@ -280,6 +289,28 @@ def _database_instance_attributes(key: str, definition: dict[str, Any]) -> dict[
         "stopped": definition.get("stopped"),
         "enable_readable_secondaries": definition.get("enable_readable_secondaries"),
         "retention_window_in_days": definition.get("retention_window_in_days"),
+    }
+
+
+def _sql_alert_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any]:
+    # Alerts are declared under `resources.alerts` using the v2 schema. Owner and evaluation
+    # state are runtime-only and unknown from a bundle; the comparison is declared inline.
+    evaluation = definition.get("evaluation") or {}
+    run_as = definition.get("run_as")
+    # API v2 uses a flat `run_as_user_name`. Some bundles nest this under `run_as`.
+    # Prefer the flat field, then fall back to the nested attributes.
+    run_as_user = definition.get("run_as_user_name")
+    if not run_as_user and isinstance(run_as, dict):
+        run_as_user = run_as.get("user_name") or run_as.get("service_principal_name")
+    return {
+        **_owned(key, definition.get("display_name") or definition.get("name")),
+        "warehouse_id": definition.get("warehouse_id"),
+        "run_as_user_name": run_as_user,
+        "state": None,
+        "lifecycle_state": None,
+        "comparison_operator": evaluation.get("comparison_operator"),
+        "empty_result_state": evaluation.get("empty_result_state"),
+        "has_schedule": bool(definition.get("schedule")),
     }
 
 
@@ -328,7 +359,7 @@ def _normalize_tags(tags: Any) -> dict[str, str]:
 
 def _pairs_to_tags(pairs: list[Any]) -> dict[str, str]:
     return {
-        str(pair["key"]): str(pair.get("value", ""))
+        str(pair["key"]): ("" if pair.get("value") is None else str(pair.get("value")))
         for pair in pairs
         if isinstance(pair, dict) and "key" in pair
     }
@@ -350,4 +381,5 @@ _COMMON = {
     ResourceType.PIPELINE: _pipeline_attributes,
     ResourceType.GENIE_SPACE: _genie_space_attributes,
     ResourceType.DATABASE_INSTANCE: _database_instance_attributes,
+    ResourceType.SQL_ALERT: _sql_alert_attributes,
 }

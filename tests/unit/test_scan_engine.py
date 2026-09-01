@@ -84,14 +84,15 @@ def test_supported_resource_types_match_registry():
         ResourceType.PIPELINE,
         ResourceType.GENIE_SPACE,
         ResourceType.DATABASE_INSTANCE,
+        ResourceType.QUALITY_MONITOR,
+        ResourceType.SQL_ALERT,
     }
-    # Quality monitors are enforce-only (no list API), so they are not scannable.
-    assert ResourceType.QUALITY_MONITOR not in set(supported_resource_types())
 
 
-def test_run_scan_skips_enforce_only_types():
-    # A quality-monitor policy is valid and can be gated from a bundle, but a live scan skips it
-    # because there is no list API — so no scanner is called and no findings are produced.
+def test_run_scan_skips_types_without_a_scanner(monkeypatch):
+    # Removing a scanner makes its type enforce-only: a policy on it is still valid and can be
+    # gated from a bundle, but a live scan skips it — no scanner is called and no findings result.
+    monkeypatch.delitem(registry.RESOURCE_SCANNERS, ResourceType.QUALITY_MONITOR)
     policy = allow("qm-scheduled", "quality_monitor", leaf("has_schedule", "equals", True))
     result = run_scan(SimpleNamespace(), [policy])
     assert result.findings == ()

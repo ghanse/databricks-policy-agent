@@ -183,8 +183,18 @@ def test_snapshot_bundle_maps_declared_uc_objects():
     assert by_type[ResourceType.REGISTERED_MODEL]["schema_name"] == "ml"
     assert by_type[ResourceType.EXTERNAL_LOCATION]["url"] == "s3://bucket/raw"
     assert by_type[ResourceType.SECRET_SCOPE]["backend_type"] == "DATABRICKS"
-    # None of the UC/secret types advertise tags.
-    assert all("tags" not in attrs for attrs in by_type.values())
+    # Catalogs, schemas, volumes, and external locations are taggable (tags governed via the UC
+    # entity-tag-assignments API); a bundle rarely declares them, so they default to empty.
+    for taggable in (
+        ResourceType.CATALOG,
+        ResourceType.SCHEMA,
+        ResourceType.VOLUME,
+        ResourceType.EXTERNAL_LOCATION,
+    ):
+        assert by_type[taggable]["tags"] == {}
+    # Registered models and secret scopes are not taggable.
+    assert "tags" not in by_type[ResourceType.REGISTERED_MODEL]
+    assert "tags" not in by_type[ResourceType.SECRET_SCOPE]
 
     # An external location that is not read-only violates a read-only policy at the gate.
     read_only = allow("el-read-only", "external_location", leaf("read_only", "equals", True))
@@ -209,6 +219,9 @@ def test_snapshot_bundle_maps_quality_monitors_enforce_only():
     by_id = {s.resource_id: s for s in snapshot_bundle(config)}
     assert by_id["orders"].resource_type is ResourceType.QUALITY_MONITOR
     assert by_id["orders"].attributes["table_name"] == "main.gold.orders"
+    # Bundles declare the output schema by name; the id is a live-scan-only attribute.
+    assert by_id["orders"].attributes["output_schema_name"] == "main.monitoring"
+    assert by_id["orders"].attributes["output_schema_id"] is None
     assert by_id["orders"].attributes["monitor_type"] == "snapshot"
     assert by_id["orders"].attributes["has_schedule"] is True
     assert by_id["adhoc"].attributes["monitor_type"] == "inference_log"
@@ -273,6 +286,9 @@ def test_snapshot_bundle_maps_declared_genie_spaces():
     assert by_id["sales"].attributes["warehouse_id"] == "wh-1"
     assert by_id["sales"].attributes["has_description"] is True
     assert by_id["adhoc"].attributes["has_description"] is False
+    # Genie spaces advertise tags (governed via tag assignments); a bundle rarely declares them,
+    # so they default to empty.
+    assert by_id["sales"].attributes["tags"] == {}
 
     # A Genie space without a description violates a "must be documented" policy.
     documented = allow("genie-documented", "genie_space", leaf("has_description", "equals", True))
@@ -285,7 +301,7 @@ def test_snapshot_bundle_maps_declared_database_instances():
     config = {
         "resources": {
             "database_instances": {
-                "orders": {
+                "prod_orders": {
                     "name": "prod_orders",
                     "capacity": "CU_2",
                     "node_count": 2,
@@ -318,6 +334,60 @@ def test_snapshot_bundle_maps_declared_database_instances():
     )
     assert result.blocked
     assert {f.resource_id for f in result.blocking} == {"scratch"}
+
+
+def test_snapshot_bundle_maps_declared_alerts():
+    # Alerts are declared under the `alerts` group using the v2 schema.
+    config = {
+        "resources": {
+            "alerts": {
+                "row_count": {
+                    "display_name": "prod_row_count",
+                    "warehouse_id": "wh-1",
+                    "run_as_user_name": "alice@example.com",
+                    "schedule": {"quartz_cron_schedule": "0 0 * * * ?"},
+                    "evaluation": {
+                        "comparison_operator": "GREATER_THAN",
+                        "empty_result_state": "UNKNOWN",
+                    },
+                }
+            }
+        }
+    }
+    (snapshot,) = snapshot_bundle(config)
+    assert snapshot.resource_type is ResourceType.SQL_ALERT
+    attrs = snapshot.attributes
+    assert attrs["name"] == "prod_row_count"
+    assert attrs["warehouse_id"] == "wh-1"
+    assert attrs["run_as_user_name"] == "alice@example.com"
+    assert attrs["comparison_operator"] == "GREATER_THAN"
+    assert attrs["has_schedule"] is True
+    # State is runtime-only and unknown from a bundle; alerts carry no tags.
+    assert attrs["state"] is None
+    assert "tags" not in attrs
+
+    # An alert without a warehouse violates a "must run on a warehouse" policy at the gate.
+    needs_warehouse = allow("alert-warehouse", "sql_alert", leaf("warehouse_id", "exists"))
+    unattached = {"resources": {"alerts": {"orphan": {"display_name": "orphan"}}}}
+    result = run_gate(
+        [needs_warehouse], snapshot_bundle(unattached), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+    assert {f.resource_id for f in result.blocking} == {"orphan"}
+
+
+def test_snapshot_bundle_alert_run_as_from_nested_shapes():
+    # Some bundles nest run_as under a `run_as` block naming a user or a service principal,
+    # rather than the flat `run_as_user_name` the v2 model and live scan use. Either shape must
+    # resolve to the same attribute so a bundle gate and a live scan agree.
+    as_user = {"resources": {"alerts": {"u": {"run_as": {"user_name": "bob@example.com"}}}}}
+    (snapshot,) = snapshot_bundle(as_user)
+    assert snapshot.attributes["run_as_user_name"] == "bob@example.com"
+
+    sp = "11111111-1111-1111-1111-111111111111"
+    as_sp = {"resources": {"alerts": {"s": {"run_as": {"service_principal_name": sp}}}}}
+    (snapshot,) = snapshot_bundle(as_sp)
+    assert snapshot.attributes["run_as_user_name"] == sp
 
 
 def test_snapshot_bundle_derives_job_task_attributes():

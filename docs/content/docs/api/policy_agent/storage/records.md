@@ -235,3 +235,24 @@ Serialises a group-to-role grant to a ``role_mappings`` row.
 
   A row mapping ready for insertion.
 
+#### app\_setting\_to\_row
+
+```python
+def app_setting_to_row(key: str, value: str, config: StorageConfig,
+                       updated_at: datetime) -> dict[str, Any]
+```
+
+Serialise an app-settings key/value override to an ``app_settings`` row.
+
+**Arguments**:
+
+- `key` - The setting key.
+- `value` - The setting value (already serialised to text).
+- `config` - Storage config supplying object tags.
+- `updated_at` - Timestamp recorded on the row.
+  
+
+**Returns**:
+
+  A row mapping ready for insertion.
+

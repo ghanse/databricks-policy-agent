@@ -282,6 +282,71 @@ Fetches and normalizes every Lakebase database instance in the workspace.
 
   A list of *ResourceSnapshots* for each database instance.
 
+#### scan\_quality\_monitors
+
+```python
+def scan_quality_monitors(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monitor.
+
+**Notes**:
+
+  Uses the data-quality API (*data_quality.list_monitor*); each monitor's classic
+  Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
+  no data-profiling config (for example anomaly-detection-only monitors) are skipped
+  because they do not map to this resource type's attributes. Older SDKs without the
+  *data_quality* API raise UnsupportedResourceError.
+  
+  Output schemas are identified by id (*output_schema_id*); their fully-qualified names
+  are resolved during scans. A policy on the schema name matches the same monitor whether
+  it is scanned live or declared in a bundle. Name resolution is best-effort
+  (see *_resolve_schema_names*).
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each data-profiling quality monitor.
+  
+
+**Raises**:
+
+- `UnsupportedResourceError` - If the SDK does not expose the *data_quality* API.
+- `ScanError` - If listing monitors fails — for example a workspace without the data-quality
+  monitoring feature enabled.
+
+#### scan\_sql\_alerts
+
+```python
+def scan_sql_alerts(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every SQL alert in the workspace.
+
+**Notes**:
+
+  Uses the v2 alerts API (*alerts_v2.list_alerts*), whose model matches the ``alerts``
+  resource declared in a Databricks Asset Bundle, so a live scan and a bundle gate
+  evaluate the same attributes. Evaluation attributes (e.g. state, comparison operator)
+  are read from the nested *evaluation* block.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each SQL alert.
+
 #### classify\_principal
 
 ```python
@@ -299,4 +364,3 @@ Classifies a principal identifier as a service principal, user, or unknown.
 
   One of the ``OWNER_TYPE_*`` constants: ``service_principal`` for a UUID, ``user`` for an
   email-shaped value, and ``unknown`` for an empty identifier or any other value.
-

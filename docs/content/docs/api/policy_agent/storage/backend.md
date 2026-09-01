@@ -347,3 +347,41 @@ Reads all group-to-role grants.
 
   A mapping from group name to the set of roles granted to it.
 
+#### read\_app\_settings
+
+```python
+def read_app_settings(executor: SqlExecutor,
+                      config: StorageConfig) -> dict[str, str]
+```
+
+Read the app-settings overrides as a flat key/value mapping.
+
+These are runtime configuration overrides an administrator sets through the app (for
+example object tags or notification destinations), layered over the deploy-time defaults.
+
+**Arguments**:
+
+- `executor` - The SQL executor.
+- `config` - The storage configuration.
+  
+
+**Returns**:
+
+  A mapping from setting key to its stored (text) value.
+
+#### save\_app\_setting
+
+```python
+def save_app_setting(executor: SqlExecutor, config: StorageConfig, key: str,
+                     value: str) -> None
+```
+
+Upsert a single app-settings override.
+
+**Arguments**:
+
+- `executor` - The SQL executor.
+- `config` - The storage configuration.
+- `key` - The setting key.
+- `value` - The setting value, serialised to text.
+

@@ -1,6 +1,18 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import type { Policy, Settings } from "../types";
+import { effectLabel, resourceTypeLabel, enforcementLabel, statusLabel } from "../labels";
+import { useToast, type ToastKind } from "../toast";
+import { transitionsFor } from "../policyActions";
+import { FilterBar } from "./FilterBar";
+import { ImportModal } from "./ImportModal";
+import { PolicyPage } from "./PolicyPage";
+import { Select } from "./Select";
+import { SplitButton } from "./SplitButton";
+import { NoteDialog, type NoteRequest } from "./NoteDialog";
+import { TrashIcon } from "./icons";
+import { SortTh, useSort, ENFORCEMENT_RANK } from "../useSort";
+import { usePage, PagerBar } from "../usePage";
 
 const EXAMPLE_RULE = JSON.stringify(
   { any: [{ attribute: "owner_type", operator: "not_equals", value: "service_principal" }] },
@@ -8,33 +20,74 @@ const EXAMPLE_RULE = JSON.stringify(
   2,
 );
 
-export function PoliciesTab({ settings }: { settings: Settings | null }) {
+interface FormState {
+  name: string;
+  description: string;
+  resourceType: string;
+  effect: string;
+  enforcement_level: string;
+  remediation: string;
+  rule: string;
+  match: string;
+}
+
+const POLICY_PAST: Record<string, string> = {
+  submit: "submitted for review",
+  approve: "approved",
+  reject: "rejected",
+  archive: "archived",
+};
+
+const EMPTY: FormState = {
+  name: "",
+  description: "",
+  resourceType: "cluster",
+  effect: "deny",
+  enforcement_level: "advisory",
+  remediation: "",
+  rule: EXAMPLE_RULE,
+  match: "",
+};
+
+export function PoliciesTab({ settings, isAdmin }: { settings: Settings | null; isAdmin: boolean }) {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [error, setError] = useState("");
-  const [name, setName] = useState("");
-  const [resourceType, setResourceType] = useState("cluster");
-  const [effect, setEffect] = useState("deny");
-  const [enforcementLevel, setEnforcementLevel] = useState("advisory");
-  const [remediation, setRemediation] = useState("");
-  const [rule, setRule] = useState(EXAMPLE_RULE);
+  const [form, setForm] = useState<FormState>(EMPTY);
+  const [showForm, setShowForm] = useState(false);
   const [validation, setValidation] = useState("");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<NoteRequest | null>(null);
 
+  const [search, setSearch] = useState("");
+  const [fType, setFType] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fEnforcement, setFEnforcement] = useState("");
+  const [fEffect, setFEffect] = useState("");
+  const [importing, setImporting] = useState(false);
+  const toast = useToast();
+  const sort = useSort<Policy>("name");
+
+  const set = (patch: Partial<FormState>) => setForm((f) => ({ ...f, ...patch }));
   const refresh = () => api.listPolicies().then(setPolicies).catch((e) => setError(String(e)));
   useEffect(() => {
     refresh();
   }, []);
 
-  const body = () => ({
-    name,
-    resource_type: resourceType,
-    effect,
-    enforcement_level: enforcementLevel,
-    remediation,
-    rule: JSON.parse(rule),
-  });
+  const body = () => {
+    const data: Record<string, unknown> = {
+      name: form.name,
+      resource_type: form.resourceType,
+      effect: form.effect,
+      enforcement_level: form.enforcement_level,
+      description: form.description,
+      remediation: form.remediation,
+      rule: JSON.parse(form.rule),
+    };
+    if (form.match.trim()) data.match = JSON.parse(form.match);
+    return data;
+  };
 
   const validate = async () => {
-    setError("");
     try {
       const result = await api.validatePolicy(body());
       setValidation(result.valid ? "Valid ✓" : `Invalid: ${result.error}`);
@@ -44,97 +97,315 @@ export function PoliciesTab({ settings }: { settings: Settings | null }) {
   };
 
   const save = async () => {
-    setError("");
+    const name = form.name;
     try {
       await api.savePolicy(body());
-      setName("");
+      setForm(EMPTY);
+      setShowForm(false);
       setValidation("");
+      toast.push(
+        <>
+          Policy <strong>{name}</strong> saved as a draft.
+        </>,
+        "save",
+      );
       refresh();
     } catch (e) {
-      setError(String(e));
+      toast.push(String(e), "error");
     }
   };
 
+  const openNew = () => {
+    setForm(EMPTY);
+    setValidation("");
+    setShowForm(true);
+  };
+
+  const doTransition = (policy: Policy, action: string, label: string, kind: ToastKind) => {
+    setDialog({
+      title: `${label} — ${policy.policy}`,
+      description: "This is recorded as an immutable approval event.",
+      confirmLabel: label,
+      onConfirm: async (note) => {
+        try {
+          await api.transition(policy.policy, action, note);
+          toast.push(
+            <>
+              Policy <strong>{policy.policy}</strong> {POLICY_PAST[action] ?? action}.
+            </>,
+            kind,
+          );
+          refresh();
+        } catch (e) {
+          toast.push(String(e), "error");
+        }
+      },
+    });
+  };
+
+  const doDelete = (policy: Policy) => {
+    setDialog({
+      title: `Delete ${policy.policy}?`,
+      description: "This permanently removes the policy.",
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        try {
+          await api.deletePolicy(policy.policy);
+          toast.push(
+            <>
+              Policy <strong>{policy.policy}</strong> deleted.
+            </>,
+            "delete",
+          );
+          refresh();
+        } catch (e) {
+          toast.push(String(e), "error");
+        }
+      },
+    });
+  };
+
+  const resourceTypes = settings?.resource_types ?? ["cluster"];
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return policies.filter(
+      (p) =>
+        (!q || p.policy.toLowerCase().includes(q) || (p.description ?? "").toLowerCase().includes(q)) &&
+        (!fType || p.resource_type === fType) &&
+        (!fStatus || p.status === fStatus) &&
+        (!fEnforcement || p.enforcement_level === fEnforcement) &&
+        (!fEffect || p.effect === fEffect),
+    );
+  }, [policies, search, fType, fStatus, fEnforcement, fEffect]);
+
+  const sorted = sort.apply(filtered, {
+    name: (p) => p.policy.toLowerCase(),
+    type: (p) => p.resource_type,
+    effect: (p) => p.effect,
+    enforcement_level: (p) => ENFORCEMENT_RANK[p.enforcement_level] ?? -1,
+    status: (p) => p.status,
+    version: (p) => p.version,
+  });
+  const pager = usePage(sorted, 10);
+
+  if (selected) {
+    return (
+      <PolicyPage
+        name={selected}
+        isAdmin={isAdmin}
+        onBack={() => setSelected(null)}
+        onChanged={refresh}
+      />
+    );
+  }
+
   return (
     <>
-      <div className="panel">
-        <h3>New / update policy</h3>
-        {error && <div className="error">{error}</div>}
-        <div className="row" style={{ marginBottom: 8 }}>
-          <input placeholder="policy-name" value={name} onChange={(e) => setName(e.target.value)} />
-          <select value={resourceType} onChange={(e) => setResourceType(e.target.value)}>
-            {(settings?.resource_types ?? ["cluster"]).map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-          <select value={effect} onChange={(e) => setEffect(e.target.value)}>
-            <option value="deny">deny</option>
-            <option value="allow">allow</option>
-          </select>
-          <select value={enforcementLevel} onChange={(e) => setEnforcementLevel(e.target.value)}>
-            {["advisory", "soft", "hard"].map((level) => (
-              <option key={level}>{level}</option>
-            ))}
-          </select>
-        </div>
-        <input
-          placeholder="remediation guidance"
-          value={remediation}
-          onChange={(e) => setRemediation(e.target.value)}
-          style={{ marginBottom: 8 }}
+      <div className="page-actions">
+        <SplitButton
+          label="Add a policy"
+          onClick={openNew}
+          options={[{ label: "Import from YAML", onSelect: () => setImporting(true) }]}
         />
-        <textarea value={rule} onChange={(e) => setRule(e.target.value)} />
-        <div className="row" style={{ marginTop: 8 }}>
-          <button className="action secondary" onClick={validate}>
-            Validate
-          </button>
-          <button className="action" onClick={save} disabled={!name}>
-            Save draft
-          </button>
-          <span className="muted">{validation}</span>
-        </div>
       </div>
+      {error && <div className="error">{error}</div>}
+
+      {showForm && (
+        <div className="panel">
+          <h3>Add a policy</h3>
+          <div className="row wrap" style={{ marginBottom: 12, alignItems: "flex-end" }}>
+            <div style={{ flex: "2 1 200px" }}>
+              <label className="field">Name</label>
+              <input placeholder="policy-name" value={form.name} onChange={(e) => set({ name: e.target.value })} />
+            </div>
+            <div style={{ flex: "1 1 120px" }}>
+              <label className="field">Resource type</label>
+              <Select
+                block
+                ariaLabel="Resource type"
+                value={form.resourceType}
+                onChange={(v) => set({ resourceType: v })}
+                options={resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) }))}
+              />
+            </div>
+            <div style={{ flex: "1 1 100px" }}>
+              <label className="field">Effect</label>
+              <Select
+                block
+                ariaLabel="Effect"
+                value={form.effect}
+                onChange={(v) => set({ effect: v })}
+                options={[
+                  { value: "deny", label: "Deny" },
+                  { value: "allow", label: "Allow" },
+                ]}
+              />
+            </div>
+            <div style={{ flex: "1 1 100px" }}>
+              <label className="field">Enforcement</label>
+              <Select
+                block
+                ariaLabel="Enforcement"
+                value={form.enforcement_level}
+                onChange={(v) => set({ enforcement_level: v })}
+                options={["advisory", "soft", "hard"].map((s) => ({ value: s, label: enforcementLabel(s) }))}
+              />
+            </div>
+          </div>
+          <label className="field">Description</label>
+          <input
+            placeholder="What this policy checks"
+            value={form.description}
+            onChange={(e) => set({ description: e.target.value })}
+            style={{ marginBottom: 12 }}
+          />
+          <label className="field">Recommended action (remediation guidance)</label>
+          <input
+            placeholder="What should an owner do to fix a violation?"
+            value={form.remediation}
+            onChange={(e) => set({ remediation: e.target.value })}
+            style={{ marginBottom: 12 }}
+          />
+          <label className="field">Rule</label>
+          <textarea value={form.rule} onChange={(e) => set({ rule: e.target.value })} />
+          <label className="field" style={{ marginTop: 12 }}>
+            Match selector
+          </label>
+          <textarea
+            style={{ minHeight: 90 }}
+            placeholder="Leave empty to apply to all resources of this type"
+            value={form.match}
+            onChange={(e) => set({ match: e.target.value })}
+          />
+          <div className="row" style={{ marginTop: 12 }}>
+            <button className="action act-danger" onClick={() => { setShowForm(false); setValidation(""); }}>
+              Cancel
+            </button>
+            <button className="action act-neutral" onClick={validate}>
+              Validate
+            </button>
+            <button className="action act-ok" onClick={save} disabled={!form.name}>
+              Save draft
+            </button>
+            <span className="muted">{validation}</span>
+          </div>
+        </div>
+      )}
 
       <div className="panel">
-        <h3>Policies</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Type</th>
-              <th>Effect</th>
-              <th>Enforcement</th>
-              <th>Status</th>
-              <th>Version</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {policies.map((p) => (
-              <tr key={p.policy}>
-                <td>{p.policy}</td>
-                <td>{p.resource_type}</td>
-                <td>{p.effect}</td>
-                <td>
-                  <span className={`badge ${p.enforcement_level}`}>{p.enforcement_level}</span>
-                </td>
-                <td>
-                  <span className={`badge ${p.status}`}>{p.status}</span>
-                </td>
-                <td>{p.version}</td>
-                <td>
-                  <button
-                    className="action secondary"
-                    onClick={() => api.deletePolicy(p.policy).then(refresh)}
-                  >
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <h3>
+          Policies
+          <span className="hint">
+            {filtered.length} of {policies.length}
+          </span>
+        </h3>
+        <FilterBar
+          search={search}
+          onSearch={setSearch}
+          placeholder="Search by name or description…"
+          filters={[
+            {
+              label: "Type",
+              value: fType,
+              onChange: setFType,
+              options: resourceTypes.map((t) => ({ value: t, label: resourceTypeLabel(t) })),
+            },
+            {
+              label: "Effect",
+              value: fEffect,
+              onChange: setFEffect,
+              options: ["allow", "deny"].map((e) => ({ value: e, label: effectLabel(e) })),
+            },
+            {
+              label: "Status",
+              value: fStatus,
+              onChange: setFStatus,
+              options: ["draft", "in_review", "approved", "rejected", "archived"].map((s) => ({
+                value: s,
+                label: statusLabel(s),
+              })),
+            },
+            {
+              label: "Enforcement",
+              value: fEnforcement,
+              onChange: setFEnforcement,
+              options: ["advisory", "soft", "hard"].map((s) => ({
+                value: s,
+                label: enforcementLabel(s),
+              })),
+            },
+          ]}
+        />
+        {filtered.length === 0 ? (
+          <div className="empty">No matching policies.</div>
+        ) : (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <SortTh label="Name" field="name" sort={sort} />
+                  <SortTh label="Type" field="type" sort={sort} />
+                  <SortTh label="Effect" field="effect" sort={sort} />
+                  <SortTh label="Enforcement" field="enforcement_level" sort={sort} />
+                  <SortTh label="Status" field="status" sort={sort} />
+                  <SortTh label="Version" field="version" sort={sort} />
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pager.pageRows.map((p) => (
+                  <tr key={p.policy} className="clickable" onClick={() => setSelected(p.policy)}>
+                    <td>
+                      <div className="cell-strong link">{p.policy}</div>
+                      {p.description && <div className="faint">{p.description}</div>}
+                    </td>
+                    <td>
+                      <span className="badge neutral">{resourceTypeLabel(p.resource_type)}</span>
+                    </td>
+                    <td>
+                      <span className="badge neutral">{effectLabel(p.effect)}</span>
+                    </td>
+                    <td>
+                      <span className={`badge ${p.enforcement_level}`}>{enforcementLabel(p.enforcement_level)}</span>
+                    </td>
+                    <td>
+                      <span className={`badge ${p.status}`}>{statusLabel(p.status)}</span>
+                    </td>
+                    <td>
+                      <span className="badge neutral">Version {p.version}</span>
+                    </td>
+                    <td onClick={(e) => e.stopPropagation()}>
+                      <div className="row">
+                        {transitionsFor(p.status).map((t) => {
+                          const Icon = t.icon;
+                          return (
+                            <button
+                              key={t.action}
+                              className={`icon-btn act-${t.color}`}
+                              title={t.label}
+                              onClick={() => doTransition(p, t.action, t.label, t.kind)}
+                            >
+                              <Icon size={15} />
+                            </button>
+                          );
+                        })}
+                        {isAdmin && (
+                          <button className="icon-btn act-danger" title="Delete" onClick={() => doDelete(p)}>
+                            <TrashIcon size={15} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <PagerBar pager={pager} />
+          </div>
+        )}
       </div>
+      <NoteDialog request={dialog} onClose={() => setDialog(null)} />
+      {importing && <ImportModal onClose={() => setImporting(false)} onImported={refresh} />}
     </>
   );
 }

@@ -30,7 +30,7 @@ def list_schedules(
     config: PolicyAgentConfig = Depends(get_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """Lists scan schedules."""
+    """List scan schedules."""
     return [schedule_to_dict(schedule) for schedule in read_schedules(executor, config.storage)]
 
 
@@ -41,7 +41,7 @@ def upsert_schedule(
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> dict[str, Any]:
-    """Creates or updates a scan schedule."""
+    """Create or update a scan schedule."""
     schedule = ScanSchedule(
         schedule_id=body.schedule_id or uuid.uuid4().hex,
         name=body.name,
@@ -55,12 +55,12 @@ def upsert_schedule(
     return schedule_to_dict(schedule)
 
 
-@router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{schedule_id}", status_code=status.HTTP_204_NO_CONTENT, response_model=None)
 def remove_schedule(
     schedule_id: str,
     _roles: set[Role] = Depends(require_admin),
     executor: SqlExecutor = Depends(get_executor),
     config: PolicyAgentConfig = Depends(get_config),
 ) -> None:
-    """Deletes a scan schedule by id."""
+    """Delete a scan schedule by id."""
     delete_schedule(executor, config.storage, schedule_id)

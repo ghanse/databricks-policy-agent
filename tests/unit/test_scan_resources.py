@@ -2,7 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from policy_agent.errors import UnsupportedResourceError
+from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
     classify_principal,
@@ -14,10 +14,12 @@ from policy_agent.scan.resources import (
     scan_genie_spaces,
     scan_jobs,
     scan_pipelines,
+    scan_quality_monitors,
     scan_registered_models,
     scan_schemas,
     scan_secret_scopes,
     scan_serving_endpoints,
+    scan_sql_alerts,
     scan_sql_warehouses,
     scan_volumes,
 )
@@ -260,7 +262,78 @@ def test_scan_catalogs_maps_owner_type_and_created_time():
     assert attrs["catalog_type"] == "MANAGED_CATALOG"
     assert attrs["isolation_mode"] == "ISOLATED"
     assert attrs["created_time"] == 1_700_000_000
-    assert "tags" not in attrs  # catalogs do not advertise tags
+    # Catalogs advertise tags; with no UC tag service wired the mapping is empty.
+    assert attrs["tags"] == {}
+
+
+class _FakeUcTagAssignments:
+    """A fake UC entity-tag-assignments service keyed by (entity_type, entity_name)."""
+
+    def __init__(self, assignments):
+        self._assignments = assignments
+        self.calls = []
+
+    def list(self, entity_type, entity_name, **kwargs):
+        self.calls.append((entity_type, entity_name))
+        return list(self._assignments.get((entity_type, entity_name), []))
+
+
+def test_scan_catalogs_reads_governed_uc_tags():
+    catalog = SimpleNamespace(name="main", owner="data-eng", created_at=None)
+    tag_service = _FakeUcTagAssignments(
+        {("catalogs", "main"): [SimpleNamespace(tag_key="domain", tag_value="finance")]}
+    )
+    ws = _ws(catalogs=_FakeService([catalog]), entity_tag_assignments=tag_service)
+    (snapshot,) = scan_catalogs(ws)
+    # UC tags come from the entity-tag-assignments API, keyed by entity type + fully-qualified name.
+    assert snapshot.attributes["tags"] == {"domain": "finance"}
+    assert tag_service.calls == [("catalogs", "main")]
+
+
+def test_scan_volumes_reads_governed_uc_tags_by_full_name():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="gold")
+    volume = SimpleNamespace(name="landing", full_name="main.gold.landing", owner="data-eng")
+    tag_service = _FakeUcTagAssignments(
+        {("volumes", "main.gold.landing"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        volumes=_FakeService([volume]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_volumes(ws)
+    assert snapshot.attributes["tags"] == {"pii": "true"}
+    # The volume's fully-qualified name is used as the UC entity name.
+    assert tag_service.calls == [("volumes", "main.gold.landing")]
+
+
+def test_scan_schemas_reads_governed_uc_tags_by_full_name():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="gold", full_name="main.gold", owner="data-eng")
+    tag_service = _FakeUcTagAssignments(
+        {("schemas", "main.gold"): [SimpleNamespace(tag_key="tier", tag_value="curated")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_schemas(ws)
+    assert snapshot.attributes["tags"] == {"tier": "curated"}
+    assert tag_service.calls == [("schemas", "main.gold")]
+
+
+def test_scan_external_locations_reads_governed_uc_tags():
+    location = SimpleNamespace(name="raw-landing", owner="data-eng", url="s3://bucket/raw")
+    tag_service = _FakeUcTagAssignments(
+        {("externallocations", "raw-landing"): [SimpleNamespace(tag_key="zone", tag_value="raw")]}
+    )
+    ws = _ws(external_locations=_FakeService([location]), entity_tag_assignments=tag_service)
+    (snapshot,) = scan_external_locations(ws)
+    assert snapshot.attributes["tags"] == {"zone": "raw"}
+    assert tag_service.calls == [("externallocations", "raw-landing")]
 
 
 def test_scan_schemas_iterates_catalogs():
@@ -511,3 +584,228 @@ def test_scan_database_instances_without_database_service_raises():
     # An older SDK without the database API should fail with a clear, actionable error.
     with pytest.raises(UnsupportedResourceError):
         scan_database_instances(_ws())
+
+
+class _FakeAlertsV2:
+    def __init__(self, alerts):
+        self._alerts = alerts
+
+    def list_alerts(self):
+        # The v2 SDK returns an auto-paginated iterator of AlertV2 objects.
+        return list(self._alerts)
+
+
+def test_scan_sql_alerts_reads_evaluation_and_owner():
+    alert = SimpleNamespace(
+        id="a-1",
+        display_name="prod_row_count",
+        owner_user_name="alice@example.com",
+        create_time="2026-01-02T03:04:05Z",
+        warehouse_id="wh-9",
+        run_as_user_name="alice@example.com",
+        lifecycle_state=SimpleNamespace(value="ACTIVE"),
+        schedule=SimpleNamespace(quartz_cron_schedule="0 0 * * * ?"),
+        evaluation=SimpleNamespace(
+            state=SimpleNamespace(value="OK"),
+            comparison_operator=SimpleNamespace(value="GREATER_THAN"),
+            empty_result_state=SimpleNamespace(value="UNKNOWN"),
+        ),
+    )
+    (snapshot,) = scan_sql_alerts(_ws(alerts_v2=_FakeAlertsV2([alert])))
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.SQL_ALERT
+    assert attrs["name"] == "prod_row_count"
+    assert attrs["owner_type"] == "user"
+    assert attrs["created_time"] is not None
+    assert attrs["warehouse_id"] == "wh-9"
+    assert attrs["state"] == "OK"
+    assert attrs["lifecycle_state"] == "ACTIVE"
+    assert attrs["comparison_operator"] == "GREATER_THAN"
+    assert attrs["empty_result_state"] == "UNKNOWN"
+    assert attrs["has_schedule"] is True
+    assert "tags" not in attrs  # alerts do not advertise tags
+
+
+def test_scan_sql_alerts_handles_missing_evaluation_and_schedule():
+    alert = SimpleNamespace(
+        id="a-2", display_name="adhoc", owner_user_name=None, evaluation=None, schedule=None
+    )
+    (snapshot,) = scan_sql_alerts(_ws(alerts_v2=_FakeAlertsV2([alert])))
+    attrs = snapshot.attributes
+    assert attrs["owner_type"] == "unknown"
+    assert attrs["state"] is None
+    assert attrs["comparison_operator"] is None
+    assert attrs["has_schedule"] is False
+
+
+def test_scan_sql_alerts_without_alerts_v2_service_raises():
+    # An older SDK without the v2 alerts API should fail with a clear, actionable error.
+    with pytest.raises(UnsupportedResourceError):
+        scan_sql_alerts(_ws())
+
+
+class _FakeDataQuality:
+    def __init__(self, monitors):
+        self._monitors = monitors
+
+    def list_monitor(self):
+        # The data-quality SDK returns an auto-paginated iterator of Monitor objects.
+        return list(self._monitors)
+
+
+def _monitor(profiling):
+    return SimpleNamespace(object_type="table", object_id="obj-1", data_profiling_config=profiling)
+
+
+class _RaisingCatalogs:
+    def __init__(self, error):
+        self._error = error
+
+    def list(self):
+        raise self._error
+
+
+def test_scan_quality_monitors_reads_data_profiling_config():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-123",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=SimpleNamespace(quartz_cron_expression="0 0 * * * ?"),
+    )
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(schema_id="sch-123", full_name="main.monitoring", name="monitoring")
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.QUALITY_MONITOR
+    assert attrs["id"] == "main.gold.orders"
+    assert attrs["table_name"] == "main.gold.orders"
+    assert attrs["output_schema_id"] == "sch-123"
+    assert attrs["output_schema_name"] == "main.monitoring"
+    assert attrs["monitor_type"] == "snapshot"
+    assert attrs["has_schedule"] is True
+    # Quality monitors are neither owned nor tagged.
+    assert "owner" not in attrs and "tags" not in attrs
+
+
+def test_scan_quality_monitors_leaves_output_schema_name_none_when_unresolved():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-missing",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_FakeService([SimpleNamespace(name="main")]),
+        schemas=_FakeService([SimpleNamespace(schema_id="sch-other", full_name="main.other")]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    assert snapshot.attributes["output_schema_id"] == "sch-missing"
+    assert snapshot.attributes["output_schema_name"] is None
+
+
+def test_scan_quality_monitors_resolution_tolerates_listing_errors():
+    from databricks.sdk.errors import PermissionDenied
+
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.orders",
+        output_schema_id="sch-123",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(
+        data_quality=_FakeDataQuality([_monitor(profiling)]),
+        catalogs=_RaisingCatalogs(PermissionDenied("no access")),
+        schemas=_FakeService([]),
+    )
+    (snapshot,) = scan_quality_monitors(ws)
+    assert snapshot.attributes["output_schema_id"] == "sch-123"
+    assert snapshot.attributes["output_schema_name"] is None
+
+
+def test_scan_quality_monitors_falls_back_to_object_id_when_table_name_missing():
+    # A data-profiling monitor with no monitored_table_name falls back to object_id
+    profiling = SimpleNamespace(
+        monitored_table_name=None,
+        output_schema_id="main.monitoring",
+        snapshot=SimpleNamespace(),
+        time_series=None,
+        inference_log=None,
+        schedule=None,
+    )
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling)]))
+    (snapshot,) = scan_quality_monitors(ws)
+    attrs = snapshot.attributes
+    assert attrs["table_name"] is None
+    # _monitor(...) uses object_id "obj-1"; id and name both fall back to it.
+    assert attrs["id"] == "obj-1"
+    assert attrs["name"] == "obj-1"
+
+
+def test_scan_quality_monitors_skips_monitors_without_profiling_config():
+    profiling = SimpleNamespace(
+        monitored_table_name="main.gold.inference",
+        output_schema_id="main.monitoring",
+        snapshot=None,
+        time_series=None,
+        inference_log=SimpleNamespace(),
+        schedule=None,
+    )
+    # An anomaly-detection-only monitor has no data_profiling_config and is skipped.
+    ws = _ws(data_quality=_FakeDataQuality([_monitor(profiling), _monitor(None)]))
+    snapshots = scan_quality_monitors(ws)
+    assert [s.attributes["monitor_type"] for s in snapshots] == ["inference_log"]
+    assert snapshots[0].attributes["has_schedule"] is False
+
+
+def test_scan_quality_monitors_without_data_quality_service_raises():
+    # An older SDK without the data-quality API should fail with a clear, actionable error.
+    with pytest.raises(UnsupportedResourceError):
+        scan_quality_monitors(_ws())
+
+
+class _RaisingDataQuality:
+    def __init__(self, error):
+        self._error = error
+
+    def list_monitor(self):
+        raise self._error
+
+
+def test_scan_quality_monitors_wraps_api_errors_in_scan_error():
+    from databricks.sdk.errors import PermissionDenied
+
+    ws = _ws(data_quality=_RaisingDataQuality(PermissionDenied("feature not enabled")))
+    with pytest.raises(ScanError):
+        scan_quality_monitors(ws)
+
+
+def test_scan_genie_spaces_reads_governed_tags():
+    space = SimpleNamespace(
+        space_id="sp-1", title="Sales", description="Sales Q&A", warehouse_id="wh-1"
+    )
+    tag_service = _FakeTagAssignments(
+        {("geniespaces", "sp-1"): [SimpleNamespace(tag_key="team", tag_value="sales")]}
+    )
+    ws = _ws(genie=_FakeGenie([space]), workspace_entity_tag_assignments=tag_service)
+    (snapshot,) = scan_genie_spaces(ws)
+    # Tags come from the entity-tag-assignments API, keyed by the geniespaces entity type + id.
+    assert snapshot.attributes["tags"] == {"team": "sales"}
+    assert tag_service.calls == [("geniespaces", "sp-1")]
+
+
+def test_scan_genie_spaces_without_tag_service_reports_untagged():
+    space = SimpleNamespace(space_id="sp-1", title="Sales", description=None, warehouse_id=None)
+    (snapshot,) = scan_genie_spaces(_ws(genie=_FakeGenie([space])))
+    assert snapshot.attributes["tags"] == {}
