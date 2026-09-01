@@ -275,7 +275,12 @@ def _sql_alert_attributes(key: str, definition: dict[str, Any]) -> dict[str, Any
     # state are runtime-only and unknown from a bundle; the comparison is declared inline.
     evaluation = definition.get("evaluation") or {}
     run_as = definition.get("run_as")
-    run_as_user = run_as.get("user_name") if isinstance(run_as, dict) else None
+    # The v2 model (and the live scan) expose a flat `run_as_user_name`. Some bundles nest it
+    # under `run_as`, which may name a user or a service principal. Prefer the flat field, then
+    # fall back to either nested shape so a bundle gate and a live scan agree.
+    run_as_user = definition.get("run_as_user_name")
+    if not run_as_user and isinstance(run_as, dict):
+        run_as_user = run_as.get("user_name") or run_as.get("service_principal_name")
     return {
         **_owned(key, definition.get("display_name") or definition.get("name")),
         "warehouse_id": definition.get("warehouse_id"),
