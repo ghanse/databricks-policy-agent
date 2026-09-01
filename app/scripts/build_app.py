@@ -1,4 +1,4 @@
-"""Assembles the deployable Databricks App source tree under ``app/.build``.
+"""Assemble the deployable Databricks App source tree under ``app/.build``.
 
 Steps:
     1. Build the React SPA (``npm install`` + ``npm run build``) into ``ui/dist``.
@@ -12,6 +12,8 @@ Run from the ``app`` directory: ``uv run python scripts/build_app.py``.
 
 from __future__ import annotations
 
+import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -23,7 +25,7 @@ BUILD_DIR = APP_DIR / ".build"
 
 
 def main() -> None:
-    """Builds the SPA and library wheel, then assembles the deployable source tree."""
+    """Build the SPA and library wheel, then assemble the deployable source tree."""
     _run(["npm", "install"], cwd=UI_DIR)
     _run(["npm", "run", "build"], cwd=UI_DIR)
     _run(["uv", "build", "--wheel", "--out-dir", str(APP_DIR / ".wheels")], cwd=REPO_ROOT)
@@ -70,11 +72,48 @@ def _write_requirements(wheel_name: str) -> None:
 
 
 def _write_app_yaml() -> None:
-    app_yaml = (
+    command = (
         "command:\n"
         '  ["uvicorn", "policy_agent_app.backend.app:app", "--host", "0.0.0.0", "--port", "8000"]\n'
     )
-    (BUILD_DIR / "app.yaml").write_text(app_yaml, encoding="utf-8")
+    (BUILD_DIR / "app.yaml").write_text(command + _env_block(), encoding="utf-8")
+
+
+def _env_block() -> str:
+    """Build the app.yaml ``env`` block from POLICY_AGENT_* config in the build environment.
+
+    Databricks Apps read runtime environment from ``app.yaml``, so the configuration present
+    when the app tree is assembled is baked in here. The SQL warehouse id is resolved at
+    runtime from the app resource named ``policy-agent-warehouse`` rather than as a literal.
+    ``valueFrom`` is intentionally camelCase: the app.yaml runtime schema differs from the
+    bundle schema in ``databricks.yml`` (which uses ``value_from``).
+
+    Returns:
+        The YAML ``env:`` block. It always contains at least ``POLICY_AGENT_WAREHOUSE_ID``
+        (resolved from the app resource); other vars are included only when set in the build
+        environment.
+    """
+    passthrough = (
+        "POLICY_AGENT_STORAGE_BACKEND",
+        "POLICY_AGENT_CATALOG",
+        "POLICY_AGENT_SCHEMA",
+        "POLICY_AGENT_TAGS",
+        "POLICY_AGENT_NOTIFICATION_EMAILS",
+        "POLICY_AGENT_NOTIFICATION_WEBHOOK",
+        "POLICY_AGENT_LAKEBASE_URL",
+    )
+    lines = ["env:"]
+    for name in passthrough:
+        value = os.environ.get(name)
+        if value:
+            lines.append(f"  - name: {name}")
+            # json.dumps yields a double-quoted scalar that escapes quotes/backslashes,
+            # which is a valid YAML double-quoted string — so values like a webhook URL or
+            # a JSON-encoded tags string never produce malformed app.yaml.
+            lines.append(f"    value: {json.dumps(value)}")
+    lines.append("  - name: POLICY_AGENT_WAREHOUSE_ID")
+    lines.append('    valueFrom: "policy-agent-warehouse"')
+    return "\n".join(lines) + "\n"
 
 
 def _run(command: list[str], cwd: Path) -> None:

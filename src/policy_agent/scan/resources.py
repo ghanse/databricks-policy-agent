@@ -13,7 +13,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from policy_agent.errors import UnsupportedResourceError
+from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import (
     OWNER_TYPE_SERVICE_PRINCIPAL,
     OWNER_TYPE_UNKNOWN,
@@ -166,7 +166,7 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 name=name,
                 owner=creator,
                 owner_type=classify_principal(creator),
-                tags=_get_app_tags(workspace_client, name),
+                tags=_get_entity_tags(workspace_client, "apps", name),
                 created_time=_rfc3339_seconds(getattr(app, "create_time", None)),
                 app_status=_enum_value(getattr(getattr(app, "app_status", None), "state", None)),
                 compute_status=_enum_value(
@@ -178,22 +178,58 @@ def scan_apps(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
     return snapshots
 
 
-def _get_app_tags(workspace_client: WorkspaceClient, app_name: str) -> dict[str, str]:
-    """Fetches an app's Unity Catalog tag assignments as a flat key-value mapping.
+def _get_entity_tags(
+    workspace_client: WorkspaceClient, entity_type: str, entity_id: str
+) -> dict[str, str]:
+    """Fetches an entity's workspace tag assignments as a flat key-value mapping.
+
+    Used for resource types whose tags are governed through the workspace entity-tag-assignments
+    API (e.g. Databricks Apps and Genie spaces).
 
     Args:
         workspace_client: Databricks workspace client.
-        app_name: The app whose tags to read (an app's entity id is its name).
+        entity_type: The tag-assignment entity type (e.g. *apps* or *geniespaces*).
+        entity_id: The entity's identifier (e.g. the app name or Genie space id).
 
     Returns:
-        A mapping of tag key to tag value; empty when the app has no tags or the SDK does not
+        A mapping of tag key to tag value; empty when the entity has no tags or the SDK does not
         expose the entity-tag-assignments API.
     """
     tag_service = getattr(workspace_client, "workspace_entity_tag_assignments", None)
-    if tag_service is None or not app_name:
+    if tag_service is None or not entity_id:
         return {}
     tags: dict[str, str] = {}
-    for assignment in tag_service.list_tag_assignments(entity_type="apps", entity_id=app_name):
+    for assignment in tag_service.list_tag_assignments(
+        entity_type=entity_type, entity_id=entity_id
+    ):
+        key = getattr(assignment, "tag_key", None)
+        if key is not None:
+            tags[str(key)] = str(getattr(assignment, "tag_value", "") or "")
+    return tags
+
+
+def _get_uc_entity_tags(
+    workspace_client: WorkspaceClient, entity_type: str, entity_name: str
+) -> dict[str, str]:
+    """Fetches a Unity Catalog securable's tag assignments as a flat key-value mapping.
+
+    Unity Catalog securables (e.g. catalogs, schemas, volumes, external locations) are tagged
+    through the entity-tag-assignments API, which uses fully-qualified securable names.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        entity_type: The UC tag-assignment entity type (e.g. *catalogs* or *externallocations*).
+        entity_name: The securable's fully-qualified name.
+
+    Returns:
+        A mapping of tag key to tag value; empty when the securable has no tags or the SDK does
+        not expose the UC entity-tag-assignments API.
+    """
+    tag_service = getattr(workspace_client, "entity_tag_assignments", None)
+    if tag_service is None or not entity_name:
+        return {}
+    tags: dict[str, str] = {}
+    for assignment in tag_service.list(entity_type=entity_type, entity_name=entity_name):
         key = getattr(assignment, "tag_key", None)
         if key is not None:
             tags[str(key)] = str(getattr(assignment, "tag_value", "") or "")
@@ -252,6 +288,7 @@ def scan_catalogs(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 name=name,
                 owner=owner,
                 owner_type=classify_principal(owner),
+                tags=_get_uc_entity_tags(workspace_client, "catalogs", name),
                 created_time=_epoch_seconds(getattr(catalog, "created_at", None)),
                 comment=getattr(catalog, "comment", None),
                 catalog_type=_enum_value(getattr(catalog, "catalog_type", None)),
@@ -279,13 +316,15 @@ def scan_schemas(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
         for schema in workspace_client.schemas.list(catalog_name=catalog_name):
             owner = getattr(schema, "owner", None)
             name = getattr(schema, "name", "") or ""
+            full_name = getattr(schema, "full_name", None) or f"{catalog_name}.{name}"
             snapshots.append(
                 _snapshot(
                     ResourceType.SCHEMA,
-                    id=getattr(schema, "full_name", None) or f"{catalog_name}.{name}",
+                    id=full_name,
                     name=name,
                     owner=owner,
                     owner_type=classify_principal(owner),
+                    tags=_get_uc_entity_tags(workspace_client, "schemas", full_name),
                     created_time=_epoch_seconds(getattr(schema, "created_at", None)),
                     comment=getattr(schema, "comment", None),
                     catalog_name=catalog_name,
@@ -317,14 +356,17 @@ def scan_volumes(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
             ):
                 owner = getattr(volume, "owner", None)
                 name = getattr(volume, "name", "") or ""
+                full_name = (
+                    getattr(volume, "full_name", None) or f"{catalog_name}.{schema_name}.{name}"
+                )
                 snapshots.append(
                     _snapshot(
                         ResourceType.VOLUME,
-                        id=getattr(volume, "full_name", None)
-                        or f"{catalog_name}.{schema_name}.{name}",
+                        id=full_name,
                         name=name,
                         owner=owner,
                         owner_type=classify_principal(owner),
+                        tags=_get_uc_entity_tags(workspace_client, "volumes", full_name),
                         created_time=_epoch_seconds(getattr(volume, "created_at", None)),
                         comment=getattr(volume, "comment", None),
                         catalog_name=catalog_name,
@@ -428,6 +470,7 @@ def scan_external_locations(workspace_client: WorkspaceClient) -> list[ResourceS
                 name=name,
                 owner=owner,
                 owner_type=classify_principal(owner),
+                tags=_get_uc_entity_tags(workspace_client, "externallocations", name),
                 created_time=_epoch_seconds(getattr(location, "created_at", None)),
                 comment=getattr(location, "comment", None),
                 url=getattr(location, "url", None),
@@ -486,11 +529,13 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
         for space in getattr(response, "spaces", None) or []:
             title = getattr(space, "title", "") or ""
             description = getattr(space, "description", None)
+            space_id = str(getattr(space, "space_id", ""))
             snapshots.append(
                 _snapshot(
                     ResourceType.GENIE_SPACE,
-                    id=str(getattr(space, "space_id", "")),
+                    id=space_id,
                     name=title,
+                    tags=_get_entity_tags(workspace_client, "geniespaces", space_id),
                     warehouse_id=getattr(space, "warehouse_id", None),
                     description=description,
                     has_description=bool(description),
@@ -499,6 +544,84 @@ def scan_genie_spaces(workspace_client: WorkspaceClient) -> list[ResourceSnapsho
         page_token = getattr(response, "next_page_token", None)
         if not page_token:
             return snapshots
+
+
+def scan_quality_monitors(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every data-profiling (Lakehouse Monitoring) quality monitor.
+
+    Note:
+        Uses the data-quality API (*data_quality.list_monitor*); each monitor's classic
+        Lakehouse Monitoring settings live in its *data_profiling_config*. Monitors that carry
+        no data-profiling config (for example anomaly-detection-only monitors) are skipped
+        because they do not map to this resource type's attributes. Older SDKs without the
+        *data_quality* API raise UnsupportedResourceError.
+
+        Output schemas are identified by id (*output_schema_id*); their fully-qualified names
+        are resolved during scans. A policy on the schema name matches the same monitor whether
+        it is scanned live or declared in a bundle. Name resolution is best-effort
+        (see *_resolve_schema_names*).
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each data-profiling quality monitor.
+
+    Raises:
+        UnsupportedResourceError: If the SDK does not expose the *data_quality* API.
+        ScanError: If listing monitors fails — for example a workspace without the data-quality
+            monitoring feature enabled.
+    """
+    from databricks.sdk.errors import DatabricksError
+
+    data_quality = getattr(workspace_client, "data_quality", None)
+    if not data_quality:
+        from databricks.sdk import version as databricks_sdk_version
+
+        raise UnsupportedResourceError(
+            f"Databricks SDK version {databricks_sdk_version.__version__} does not provide the "
+            "'data_quality' API. Upgrade the Databricks SDK to scan quality monitors."
+        )
+    try:
+        monitors = list(data_quality.list_monitor())
+    except DatabricksError as error:
+        raise ScanError(
+            "Could not list quality monitors; the workspace may not have data-quality "
+            f"monitoring enabled. Original error: {error}"
+        ) from error
+
+    profiled = [
+        (monitor, profiling)
+        for monitor in monitors
+        if (profiling := getattr(monitor, "data_profiling_config", None)) is not None
+    ]
+    schema_ids = {
+        str(schema_id)
+        for _, profiling in profiled
+        if (schema_id := getattr(profiling, "output_schema_id", None))
+    }
+    schema_names = _resolve_schema_names(workspace_client, schema_ids)
+
+    snapshots = []
+    for monitor, profiling in profiled:
+        table_name = getattr(profiling, "monitored_table_name", None)
+        monitor_id = table_name or str(getattr(monitor, "object_id", "") or "")
+        output_schema_id = getattr(profiling, "output_schema_id", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.QUALITY_MONITOR,
+                id=monitor_id,
+                name=table_name or monitor_id,
+                table_name=table_name,
+                output_schema_id=output_schema_id,
+                output_schema_name=schema_names.get(str(output_schema_id))
+                if output_schema_id
+                else None,
+                monitor_type=_profiling_monitor_type(profiling),
+                has_schedule=bool(getattr(profiling, "schedule", None)),
+            )
+        )
+    return snapshots
 
 
 def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
@@ -546,6 +669,57 @@ def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
             )
         )
     return snapshots
+
+
+def _resolve_schema_names(
+    workspace_client: WorkspaceClient, schema_ids: set[str]
+) -> dict[str, str]:
+    """Resolves Unity Catalog schema ids to their fully-qualified schema names. Used when
+    scanning quality monitors that return the output schema by id rather than name.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        schema_ids: The schema ids to resolve.
+
+    Returns:
+        A mapping of schema id to fully-qualified schema name, covering the ids that were found.
+    """
+    from databricks.sdk.errors import DatabricksError
+
+    catalogs = getattr(workspace_client, "catalogs", None)
+    schemas = getattr(workspace_client, "schemas", None)
+    if not schema_ids or catalogs is None or schemas is None:
+        return {}
+    remaining = set(schema_ids)
+    resolved: dict[str, str] = {}
+    try:
+        for catalog in catalogs.list():
+            catalog_name = getattr(catalog, "name", None)
+            if not catalog_name:
+                continue
+            for schema in schemas.list(catalog_name=catalog_name):
+                schema_id = getattr(schema, "schema_id", None)
+                if schema_id is None or str(schema_id) not in remaining:
+                    continue
+                name = getattr(schema, "full_name", None) or (
+                    f"{catalog_name}.{getattr(schema, 'name', '')}"
+                )
+                resolved[str(schema_id)] = name
+                remaining.discard(str(schema_id))
+            if not remaining:
+                break
+    except DatabricksError:
+        # Name resolution enriches the snapshot; a listing failure leaves the remaining ids
+        # unresolved rather than failing the whole quality-monitor scan.
+        pass
+    return resolved
+
+
+def _profiling_monitor_type(profiling: Any) -> str | None:
+    for kind in ("snapshot", "time_series", "inference_log"):
+        if getattr(profiling, kind, None) is not None:
+            return kind
+    return None
 
 
 def classify_principal(identifier: str | None) -> str:

@@ -19,7 +19,7 @@ from policy_agent.storage.backend import (
 
 from policy_agent_app.backend.auth import current_user, require_runner
 from policy_agent_app.backend.dependencies import (
-    get_config,
+    get_effective_config,
     get_executor,
     get_workspace_client,
 )
@@ -34,10 +34,10 @@ def trigger_scan(
     user: str = Depends(current_user),
     _roles: set[Role] = Depends(require_runner),
     executor: SqlExecutor = Depends(get_executor),
-    config: PolicyAgentConfig = Depends(get_config),
+    config: PolicyAgentConfig = Depends(get_effective_config),
     workspace_client=Depends(get_workspace_client),
 ) -> dict[str, Any]:
-    """Runs a scan of the approved policies (optionally a subset) and returns its summary."""
+    """Run a scan of the approved policies (optionally a subset) and return its summary."""
     policies = load_policies(executor, config.storage, status=PolicyStatus.APPROVED)
     if body.policy_names:
         wanted = set(body.policy_names)
@@ -57,10 +57,10 @@ def trigger_scan(
 @router.get("/scans")
 def list_scans(
     executor: SqlExecutor = Depends(get_executor),
-    config: PolicyAgentConfig = Depends(get_config),
+    config: PolicyAgentConfig = Depends(get_effective_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """Lists scan header rows, most recent first."""
+    """List scan header rows, most recent first."""
     return read_scans(executor, config.storage)
 
 
@@ -68,10 +68,10 @@ def list_scans(
 def scan_findings(
     scan_id: str,
     executor: SqlExecutor = Depends(get_executor),
-    config: PolicyAgentConfig = Depends(get_config),
+    config: PolicyAgentConfig = Depends(get_effective_config),
     _user: str = Depends(current_user),
 ) -> list[dict[str, Any]]:
-    """Returns the findings for a single scan."""
+    """Return the findings for a single scan."""
     return [
         finding_to_dict(finding) for finding in read_findings(executor, config.storage, scan_id)
     ]

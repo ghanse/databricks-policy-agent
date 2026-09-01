@@ -40,6 +40,14 @@ class UnsupportedResourceError(InvalidPolicyError)
 
 Raised when a resource type is not supported by the requested operation.
 
+## ScanError Objects
+
+```python
+class ScanError(PolicyAgentError)
+```
+
+Raised when a resource type cannot be fetched from the workspace during a scan.
+
 ## StorageError Objects
 
 ```python

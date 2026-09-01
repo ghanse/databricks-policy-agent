@@ -184,6 +184,16 @@ TABLES: tuple[Table, ...] = (
         ),
         primary_key=("group_name", "role"),
     ),
+    Table(
+        "app_settings",
+        (
+            Column("setting_key", _S, nullable=False),
+            Column("setting_value", _S),
+            Column("object_tags", _S),
+            Column("updated_at", _T),
+        ),
+        primary_key=("setting_key",),
+    ),
 )
 
 
@@ -206,18 +216,22 @@ _POSTGRES_TYPES = {
 }
 
 
-def create_namespace_statements(config: StorageConfig) -> list[str]:
+def create_namespace_statements(config: StorageConfig, include_catalog: bool = True) -> list[str]:
     """Builds the statements that create the catalog/schema and apply object tags.
 
     Args:
         config: The storage configuration.
+        include_catalog: Whether to emit ``CREATE CATALOG`` (Unity Catalog only). Skip it
+            when the catalog already exists: accounts with Default Storage reject
+            ``CREATE CATALOG`` for an existing catalog because it has no explicit location.
 
     Returns:
         Ordered SQL statements to create the namespace, safe to run repeatedly.
     """
     statements: list[str] = []
     if config.is_unity_catalog:
-        statements.append(f"CREATE CATALOG IF NOT EXISTS {config.catalog}")
+        if include_catalog:
+            statements.append(f"CREATE CATALOG IF NOT EXISTS {config.catalog}")
         statements.append(f"CREATE SCHEMA IF NOT EXISTS {config.qualified_schema}")
         tags = _unity_catalog_tag_clause(config.object_tags)
         if tags:
