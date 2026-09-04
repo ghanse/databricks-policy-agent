@@ -54,7 +54,7 @@ export function RemediationsTab({
   const toast = useToast();
 
   const openDetail = (id: string, propose = false) => {
-    if (propose) toast.push("Assigning to Genie Code…", "save");
+    if (propose) toast.push("Assigning to Genie Code…", "info");
     setAutoPropose(propose);
     setSelected(id);
   };
@@ -304,7 +304,7 @@ export function RemediationsTab({
                       );
                     })}
                     <button
-                      className="icon-btn act-accent"
+                      className="icon-btn act-genie"
                       title="Assign to Genie Code"
                       disabled={item.status !== "open" && item.status !== "in_progress"}
                       onClick={() => openDetail(item.remediation_id, true)}

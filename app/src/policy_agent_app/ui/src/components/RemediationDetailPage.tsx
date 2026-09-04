@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api";
-import type { AgentProposal, RemediationDetail } from "../types";
+import type { AgentProposal, RemediationDetail, RemediationEvent } from "../types";
 import { enforcementLabel, eventTypeLabel, resourceTypeLabel, statusLabel } from "../labels";
 import { useToast } from "../toast";
 import { highlightDiff } from "../highlight";
@@ -16,6 +16,34 @@ import {
   SparkleIcon,
   XIcon,
 } from "./icons";
+
+/** Returns the latest pending AgentProposal from the audit trail, or null if the most
+ *  recent proposal has already been accepted or rejected. */
+function _latestPendingProposal(events: RemediationEvent[]): AgentProposal | null {
+  // Walk backwards: find the last agent_proposed; if an accept/reject comes after it, it's resolved.
+  let lastProposedIdx = -1;
+  for (let i = events.length - 1; i >= 0; i--) {
+    const t = events[i].event_type;
+    if (t === "agent_accepted" || t === "agent_rejected") return null;
+    if (t === "agent_proposed") { lastProposedIdx = i; break; }
+  }
+  if (lastProposedIdx === -1) return null;
+  try {
+    const payload = JSON.parse(events[lastProposedIdx].payload || "{}");
+    if (!payload.proposal_id) return null;
+    return {
+      proposal_id: payload.proposal_id,
+      summary: payload.summary ?? "",
+      diff: payload.diff ?? "",
+      changes: payload.changes ?? {},
+      endpoint: payload.endpoint ?? "",
+      applicable: payload.applicable ?? false,
+      not_applicable_reason: payload.not_applicable_reason ?? "",
+    };
+  } catch {
+    return null;
+  }
+}
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -54,6 +82,11 @@ export function RemediationDetailPage({
       .then((detail) => {
         setItem(detail);
         setAssignee(detail.assignee ?? "");
+        // Restore the latest pending Genie Code proposal from the audit trail so it
+        // survives page navigations. A proposal is "pending" when no agent_accepted or
+        // agent_rejected event follows the last agent_proposed event.
+        const restored = _latestPendingProposal(detail.events);
+        if (restored) setProposal(restored);
       })
       .catch((e) => setError(String(e)));
   useEffect(() => {
@@ -233,7 +266,7 @@ export function RemediationDetailPage({
                 </button>
               </div>
               <span className="assign-or">or</span>
-              <button className="action act-accent" onClick={proposeAgentChange} disabled={thinking}>
+              <button className="action act-genie" onClick={proposeAgentChange} disabled={thinking}>
                 <SparkleIcon size={14} /> {thinking ? "Asking Genie Code…" : "Assign to Genie Code"}
               </button>
             </div>

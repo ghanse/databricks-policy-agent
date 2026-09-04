@@ -25,6 +25,11 @@
   --danger: #e2635f;
   --warn: #e3ad48;
   --ok: #58c06c;
+  --genie: #4a9eff;
+  --genie-hover: #6db3ff;
+  --genie-soft: rgba(74, 158, 255, 0.15);
+  --genie-ring: rgba(74, 158, 255, 0.35);
+  --on-genie: #0a1929;
   --ok-soft: rgba(88, 192, 108, 0.16);
   --danger-soft: rgba(226, 99, 95, 0.16);
   --warn-soft: rgba(227, 173, 72, 0.17);
@@ -65,6 +70,11 @@
   --danger: #cf3b40;
   --warn: #a97b1c;
   --ok: #1a9d3f;
+  --genie: #1a6fd4;
+  --genie-hover: #1459b0;
+  --genie-soft: rgba(26, 111, 212, 0.10);
+  --genie-ring: rgba(26, 111, 212, 0.25);
+  --on-genie: #ffffff;
   --ok-soft: rgba(26, 157, 63, 0.12);
   --danger-soft: rgba(207, 59, 64, 0.12);
   --warn-soft: rgba(169, 123, 28, 0.14);
@@ -288,7 +298,9 @@ button.action.secondary:disabled:hover { background: var(--surface-2); border-co
 .icon-btn.act-neutral:hover, .action.act-neutral:hover { background: var(--border-strong); color: var(--text); border-color: var(--border-strong); }
 .icon-btn.act-warn, .action.act-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid transparent; }
 .icon-btn.act-warn:hover, .action.act-warn:hover { background: var(--warn); color: #211803; border-color: var(--warn); }
-.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active, .act-warn:active { transform: translateY(1px); }
+.icon-btn.act-genie, .action.act-genie { background: var(--genie-soft); color: var(--genie); border: 1px solid transparent; }
+.icon-btn.act-genie:hover, .action.act-genie:hover { background: var(--genie); color: var(--on-genie); border-color: var(--genie); }
+.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active, .act-warn:active, .act-genie:active { transform: translateY(1px); }
 
 /* ---------- Inputs ---------- */
 textarea, input, select {
@@ -888,7 +900,7 @@ th.sortable { white-space: nowrap; padding: 0; }
   font-size: 13px;
   line-height: 1.45;
 }
-.agent-summary .ico { color: var(--accent-hover); flex: none; margin-top: 1px; }
+.agent-summary .ico { color: var(--genie); flex: none; margin-top: 1px; }
 .code.diff { white-space: normal; padding: 10px 12px; }
 .diff-line { white-space: pre; padding: 0 6px; border-radius: 2px; }
 .diff-add { color: var(--ok); background: var(--ok-soft); }
