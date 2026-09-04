@@ -12,12 +12,12 @@
   --muted: #c3c3cc;
   --faint: #8f8f9a;
 
-  /* Light dusty-pink accent. */
-  --accent: #e6bcbf;
-  --accent-hover: #f0cdcf;
-  --accent-soft: rgba(230, 188, 191, 0.18);
-  --accent-ring: rgba(230, 188, 191, 0.44);
-  --on-accent: #1f1512;
+  /* Databricks red accent. */
+  --accent: #ff3621;
+  --accent-hover: #ff5540;
+  --accent-soft: rgba(255, 54, 33, 0.15);
+  --accent-ring: rgba(255, 54, 33, 0.35);
+  --on-accent: #ffffff;
 
   /* Blue textual hyperlinks. */
   --link: #7cb2ff;
@@ -25,6 +25,11 @@
   --danger: #e2635f;
   --warn: #e3ad48;
   --ok: #58c06c;
+  --genie: #4a9eff;
+  --genie-hover: #6db3ff;
+  --genie-soft: rgba(74, 158, 255, 0.15);
+  --genie-ring: rgba(74, 158, 255, 0.35);
+  --on-genie: #0a1929;
   --ok-soft: rgba(88, 192, 108, 0.16);
   --danger-soft: rgba(226, 99, 95, 0.16);
   --warn-soft: rgba(227, 173, 72, 0.17);
@@ -53,11 +58,11 @@
   --muted: #494952;
   --faint: #6b6b75;
 
-  /* Deeper dusty-pink for light mode so white button text stays readable. */
-  --accent: #b57078;
-  --accent-hover: #9d5a62;
-  --accent-soft: rgba(181, 112, 120, 0.13);
-  --accent-ring: rgba(181, 112, 120, 0.3);
+  /* Databricks red, slightly deeper for light mode contrast. */
+  --accent: #e8321f;
+  --accent-hover: #c42a18;
+  --accent-soft: rgba(232, 50, 31, 0.10);
+  --accent-ring: rgba(232, 50, 31, 0.25);
   --on-accent: #ffffff;
 
   --link: #2563c9;
@@ -65,6 +70,11 @@
   --danger: #cf3b40;
   --warn: #a97b1c;
   --ok: #1a9d3f;
+  --genie: #1a6fd4;
+  --genie-hover: #1459b0;
+  --genie-soft: rgba(26, 111, 212, 0.10);
+  --genie-ring: rgba(26, 111, 212, 0.25);
+  --on-genie: #ffffff;
   --ok-soft: rgba(26, 157, 63, 0.12);
   --danger-soft: rgba(207, 59, 64, 0.12);
   --warn-soft: rgba(169, 123, 28, 0.14);
@@ -288,7 +298,9 @@ button.action.secondary:disabled:hover { background: var(--surface-2); border-co
 .icon-btn.act-neutral:hover, .action.act-neutral:hover { background: var(--border-strong); color: var(--text); border-color: var(--border-strong); }
 .icon-btn.act-warn, .action.act-warn { background: var(--warn-soft); color: var(--warn); border: 1px solid transparent; }
 .icon-btn.act-warn:hover, .action.act-warn:hover { background: var(--warn); color: #211803; border-color: var(--warn); }
-.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active, .act-warn:active { transform: translateY(1px); }
+.icon-btn.act-genie, .action.act-genie { background: var(--genie-soft); color: var(--genie); border: 1px solid transparent; }
+.icon-btn.act-genie:hover, .action.act-genie:hover { background: var(--genie); color: var(--on-genie); border-color: var(--genie); }
+.act-ok:active, .act-danger:active, .act-accent:active, .act-neutral:active, .act-warn:active, .act-genie:active { transform: translateY(1px); }
 
 /* ---------- Inputs ---------- */
 textarea, input, select {
@@ -796,6 +808,145 @@ th.sortable { white-space: nowrap; padding: 0; }
 .tok-bool { color: var(--accent-hover); font-weight: 600; }
 .tok-punc { color: var(--faint); }
 .tok-comment { color: var(--faint); font-style: italic; }
+
+/* ---------- Assignee typeahead ---------- */
+.typeahead { position: relative; }
+.typeahead-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.typeahead.open .typeahead-input,
+.typeahead-input:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-ring); }
+.typeahead-input .ico { color: var(--faint); flex: none; }
+.typeahead-input input {
+  border: none;
+  background: none;
+  padding: 9px 0;
+  box-shadow: none;
+}
+.typeahead-input input:focus { box-shadow: none; }
+.typeahead-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow);
+  padding: 5px;
+  z-index: 40;
+  max-height: 260px;
+  overflow: auto;
+}
+.typeahead-opt {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+.typeahead-opt.on, .typeahead-opt:hover { background: var(--surface-3); }
+.typeahead-name { font-size: 13px; font-weight: 500; }
+.typeahead-mail { font-size: 11.5px; color: var(--faint); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.typeahead-empty { padding: 10px; font-size: 12.5px; color: var(--faint); text-align: center; }
+
+/* ---------- Remediation detail ---------- */
+.readval { font-size: 13px; color: var(--text); padding: 2px 0; }
+/* Descriptive multi-line text (violation message, agent status). Wraps and preserves
+   newlines so finding messages aren't run together. */
+.readtext { font-size: 12.5px; line-height: 1.5; color: var(--muted); white-space: pre-wrap; }
+.assign-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.assign-user { display: flex; gap: 8px; align-items: center; flex: 1 1 320px; }
+.assign-user .typeahead { flex: 1; }
+.assign-user .action { flex: none; }
+.assign-or { color: var(--faint); font-size: 12px; }
+
+/* Disabled action buttons (e.g. Accept & apply when the change can't be applied). */
+.action:disabled, .icon-btn:disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+
+/* ---------- Genie Code proposal ---------- */
+.agent-proposal { margin-top: 14px; }
+.agent-not-applicable {
+  margin-top: 10px;
+  margin-bottom: 2px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--warn);
+  background: var(--warn-soft);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+}
+.agent-summary {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--genie-soft);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.agent-summary .ico { color: var(--genie); flex: none; margin-top: 1px; }
+.code.diff { white-space: normal; padding: 10px 12px; }
+.diff-line { white-space: pre; padding: 0 6px; border-radius: 2px; }
+.diff-add { color: var(--ok); background: var(--ok-soft); }
+.diff-del { color: var(--danger); background: var(--danger-soft); }
+.diff-ctx { color: var(--muted); }
+
+/* ---------- Comment box + audit timeline ---------- */
+.comment-box { display: flex; align-items: center; gap: 8px; margin: 4px 0 18px; }
+.comment-box .ico { color: var(--faint); flex: none; }
+.comment-box input { flex: 1; }
+.timeline { list-style: none; margin: 0; padding: 0 0 0 6px; }
+.timeline-item {
+  position: relative;
+  display: flex;
+  gap: 12px;
+  padding: 0 0 16px 0;
+}
+.timeline-item::before {
+  content: "";
+  position: absolute;
+  left: 9px;
+  top: 20px;
+  bottom: 0;
+  width: 1px;
+  background: var(--border-strong);
+}
+.timeline-item:last-child::before { display: none; }
+.timeline-dot {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+.timeline-item.ev-resolved .timeline-dot, .timeline-item.ev-auto_resolved .timeline-dot { background: var(--ok-soft); color: var(--ok); }
+.timeline-item.ev-waived .timeline-dot, .timeline-item.ev-agent_rejected .timeline-dot { background: var(--danger-soft); color: var(--danger); }
+.timeline-item.ev-agent_proposed .timeline-dot, .timeline-item.ev-agent_accepted .timeline-dot { background: var(--accent-soft); color: var(--accent-hover); }
+.timeline-body { flex: 1; min-width: 0; }
+.timeline-head { display: flex; align-items: baseline; gap: 6px; font-size: 13px; flex-wrap: wrap; }
+.timeline-when { margin-left: auto; font-size: 11.5px; color: var(--faint); white-space: nowrap; }
+.timeline-meta { font-size: 11.5px; color: var(--faint); margin-top: 2px; }
+.timeline-note { font-size: 12.5px; color: var(--muted); margin-top: 5px; line-height: 1.45; }
 
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }

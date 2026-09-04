@@ -21,6 +21,19 @@ const STATUSES: Record<string, string> = {
   waived: "Waived",
 };
 
+const EVENT_TYPES: Record<string, string> = {
+  opened: "Opened",
+  assigned: "Assigned",
+  advanced: "Marked in progress",
+  resolved: "Resolved",
+  waived: "Waived",
+  commented: "Comment",
+  auto_resolved: "Auto-resolved",
+  agent_proposed: "Genie Code proposed a change",
+  agent_accepted: "Genie Code change accepted",
+  agent_rejected: "Genie Code change rejected",
+};
+
 function titleCase(value: string): string {
   return value
     .split(/[_\s]+/)
@@ -39,6 +52,10 @@ export function statusLabel(value: string): string {
 
 export function enforcementLabel(value: string): string {
   return titleCase(value);
+}
+
+export function eventTypeLabel(value: string): string {
+  return EVENT_TYPES[value] ?? titleCase(value);
 }
 
 export function effectLabel(value: string): string {

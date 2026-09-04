@@ -51,6 +51,23 @@ export function highlightYaml(text: string): ReactNode {
   ));
 }
 
+/** Render a unified-style diff: added lines green, removed lines red, context muted. */
+export function highlightDiff(text: string): ReactNode {
+  const lines = text.split("\n");
+  return lines.map((line, i) => {
+    const cls = line.startsWith("+")
+      ? "diff-add"
+      : line.startsWith("-")
+        ? "diff-del"
+        : "diff-ctx";
+    return (
+      <div key={i} className={`diff-line ${cls}`}>
+        {line || " "}
+      </div>
+    );
+  });
+}
+
 function highlightYamlLine(line: string): ReactNode {
   const comment = line.indexOf("#");
   if (comment === 0 || (comment > 0 && /^\s*#/.test(line))) {
