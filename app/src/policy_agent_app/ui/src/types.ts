@@ -64,6 +64,47 @@ export interface Remediation {
   updated_at: string;
 }
 
+export interface RemediationEvent {
+  event_id: string;
+  remediation_id: string;
+  event_type: string;
+  actor: string;
+  note: string;
+  from_status: string | null;
+  to_status: string | null;
+  payload: string;
+  created_at: string | null;
+}
+
+export interface RemediationDetail extends Remediation {
+  recommended_action: string;
+  finding: Finding | null;
+  events: RemediationEvent[];
+}
+
+export interface AgentProposal {
+  proposal_id: string;
+  summary: string;
+  diff: string;
+  changes: Record<string, unknown>;
+  endpoint: string;
+  /** Whether all proposed changes can be applied from this app via OBO auth. */
+  applicable: boolean;
+  /** Human-readable explanation when applicable is false. */
+  not_applicable_reason: string;
+}
+
+export interface AgentDecision extends Remediation {
+  applied: boolean;
+  message: string;
+}
+
+export interface AccountUser {
+  user_name: string;
+  display_name: string;
+  active: boolean;
+}
+
 export interface Settings {
   storage: {
     backend: string;

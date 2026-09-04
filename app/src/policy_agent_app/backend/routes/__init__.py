@@ -9,6 +9,7 @@ from policy_agent_app.backend.routes.roles import router as roles_router
 from policy_agent_app.backend.routes.scans import router as scans_router
 from policy_agent_app.backend.routes.schedules import router as schedules_router
 from policy_agent_app.backend.routes.settings import router as settings_router
+from policy_agent_app.backend.routes.users import router as users_router
 
 api_router = APIRouter(prefix="/api/v1")
 api_router.include_router(policies_router)
@@ -18,5 +19,6 @@ api_router.include_router(remediations_router)
 api_router.include_router(schedules_router)
 api_router.include_router(roles_router)
 api_router.include_router(settings_router)
+api_router.include_router(users_router)
 
 __all__ = ["api_router"]

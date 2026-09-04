@@ -160,6 +160,20 @@ TABLES: tuple[Table, ...] = (
         primary_key=("remediation_id",),
     ),
     Table(
+        "remediation_events",
+        (
+            Column("event_id", _S, nullable=False),
+            Column("remediation_id", _S),
+            Column("event_type", _S),
+            Column("actor", _S),
+            Column("note", _S),
+            Column("from_status", _S),
+            Column("to_status", _S),
+            Column("payload", _S),
+            Column("created_at", _T),
+        ),
+    ),
+    Table(
         "schedules",
         (
             Column("schedule_id", _S, nullable=False),

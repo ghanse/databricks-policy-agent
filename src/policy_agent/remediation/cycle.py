@@ -14,7 +14,12 @@ from collections.abc import Iterable
 from dataclasses import replace
 from datetime import datetime
 
-from policy_agent.remediation.model import RemediationItem, RemediationStatus
+from policy_agent.remediation.model import (
+    RemediationEvent,
+    RemediationEventType,
+    RemediationItem,
+    RemediationStatus,
+)
 from policy_agent.scan.results import Finding
 
 _ViolationKey = tuple[str, str, str]
@@ -133,6 +138,58 @@ def assign(item: RemediationItem, assignee: str, now: datetime) -> RemediationIt
         The updated item.
     """
     return replace(item, assignee=assignee, updated_at=now)
+
+
+def comment(item: RemediationItem, now: datetime, note: str) -> RemediationItem:
+    """Records a comment on an item without changing its status.
+
+    Args:
+        item: The item being commented on.
+        now: Timestamp of the comment.
+        note: The comment text.
+
+    Returns:
+        The item with its ``updated_at`` and latest ``note`` refreshed.
+    """
+    return replace(item, updated_at=now, note=note or item.note)
+
+
+def make_event(
+    remediation_id: str,
+    event_type: RemediationEventType,
+    actor: str,
+    now: datetime,
+    note: str = "",
+    from_status: RemediationStatus | None = None,
+    to_status: RemediationStatus | None = None,
+    payload: str = "",
+) -> RemediationEvent:
+    """Builds an audit-trail event for a remediation item.
+
+    Args:
+        remediation_id: The item the event belongs to.
+        event_type: The kind of activity recorded.
+        actor: Principal or process that performed the activity.
+        now: When the activity occurred.
+        note: Free-text comment or justification, if any.
+        from_status: Status before the change, when it changed status.
+        to_status: Status after the change, when it changed status.
+        payload: Optional serialized detail (for example a Genie Code proposal), as JSON.
+
+    Returns:
+        A new `RemediationEvent` with a generated id and the given timestamp.
+    """
+    return RemediationEvent(
+        event_id=uuid.uuid4().hex,
+        remediation_id=remediation_id,
+        event_type=event_type,
+        actor=actor,
+        note=note,
+        from_status=from_status,
+        to_status=to_status,
+        payload=payload,
+        created_at=now,
+    )
 
 
 def _open_item(finding: Finding, scan_id: str, now: datetime) -> RemediationItem:

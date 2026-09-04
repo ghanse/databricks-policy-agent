@@ -32,6 +32,26 @@ any existing violations with the resource's current configuration:
 Users can view and resolve violations in the policy agent app. Check the **Remediations** tab
 to advance, resolve, waive, or assign violations.
 
+#### Remediation details
+Click any row in the **Remediations** table to open its detail page. The page shows when the
+item was opened, assigned, and last updated, its recommended action, and a full audit trail
+of every status change and comment. Each action — assigning, resolving, waiving, commenting,
+or a Genie Code proposal — appends an immutable event to the trail, so the item's whole
+history is preserved.
+
+#### Assigning to a user
+Assignment is limited to real users in the account. As you type in the **Assign to an account
+user** box, a typeahead lists matching users (looked up through the Databricks account APIs);
+pick one to assign the item to them.
+
+#### Assigning to Genie Code
+Instead of a person, you can hand a violation to **Genie Code**. It reads the scan finding and
+the policy's recommended action, then proposes the smallest configuration change that resolves
+the violation, shown as a YAML diff of the resource configuration. Accept the change to submit
+it to the workspace, or reject it — either way the decision is recorded on the audit trail. The
+model-serving endpoint Genie Code uses is set with `POLICY_AGENT_AGENT_ENDPOINT` (default
+`databricks-claude-sonnet-4`).
+
 ### Using Python
 To reconcile violations in code, read the currently-open items from storage, run a fresh scan to
 get the current violations, and pass both to `reconcile(...)`. Persist the reconciled items so the

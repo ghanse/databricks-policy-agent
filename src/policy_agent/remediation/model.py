@@ -24,6 +24,52 @@ OPEN_STATUSES: frozenset[RemediationStatus] = frozenset(
 """Statuses that represent an unresolved item still requiring attention."""
 
 
+class RemediationEventType(str, Enum):
+    """The kind of activity captured on a remediation item's audit trail."""
+
+    OPENED = "opened"
+    ASSIGNED = "assigned"
+    ADVANCED = "advanced"
+    RESOLVED = "resolved"
+    WAIVED = "waived"
+    COMMENTED = "commented"
+    AUTO_RESOLVED = "auto_resolved"
+    AGENT_PROPOSED = "agent_proposed"
+    AGENT_ACCEPTED = "agent_accepted"
+    AGENT_REJECTED = "agent_rejected"
+
+
+@dataclass(frozen=True)
+class RemediationEvent:
+    """An immutable audit record of one activity on a remediation item.
+
+    Every status change, comment, assignment, and Genie Code interaction appends one of
+    these so the item's full history can be reconstructed. Events are never mutated or
+    deleted.
+
+    Attributes:
+        event_id: Unique identifier for the event.
+        remediation_id: The remediation item the event belongs to.
+        event_type: The kind of activity recorded.
+        actor: Principal (or process) that performed the activity.
+        note: Free-text comment or justification, if any.
+        from_status: Status before the change, when the event changed status.
+        to_status: Status after the change, when the event changed status.
+        payload: Optional serialized detail (for example a Genie Code proposal), as JSON.
+        created_at: When the activity occurred.
+    """
+
+    event_id: str
+    remediation_id: str
+    event_type: RemediationEventType
+    actor: str
+    note: str = ""
+    from_status: RemediationStatus | None = None
+    to_status: RemediationStatus | None = None
+    payload: str = ""
+    created_at: datetime | None = None
+
+
 @dataclass(frozen=True)
 class RemediationItem:
     """A tracked violation moving through the remediation cycle.

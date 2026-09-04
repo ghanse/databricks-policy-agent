@@ -13,7 +13,13 @@ from types import SimpleNamespace
 from policy_agent.approval import Role, submit_for_review
 from policy_agent.policy import allow, deny, leaf
 from policy_agent.policy.model import PolicyStatus
-from policy_agent.remediation import open_items_from_findings, resolve
+from policy_agent.remediation import (
+    RemediationEventType,
+    make_event,
+    open_items_from_findings,
+    resolve,
+)
+from policy_agent.remediation.model import RemediationStatus
 from policy_agent.scan.engine import run_scan
 from policy_agent.storage import (
     BACKEND_LAKEBASE,
@@ -22,11 +28,13 @@ from policy_agent.storage import (
     load_policies,
     read_approval_events,
     read_findings,
+    read_remediation_events,
     read_remediations,
     read_scans,
     save_approval_event,
     save_policy,
     save_remediation,
+    save_remediation_event,
     write_scan,
 )
 
@@ -183,3 +191,39 @@ def test_remediation_upsert_and_read_round_trip():
     assert len(stored) == 1
     assert stored[0].status.value == "resolved"
     assert stored[0].note == "fixed"
+
+
+def test_remediation_events_round_trip_oldest_first():
+    executor, config = FakeExecutor(), _config()
+    now = datetime(2026, 1, 1, tzinfo=UTC)
+    later = datetime(2026, 1, 2, tzinfo=UTC)
+    save_remediation_event(
+        executor,
+        config,
+        make_event("r1", RemediationEventType.OPENED, "system", now, to_status=RemediationStatus.OPEN),
+    )
+    save_remediation_event(
+        executor,
+        config,
+        make_event(
+            "r1",
+            RemediationEventType.RESOLVED,
+            "alice@example.com",
+            later,
+            note="fixed",
+            from_status=RemediationStatus.OPEN,
+            to_status=RemediationStatus.RESOLVED,
+        ),
+    )
+    save_remediation_event(
+        executor, config, make_event("r2", RemediationEventType.OPENED, "system", now)
+    )
+
+    events = read_remediation_events(executor, config, remediation_id="r1")
+    assert [e.event_type for e in events] == [
+        RemediationEventType.OPENED,
+        RemediationEventType.RESOLVED,
+    ]
+    assert events[1].from_status is RemediationStatus.OPEN
+    assert events[1].to_status is RemediationStatus.RESOLVED
+    assert events[1].actor == "alice@example.com"
