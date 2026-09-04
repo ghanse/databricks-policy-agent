@@ -893,7 +893,7 @@ th.sortable { white-space: nowrap; padding: 0; }
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  background: var(--accent-soft);
+  background: var(--genie-soft);
   border-radius: var(--radius);
   padding: 10px 12px;
   color: var(--text);
