@@ -83,6 +83,11 @@ lock-app-dependencies:
 app-build:
 	cd app && uv run python scripts/build_app.py
 
+app-fmt:
+	cd app && uv run ruff format src tests
+	cd app && uv run ruff check --fix src tests
+	cd app && uv run mypy src
+
 app-lint:
 	cd app && uv run ruff format --check src tests
 	cd app && uv run ruff check src tests

@@ -115,7 +115,9 @@ def test_propose_change_marks_cluster_not_applicable():
 
 
 def test_propose_change_marks_serving_endpoint_tags_applicable():
-    canned = '{"summary": "Tag it.", "diff": "+ tags: team: ai", "changes": {"tags": {"team": "ai"}}}'
+    canned = (
+        '{"summary": "Tag it.", "diff": "+ tags: team: ai", "changes": {"tags": {"team": "ai"}}}'
+    )
     proposal = agent.propose_change(
         _item(ResourceType.SERVING_ENDPOINT), "", "", complete=lambda _e, _s, _u: canned
     )

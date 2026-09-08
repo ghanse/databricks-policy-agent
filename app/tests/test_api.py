@@ -91,7 +91,7 @@ def _open_remediation(client) -> str:
 
 def _stub_genie(monkeypatch, summary, diff, changes):
     canned = json.dumps({"summary": summary, "diff": diff, "changes": changes})
-    monkeypatch.setattr(agent, "make_completer", lambda _wc: (lambda _e, _s, _u: canned))
+    monkeypatch.setattr(agent, "make_completer", lambda _wc: lambda _e, _s, _u: canned)
 
 
 def test_remediation_detail_includes_recommended_action_and_trail(client):
@@ -160,15 +160,21 @@ def test_agent_propose_then_reject_records_trail(monkeypatch, client):
         json={"proposal_id": proposal["proposal_id"], "note": "not now"},
     )
     assert rejected.status_code == 200
-    types = [event["event_type"] for event in client.get(f"/api/v1/remediations/{rid}").json()["events"]]
+    types = [
+        event["event_type"] for event in client.get(f"/api/v1/remediations/{rid}").json()["events"]
+    ]
     assert "agent_proposed" in types and "agent_rejected" in types
 
 
 def test_agent_accept_submits_change_and_advances(monkeypatch, client):
     rid = _open_remediation(client)
     # Tags on a serving endpoint are applicable via OBO, so accept goes through.
-    _stub_genie(monkeypatch, "Add tags.", "+ tags: managed_by: policy-agent",
-                {"tags": {"managed_by": "policy-agent"}})
+    _stub_genie(
+        monkeypatch,
+        "Add tags.",
+        "+ tags: managed_by: policy-agent",
+        {"tags": {"managed_by": "policy-agent"}},
+    )
     # The test remediation is for a cluster, which is not applicable — the applicability
     # guard returns 400 for non-writable resource types. Use propose to confirm the proposal
     # carries applicable=False, and verify the accept is correctly refused.
@@ -184,9 +190,7 @@ def test_agent_accept_submits_change_and_advances(monkeypatch, client):
 
 def test_agent_reject_unknown_proposal_returns_404(client):
     rid = _open_remediation(client)
-    resp = client.post(
-        f"/api/v1/remediations/{rid}/agent/reject", json={"proposal_id": "nope"}
-    )
+    resp = client.post(f"/api/v1/remediations/{rid}/agent/reject", json={"proposal_id": "nope"})
     assert resp.status_code == 404
 
 
@@ -254,6 +258,6 @@ def test_agent_accept_does_not_advance_when_apply_fails(monkeypatch, client):
     assert result["message"] == "apply boom"
 
     detail = client.get(f"/api/v1/remediations/{rid}").json()
-    assert detail["status"] == "open"          # not advanced
-    assert not detail["assignee"]              # not assigned to genie-code
+    assert detail["status"] == "open"  # not advanced
+    assert not detail["assignee"]  # not assigned to genie-code
     assert "agent_accepted" not in [e["event_type"] for e in detail["events"]]

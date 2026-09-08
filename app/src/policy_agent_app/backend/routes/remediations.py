@@ -255,8 +255,16 @@ def _apply_action(
         events.append(_event(item, updated, event_type, actor, now, body.note))
         if body.assignee:
             assigned = assign(updated, body.assignee, now)
-            events.append(_event(updated, assigned, RemediationEventType.ASSIGNED, actor, now,
-                                  f"Assigned to {body.assignee}."))
+            events.append(
+                _event(
+                    updated,
+                    assigned,
+                    RemediationEventType.ASSIGNED,
+                    actor,
+                    now,
+                    f"Assigned to {body.assignee}.",
+                )
+            )
             return assigned, events
         return updated, events
 
@@ -275,8 +283,11 @@ def _apply_action(
                 detail="The 'assign' action requires an 'assignee'.",
             )
         updated = assign(item, body.assignee, now)
-        return updated, [_event(item, updated, event_type, actor, now,
-                                body.note or f"Assigned to {body.assignee}.")]
+        return updated, [
+            _event(
+                item, updated, event_type, actor, now, body.note or f"Assigned to {body.assignee}."
+            )
+        ]
 
     # comment: no status change, just a note on the trail.
     updated = comment(item, now, body.note)

@@ -84,6 +84,7 @@ export function RemediationDetailPage({
         setAssignee(detail.assignee ?? "");
         const restored = _latestPendingProposal(detail.events);
         setProposal(restored);
+        })
       .catch((e) => setError(String(e)));
   useEffect(() => {
     load();
