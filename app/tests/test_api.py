@@ -222,3 +222,38 @@ def test_parse_endpoint_requires_author(make_client):
     viewer = make_client(roles={Role.VIEWER})
     resp = viewer.post("/api/v1/policies/parse", json={"yaml": "policy: x"})
     assert resp.status_code == 403
+
+
+def test_user_search_empty_query_returns_empty_without_listing():
+    # An empty/whitespace query must not fall through to an unfiltered directory listing.
+    scim_users = [SimpleNamespace(user_name="alice@x.com", display_name="Alice", active=True)]
+    calls = {"n": 0}
+
+    def _list(**_kw):
+        calls["n"] += 1
+        return scim_users
+
+    workspace_client = SimpleNamespace(users=SimpleNamespace(list=_list))
+    assert find_users(workspace_client, "   ", 10) == []
+    assert calls["n"] == 0
+
+
+def test_agent_accept_does_not_advance_when_apply_fails(monkeypatch, client):
+    rid = _open_remediation(client)
+    _stub_genie(monkeypatch, "Add tags.", "+ tags", {"tags": {"managed_by": "x"}})
+    # Applicable per the guard, but the actual apply fails at runtime.
+    monkeypatch.setattr(agent, "check_applicability", lambda *_a, **_k: (True, ""))
+    monkeypatch.setattr(agent, "apply_change", lambda *_a, **_k: (False, "apply boom"))
+    proposal = client.post(f"/api/v1/remediations/{rid}/agent/propose", json={}).json()
+
+    result = client.post(
+        f"/api/v1/remediations/{rid}/agent/accept",
+        json={"proposal_id": proposal["proposal_id"]},
+    ).json()
+    assert result["applied"] is False
+    assert result["message"] == "apply boom"
+
+    detail = client.get(f"/api/v1/remediations/{rid}").json()
+    assert detail["status"] == "open"          # not advanced
+    assert not detail["assignee"]              # not assigned to genie-code
+    assert "agent_accepted" not in [e["event_type"] for e in detail["events"]]

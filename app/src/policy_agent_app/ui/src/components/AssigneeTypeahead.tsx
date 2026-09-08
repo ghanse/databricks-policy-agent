@@ -80,9 +80,13 @@ export function AssigneeTypeahead({
           value={query}
           placeholder={placeholder}
           onChange={(e) => {
-            setQuery(e.target.value);
-            onChange(e.target.value);
+            const typed = e.target.value;
+            setQuery(typed);
             setOpen(true);
+            // Assignment is limited to real account users, so free text is not committed as
+            // a value — only a picked suggestion is (see `pick`). Clearing the field clears
+            // the selection.
+            if (typed === "") onChange("");
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKey}

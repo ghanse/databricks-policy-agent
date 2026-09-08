@@ -170,6 +170,11 @@ def accept_agent_change(
         )
     applied, message = agent.apply_change(user_client, item, proposal)
     now = datetime.now(UTC)
+    if not applied:
+        # The change was deemed applicable but failed at apply time (e.g. a permissions or
+        # API error). Leave the item untouched so its state reflects reality, and surface
+        # the message rather than pretending the accept succeeded.
+        return {"applied": False, "message": message, **remediation_to_dict(item)}
     updated = assign(advance(item, now, note=proposal.summary), "genie-code", now)
     save_remediation(executor, config.storage, updated)
     save_remediation_event(

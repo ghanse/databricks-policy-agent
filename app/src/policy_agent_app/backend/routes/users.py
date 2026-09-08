@@ -46,6 +46,10 @@ def find_users(workspace_client: Any, query: str, limit: int) -> list[dict[str, 
         failing the request.
     """
     scim_filter = _scim_filter(query)
+    if scim_filter is None:
+        # An empty/whitespace query would otherwise list the whole directory; the typeahead
+        # only wants matches, so return nothing until the caller types something.
+        return []
     try:
         matches = workspace_client.users.list(
             filter=scim_filter, count=limit, attributes="userName,displayName,active"

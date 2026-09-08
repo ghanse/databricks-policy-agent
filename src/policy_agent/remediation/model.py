@@ -63,11 +63,11 @@ class RemediationEvent:
     remediation_id: str
     event_type: RemediationEventType
     actor: str
+    created_at: datetime
     note: str = ""
     from_status: RemediationStatus | None = None
     to_status: RemediationStatus | None = None
     payload: str = ""
-    created_at: datetime | None = None
 
 
 @dataclass(frozen=True)
