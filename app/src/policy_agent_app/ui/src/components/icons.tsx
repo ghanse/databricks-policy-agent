@@ -120,3 +120,18 @@ export const EditIcon = svg(
     <path d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4 12.5-12.5z" />
   </>,
 );
+export const SparkleIcon = svg(
+  <>
+    <path d="M12 3l1.8 4.9L19 9.7l-4.4 2.4L13 17l-1-4.9L7 9.7l4.9-1.4L12 3z" />
+    <path d="M5 15l.7 1.9L8 17.6l-1.8.9L5 20.5l-.6-2L2.6 17.6 4.4 17 5 15z" />
+  </>,
+);
+export const ClockIcon = svg(
+  <>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </>,
+);
+export const ChatIcon = svg(
+  <path d="M21 11.5a8.5 8.5 0 01-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1121 11.5z" />,
+);

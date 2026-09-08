@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AssigneeTypeahead } from "./AssigneeTypeahead";
 
 export interface NoteRequest {
   title: string;
@@ -41,12 +42,8 @@ export function NoteDialog({ request, onClose }: { request: NoteRequest | null; 
         {request.description && <div className="desc">{request.description}</div>}
         {request.withAssignee && (
           <div style={{ marginBottom: 12 }}>
-            <label className="field">Assignee (email)</label>
-            <input
-              placeholder="owner@example.com"
-              value={assignee}
-              onChange={(e) => setAssignee(e.target.value)}
-            />
+            <label className="field">Assignee (account user)</label>
+            <AssigneeTypeahead value={assignee} onChange={setAssignee} />
           </div>
         )}
         <label className="field">Note</label>

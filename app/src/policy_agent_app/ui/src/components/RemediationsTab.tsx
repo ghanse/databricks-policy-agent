@@ -3,8 +3,9 @@ import { api } from "../api";
 import type { Policy, Remediation } from "../types";
 import { resourceTypeLabel, enforcementLabel, statusLabel } from "../labels";
 import { useToast, type ToastKind } from "../toast";
-import { AssignIcon, CheckIcon, ExternalIcon, LightbulbIcon, XIcon } from "./icons";
+import { AssignIcon, CheckIcon, ExternalIcon, LightbulbIcon, SparkleIcon, XIcon } from "./icons";
 import { NoteDialog, type NoteRequest } from "./NoteDialog";
+import { RemediationDetailPage } from "./RemediationDetailPage";
 import { FilterBar } from "./FilterBar";
 import { SortTh, useSort, ENFORCEMENT_RANK } from "../useSort";
 import { usePage, PagerBar } from "../usePage";
@@ -13,16 +14,20 @@ import type { ActionColor } from "../policyActions";
 
 type IconType = (props: { className?: string; size?: number }) => JSX.Element;
 
-const ACTIONS: Record<string, { action: string; label: string; icon: IconType; kind: ToastKind; color: ActionColor }[]> = {
-  open: [
-    { action: "advance", label: "Assign", icon: AssignIcon, kind: "save", color: "neutral" },
-    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
-    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
-  ],
-  in_progress: [
-    { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
-    { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
-  ],
+type ActionDef = { action: string; label: string; icon: IconType; kind: ToastKind; color: ActionColor };
+
+// All possible row actions. Shown for every status; disabled (visually and functionally)
+// when the item is no longer active so the column never collapses.
+const ALL_ACTIONS: ActionDef[] = [
+  { action: "advance", label: "Assign", icon: AssignIcon, kind: "save", color: "neutral" },
+  { action: "resolve", label: "Resolve", icon: CheckIcon, kind: "save", color: "ok" },
+  { action: "waive", label: "Waive", icon: XIcon, kind: "delete", color: "danger" },
+];
+
+// Which actions are clickable per status.
+const ACTIVE_ACTIONS: Record<string, Set<string>> = {
+  open: new Set(["advance", "resolve", "waive"]),
+  in_progress: new Set(["resolve", "waive"]),
 };
 
 const UNASSIGNED = "__unassigned__";
@@ -44,7 +49,15 @@ export function RemediationsTab({
   const [items, setItems] = useState<Remediation[]>([]);
   const [reco, setReco] = useState<Record<string, string>>({});
   const [dialog, setDialog] = useState<NoteRequest | null>(null);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [autoPropose, setAutoPropose] = useState(false);
   const toast = useToast();
+
+  const openDetail = (id: string, propose = false) => {
+    if (propose) toast.push("Assigning to Genie Code…", "info");
+    setAutoPropose(propose);
+    setSelected(id);
+  };
   const [search, setSearch] = useState("");
   const [fStatus, setFStatus] = useState("");
   const [fEnforcement, setFEnforcement] = useState("");
@@ -138,6 +151,21 @@ export function RemediationsTab({
   });
   const pager = usePage(sorted, 10);
 
+  if (selected) {
+    return (
+      <RemediationDetailPage
+        remediationId={selected}
+        workspaceUrl={workspaceUrl}
+        autoPropose={autoPropose}
+        onBack={() => {
+          setSelected(null);
+          setAutoPropose(false);
+        }}
+        onChanged={refresh}
+      />
+    );
+  }
+
   return (
     <div className="panel">
       <h3>
@@ -211,15 +239,19 @@ export function RemediationsTab({
           </thead>
           <tbody>
             {pager.pageRows.map((item) => (
-              <tr key={item.remediation_id}>
+              <tr
+                key={item.remediation_id}
+                className="clickable"
+                onClick={() => openDetail(item.remediation_id)}
+              >
                 <td>
                   <span className={`badge ${item.enforcement_level}`}>{enforcementLabel(item.enforcement_level)}</span>
                 </td>
-                <td className="cell-strong">{item.policy_name}</td>
+                <td className="cell-strong link">{item.policy_name}</td>
                 <td>
                   <span className="badge neutral">{resourceTypeLabel(item.resource_type)}</span>
                 </td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   {(() => {
                     const url = resourceUrl(workspaceUrl, item.resource_type, item.resource_id);
                     return url ? (
@@ -242,7 +274,7 @@ export function RemediationsTab({
                   )}
                 </td>
                 <td>{item.assignee ? item.assignee : <span className="faint">Unassigned</span>}</td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   {item.scan_id ? (
                     <button className="linkbtn mono" onClick={() => onOpenScan(item.scan_id)}>
                       {item.scan_id.slice(0, 8)}
@@ -254,21 +286,31 @@ export function RemediationsTab({
                 <td>
                   <span className={`badge ${item.status}`}>{statusLabel(item.status)}</span>
                 </td>
-                <td>
+                <td onClick={(e) => e.stopPropagation()}>
                   <div className="row">
-                    {(ACTIONS[item.status] ?? []).map((a) => {
+                    {ALL_ACTIONS.map((a) => {
                       const Icon = a.icon;
+                      const enabled = !!(ACTIVE_ACTIONS[item.status]?.has(a.action));
                       return (
                         <button
                           key={a.action}
                           className={`icon-btn act-${a.color}`}
                           title={a.label}
-                          onClick={() => promptAction(item, a.action, a.label, a.kind)}
+                          disabled={!enabled}
+                          onClick={enabled ? () => promptAction(item, a.action, a.label, a.kind) : undefined}
                         >
                           <Icon size={15} />
                         </button>
                       );
                     })}
+                    <button
+                      className="icon-btn act-genie"
+                      title="Assign to Genie Code"
+                      disabled={item.status !== "open" && item.status !== "in_progress"}
+                      onClick={() => openDetail(item.remediation_id, true)}
+                    >
+                      <SparkleIcon size={15} />
+                    </button>
                   </div>
                 </td>
               </tr>

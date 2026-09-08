@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from policy_agent.remediation.model import RemediationItem
+from policy_agent.remediation.model import RemediationEvent, RemediationItem
 from policy_agent.scan.results import Finding, ScanResult
 from policy_agent.schedule import ScanSchedule
 from pydantic import BaseModel
@@ -57,11 +57,23 @@ class ScanRequest(BaseModel):
 
 
 class RemediationActionRequest(BaseModel):
-    """Request body for advancing a remediation item."""
+    """Request body for acting on a remediation item.
+
+    ``action`` is one of ``advance``, ``resolve``, ``waive``, ``assign``, or ``comment``.
+    ``note`` is recorded on the audit trail; ``assignee`` is required for ``assign`` and
+    optional for ``advance``.
+    """
 
     action: str
     note: str = ""
     assignee: str | None = None
+
+
+class AgentDecisionRequest(BaseModel):
+    """Request body for accepting or rejecting a Genie Code proposal."""
+
+    proposal_id: str
+    note: str = ""
 
 
 class RoleMappingRequest(BaseModel):
@@ -119,6 +131,28 @@ def remediation_to_dict(item: RemediationItem) -> dict[str, Any]:
         "scan_id": item.scan_id,
         "opened_at": item.opened_at.isoformat(),
         "updated_at": item.updated_at.isoformat(),
+    }
+
+
+def remediation_event_to_dict(event: RemediationEvent) -> dict[str, Any]:
+    """Serialises a remediation audit event for a JSON response.
+
+    Args:
+        event: The remediation event.
+
+    Returns:
+        A JSON-serialisable mapping.
+    """
+    return {
+        "event_id": event.event_id,
+        "remediation_id": event.remediation_id,
+        "event_type": event.event_type.value,
+        "actor": event.actor,
+        "note": event.note,
+        "from_status": event.from_status.value if event.from_status is not None else None,
+        "to_status": event.to_status.value if event.to_status is not None else None,
+        "payload": event.payload,
+        "created_at": event.created_at.isoformat() if event.created_at is not None else None,
     }
 
 

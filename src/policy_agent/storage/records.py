@@ -20,7 +20,12 @@ from policy_agent.policy.serialization import (
     condition_to_dict,
     policy_to_dict,
 )
-from policy_agent.remediation.model import RemediationItem, RemediationStatus
+from policy_agent.remediation.model import (
+    RemediationEvent,
+    RemediationEventType,
+    RemediationItem,
+    RemediationStatus,
+)
 from policy_agent.scan.results import Finding, ScanResult
 from policy_agent.schedule import ScanSchedule
 from policy_agent.storage.config import StorageConfig
@@ -257,6 +262,52 @@ def row_to_remediation(row: dict[str, Any]) -> RemediationItem:
         updated_at=_as_datetime(row["updated_at"]),
         assignee=_as_str(row.get("assignee")),
         note=_as_str(row.get("note")) or "",
+    )
+
+
+def remediation_event_to_row(event: RemediationEvent) -> dict[str, Any]:
+    """Serialises a remediation audit event to a ``remediation_events`` row.
+
+    Args:
+        event: The remediation event to serialise.
+
+    Returns:
+        A row mapping ready for insertion.
+    """
+    return {
+        "event_id": event.event_id,
+        "remediation_id": event.remediation_id,
+        "event_type": event.event_type.value,
+        "actor": event.actor,
+        "note": event.note,
+        "from_status": event.from_status.value if event.from_status is not None else None,
+        "to_status": event.to_status.value if event.to_status is not None else None,
+        "payload": event.payload,
+        "created_at": event.created_at,
+    }
+
+
+def row_to_remediation_event(row: dict[str, Any]) -> RemediationEvent:
+    """Deserialises a ``remediation_events`` row into a remediation event.
+
+    Args:
+        row: The row mapping read from storage.
+
+    Returns:
+        The reconstructed remediation event.
+    """
+    from_status = _as_str(row.get("from_status"))
+    to_status = _as_str(row.get("to_status"))
+    return RemediationEvent(
+        event_id=str(row["event_id"]),
+        remediation_id=_as_str(row.get("remediation_id")) or "",
+        event_type=RemediationEventType(row["event_type"]),
+        actor=_as_str(row.get("actor")) or "",
+        note=_as_str(row.get("note")) or "",
+        from_status=RemediationStatus(from_status) if from_status else None,
+        to_status=RemediationStatus(to_status) if to_status else None,
+        payload=_as_str(row.get("payload")) or "",
+        created_at=_as_datetime(row["created_at"]),
     )
 
 

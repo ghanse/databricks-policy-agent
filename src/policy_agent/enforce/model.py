@@ -8,13 +8,13 @@ deployment pipeline should proceed.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.results import Finding
 
 
-class GateVerdict(str, Enum):
+class GateVerdict(StrEnum):
     """Outcome of an enforcement gate over a bundle."""
 
     PASS = "pass"

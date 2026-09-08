@@ -47,9 +47,6 @@ export function PagerBar({ pager }: { pager: Pager<unknown> }) {
       <button className="linkbtn" onClick={pager.next} disabled={!pager.canNext}>
         Next
       </button>
-      <span className="pageinfo">
-        Page {pager.page + 1} of {pager.pageCount}
-      </span>
     </div>
   );
 }

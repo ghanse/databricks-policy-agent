@@ -15,7 +15,7 @@ from typing import Any, Protocol
 from policy_agent.approval.roles import Role
 from policy_agent.approval.workflow import ApprovalEvent
 from policy_agent.policy.model import Policy, PolicyStatus
-from policy_agent.remediation.model import RemediationItem
+from policy_agent.remediation.model import RemediationEvent, RemediationItem
 from policy_agent.scan.results import Finding, ScanResult
 from policy_agent.schedule import ScanSchedule
 from policy_agent.storage import records, schema
@@ -257,8 +257,49 @@ def read_remediations(executor: SqlExecutor, config: StorageConfig) -> list[Reme
     Returns:
         The remediation items.
     """
-    sql, params = schema.select_statement(config, "remediations", order_by="opened_at DESC")
+    # remediation_id is a stable tiebreaker: items opened by the same scan share an
+    # ``opened_at``, so without it the row order is nondeterministic between reads and the
+    # list appears to reshuffle after each edit.
+    sql, params = schema.select_statement(
+        config, "remediations", order_by="opened_at DESC, remediation_id"
+    )
     return [records.row_to_remediation(row) for row in executor.query(sql, params)]
+
+
+def save_remediation_event(
+    executor: SqlExecutor, config: StorageConfig, event: RemediationEvent
+) -> None:
+    """Appends a remediation audit event.
+
+    Args:
+        executor: The SQL executor.
+        config: The storage configuration.
+        event: The remediation event to persist.
+    """
+    sql, params = schema.insert_statement(
+        config, "remediation_events", records.remediation_event_to_row(event)
+    )
+    executor.execute(sql, params)
+
+
+def read_remediation_events(
+    executor: SqlExecutor, config: StorageConfig, remediation_id: str | None = None
+) -> list[RemediationEvent]:
+    """Reads remediation audit events, optionally for a single item, oldest first.
+
+    Args:
+        executor: The SQL executor.
+        config: The storage configuration.
+        remediation_id: When provided, only events for this item are returned.
+
+    Returns:
+        The matching remediation events, ordered oldest to newest.
+    """
+    where = {"remediation_id": remediation_id} if remediation_id is not None else None
+    sql, params = schema.select_statement(
+        config, "remediation_events", where=where, order_by="created_at ASC"
+    )
+    return [records.row_to_remediation_event(row) for row in executor.query(sql, params)]
 
 
 def save_schedule(executor: SqlExecutor, config: StorageConfig, schedule: ScanSchedule) -> None:

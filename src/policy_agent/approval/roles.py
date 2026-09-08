@@ -8,10 +8,10 @@ of truth for which role a workflow transition requires.
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping
-from enum import Enum
+from enum import StrEnum
 
 
-class Role(str, Enum):
+class Role(StrEnum):
     """A privilege level in the policy approval workflow."""
 
     ADMIN = "admin"

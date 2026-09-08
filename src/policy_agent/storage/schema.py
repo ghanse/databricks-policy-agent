@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from policy_agent.storage.config import StorageConfig
 
 
-class ColumnType(str, Enum):
+class ColumnType(StrEnum):
     """A portable column type mapped to each backend's concrete SQL type."""
 
     STRING = "string"
@@ -158,6 +158,20 @@ TABLES: tuple[Table, ...] = (
             Column("updated_at", _T),
         ),
         primary_key=("remediation_id",),
+    ),
+    Table(
+        "remediation_events",
+        (
+            Column("event_id", _S, nullable=False),
+            Column("remediation_id", _S),
+            Column("event_type", _S),
+            Column("actor", _S),
+            Column("note", _S),
+            Column("from_status", _S),
+            Column("to_status", _S),
+            Column("payload", _S),
+            Column("created_at", _T),
+        ),
     ),
     Table(
         "schedules",

@@ -101,6 +101,7 @@ def _env_block() -> str:
         "POLICY_AGENT_NOTIFICATION_EMAILS",
         "POLICY_AGENT_NOTIFICATION_WEBHOOK",
         "POLICY_AGENT_LAKEBASE_URL",
+        "POLICY_AGENT_AGENT_ENDPOINT",
     )
     lines = ["env:"]
     for name in passthrough:

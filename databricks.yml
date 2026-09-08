@@ -47,9 +47,19 @@ variables:
   app_name:
     description: Databricks App name (unique per workspace).
     default: policy-agent
+  agent_endpoint:
+    description: Model-serving endpoint "Assign to Genie Code" queries to draft resource fixes.
+    default: databricks-claude-sonnet-4-5
   warehouse_name:
     description: Name of the bundle-managed SQL warehouse the app and jobs query through.
     default: policy-agent-warehouse
+  warehouse_id:
+    description: >-
+      Id of the SQL warehouse the app queries through, set per target. A ``${resources...}``
+      reference does not resolve when nested in the app_config complex-variable default, and
+      the direct deployment engine does not honour the app ``value_from`` mechanism, so the id
+      is supplied here as a plain variable instead.
+    default: ""
   scan_cron:
     description: Quartz cron expression for the scheduled scan job.
     default: "0 0 6 * * ?"
@@ -74,11 +84,14 @@ variables:
         - name: POLICY_AGENT_TAGS
           value: "${var.object_tags}"
         - name: POLICY_AGENT_WAREHOUSE_ID
-          value_from: "policy-agent-warehouse"
+          value: "${var.warehouse_id}"
         - name: POLICY_AGENT_NOTIFICATION_EMAILS
           value: "${var.notification_email}"
-        - name: POLICY_AGENT_NOTIFICATION_WEBHOOK
-          value: "${var.notification_webhook}"
+        # The webhook is intentionally omitted here: the direct deployment engine drops an
+        # empty ``value`` and then rejects the env entry as having no source. Its default is
+        # empty, and an admin can still set it at runtime through the app's Settings tab.
+        - name: POLICY_AGENT_AGENT_ENDPOINT
+          value: "${var.agent_endpoint}"
   job_cluster:
     type: complex
     description: Single-node job cluster the scan jobs run on, carrying POLICY_AGENT_* config.
@@ -100,6 +113,35 @@ variables:
         POLICY_AGENT_WAREHOUSE_ID: "${resources.sql_warehouses.policy_agent_warehouse.id}"
         POLICY_AGENT_NOTIFICATION_EMAILS: "${var.notification_email}"
         POLICY_AGENT_NOTIFICATION_WEBHOOK: "${var.notification_webhook}"
+  # The scan jobs' tasks and environments are variables so a target can swap classic job
+  # clusters for serverless compute (serverless-only workspaces reject ``new_cluster``).
+  # Defaults are the classic single-node cluster; a target overrides these to go serverless.
+  scan_tasks:
+    type: complex
+    description: Tasks for the on-demand scan job.
+    default:
+      - task_key: scan
+        python_wheel_task:
+          package_name: policy_agent
+          entry_point: policy-agent-scan
+        new_cluster: ${var.job_cluster}
+        libraries:
+          - whl: ./dist/*.whl
+  scheduled_tasks:
+    type: complex
+    description: Tasks for the scheduled scan job.
+    default:
+      - task_key: scheduled_scan
+        python_wheel_task:
+          package_name: policy_agent
+          entry_point: policy-agent-scheduled-scan
+        new_cluster: ${var.job_cluster}
+        libraries:
+          - whl: ./dist/*.whl
+  job_environments:
+    type: complex
+    description: Serverless environments for the scan jobs; empty for classic-cluster targets.
+    default: []
 
 artifacts:
   # Build the library wheel (jobs depend on it) and assemble the deployable app tree.
@@ -159,14 +201,8 @@ resources:
       email_notifications:
         on_failure:
           - ${var.notification_email}
-      tasks:
-        - task_key: scan
-          python_wheel_task:
-            package_name: policy_agent
-            entry_point: policy-agent-scan
-          new_cluster: ${var.job_cluster}
-          libraries:
-            - whl: ./dist/*.whl
+      tasks: ${var.scan_tasks}
+      environments: ${var.job_environments}
 
     policy_agent_scheduled:
       name: "[policy-agent] scheduled scan"
@@ -178,14 +214,8 @@ resources:
       email_notifications:
         on_failure:
           - ${var.notification_email}
-      tasks:
-        - task_key: scheduled_scan
-          python_wheel_task:
-            package_name: policy_agent
-            entry_point: policy-agent-scheduled-scan
-          new_cluster: ${var.job_cluster}
-          libraries:
-            - whl: ./dist/*.whl
+      tasks: ${var.scheduled_tasks}
+      environments: ${var.job_environments}
 
 targets:
   dev:

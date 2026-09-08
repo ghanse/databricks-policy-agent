@@ -117,3 +117,31 @@ def get_workspace_client(request: Request) -> WorkspaceClient:
         The process-wide workspace client.
     """
     return request.app.state.workspace_client
+
+
+def get_user_workspace_client(request: Request) -> WorkspaceClient:
+    """Return a workspace client authenticated as the calling user (on-behalf-of).
+
+    Databricks Apps forward the signed-in user's access token in ``X-Forwarded-Access-Token``
+    when user authorization is enabled. Building a client from it means writes are made with
+    the user's own permissions and attributed to them, within the app's granted scopes. When
+    the header is absent (local development, or OBO not enabled) this falls back to the
+    process-wide service-principal client.
+
+    Args:
+        request: The incoming request.
+
+    Returns:
+        A user-scoped workspace client, or the service-principal client as a fallback.
+    """
+    from databricks.sdk import WorkspaceClient
+
+    sp_client = request.app.state.workspace_client
+    token = request.headers.get("X-Forwarded-Access-Token")
+    if not token:
+        return sp_client
+    host = getattr(getattr(sp_client, "config", None), "host", None)
+    # ``auth_type="pat"`` forces bearer-token auth for the forwarded user token. Without it the
+    # SDK also picks up the app service principal's ambient DATABRICKS_CLIENT_ID/SECRET and
+    # fails with "more than one authorization method configured".
+    return WorkspaceClient(host=host, token=token, auth_type="pat")

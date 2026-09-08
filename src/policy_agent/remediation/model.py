@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from policy_agent.policy.model import EnforcementLevel, ResourceType
 
 
-class RemediationStatus(str, Enum):
+class RemediationStatus(StrEnum):
     """Lifecycle state of a remediation item."""
 
     OPEN = "open"
@@ -22,6 +22,52 @@ OPEN_STATUSES: frozenset[RemediationStatus] = frozenset(
     {RemediationStatus.OPEN, RemediationStatus.IN_PROGRESS}
 )
 """Statuses that represent an unresolved item still requiring attention."""
+
+
+class RemediationEventType(StrEnum):
+    """The kind of activity captured on a remediation item's audit trail."""
+
+    OPENED = "opened"
+    ASSIGNED = "assigned"
+    ADVANCED = "advanced"
+    RESOLVED = "resolved"
+    WAIVED = "waived"
+    COMMENTED = "commented"
+    AUTO_RESOLVED = "auto_resolved"
+    AGENT_PROPOSED = "agent_proposed"
+    AGENT_ACCEPTED = "agent_accepted"
+    AGENT_REJECTED = "agent_rejected"
+
+
+@dataclass(frozen=True)
+class RemediationEvent:
+    """An immutable audit record of one activity on a remediation item.
+
+    Every status change, comment, assignment, and Genie Code interaction appends one of
+    these so the item's full history can be reconstructed. Events are never mutated or
+    deleted.
+
+    Attributes:
+        event_id: Unique identifier for the event.
+        remediation_id: The remediation item the event belongs to.
+        event_type: The kind of activity recorded.
+        actor: Principal (or process) that performed the activity.
+        note: Free-text comment or justification, if any.
+        from_status: Status before the change, when the event changed status.
+        to_status: Status after the change, when the event changed status.
+        payload: Optional serialized detail (for example a Genie Code proposal), as JSON.
+        created_at: When the activity occurred.
+    """
+
+    event_id: str
+    remediation_id: str
+    event_type: RemediationEventType
+    actor: str
+    created_at: datetime
+    note: str = ""
+    from_status: RemediationStatus | None = None
+    to_status: RemediationStatus | None = None
+    payload: str = ""
 
 
 @dataclass(frozen=True)

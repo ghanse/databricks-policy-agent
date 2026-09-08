@@ -14,7 +14,8 @@ from typing import TYPE_CHECKING
 from policy_agent.config import PolicyAgentConfig, config_from_env, create_executor
 from policy_agent.notify import notify_scan_result
 from policy_agent.policy.model import Policy, PolicyStatus, ResourceType
-from policy_agent.remediation.cycle import reconcile
+from policy_agent.remediation.cycle import make_event, reconcile
+from policy_agent.remediation.model import RemediationEventType, RemediationStatus
 from policy_agent.scan.engine import run_scan
 from policy_agent.scan.results import ScanResult
 from policy_agent.storage.backend import (
@@ -23,6 +24,7 @@ from policy_agent.storage.backend import (
     load_policies,
     read_remediations,
     save_remediation,
+    save_remediation_event,
     write_scan,
 )
 
@@ -58,7 +60,7 @@ def run_policy_scan(
         return result
     ensure_storage(executor, config.storage)
     write_scan(executor, config.storage, result, triggered_by)
-    _reconcile_remediations(executor, config, result)
+    _reconcile_remediations(executor, config, result, triggered_by)
     notify_scan_result(result, config.notification_webhook, config.notification_emails)
     return result
 
@@ -91,9 +93,38 @@ def execute_scan_job(triggered_by: str) -> int:
 
 
 def _reconcile_remediations(
-    executor: SqlExecutor, config: PolicyAgentConfig, result: ScanResult
+    executor: SqlExecutor, config: PolicyAgentConfig, result: ScanResult, triggered_by: str
 ) -> None:
+    now = datetime.now(UTC)
     existing = read_remediations(executor, config.storage)
-    updated = reconcile(existing, result.violations, result.scan_id, datetime.now(UTC))
+    existing_by_id = {item.remediation_id: item for item in existing}
+    updated = reconcile(existing, result.violations, result.scan_id, now)
     for item in updated:
         save_remediation(executor, config.storage, item)
+        event = _reconcile_event(item, existing_by_id.get(item.remediation_id), triggered_by, now)
+        if event is not None:
+            save_remediation_event(executor, config.storage, event)
+
+
+def _reconcile_event(item, previous, actor, now):
+    """Builds the audit event for a reconciled item, or ``None`` when nothing changed."""
+    if previous is None:
+        return make_event(
+            item.remediation_id,
+            RemediationEventType.OPENED,
+            actor,
+            now,
+            note="Opened for a new violation.",
+            to_status=item.status,
+        )
+    if previous.status != item.status and item.status is RemediationStatus.RESOLVED:
+        return make_event(
+            item.remediation_id,
+            RemediationEventType.AUTO_RESOLVED,
+            actor,
+            now,
+            note=item.note,
+            from_status=previous.status,
+            to_status=item.status,
+        )
+    return None

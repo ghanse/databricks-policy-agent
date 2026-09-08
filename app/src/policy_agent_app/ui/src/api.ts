@@ -1,8 +1,12 @@
 import type {
+  AccountUser,
+  AgentDecision,
+  AgentProposal,
   Finding,
   MyRoles,
   Policy,
   Remediation,
+  RemediationDetail,
   ScanHeader,
   ScanResult,
   Settings,
@@ -65,9 +69,26 @@ export const api = {
   scanFindings: (scanId: string) => request<Finding[]>(`/scans/${scanId}/findings`),
 
   listRemediations: () => request<Remediation[]>("/remediations"),
+  getRemediation: (id: string) => request<RemediationDetail>(`/remediations/${id}`),
   remediationAction: (id: string, action: string, note: string, assignee?: string) =>
     request<Remediation>(`/remediations/${id}/action`, {
       method: "POST",
       body: JSON.stringify({ action, note, assignee }),
+    }),
+
+  searchUsers: (q: string) =>
+    request<AccountUser[]>(`/users/search?q=${encodeURIComponent(q)}`),
+
+  agentPropose: (id: string) =>
+    request<AgentProposal>(`/remediations/${id}/agent/propose`, { method: "POST" }),
+  agentAccept: (id: string, proposalId: string, note = "") =>
+    request<AgentDecision>(`/remediations/${id}/agent/accept`, {
+      method: "POST",
+      body: JSON.stringify({ proposal_id: proposalId, note }),
+    }),
+  agentReject: (id: string, proposalId: string, note = "") =>
+    request<Remediation>(`/remediations/${id}/agent/reject`, {
+      method: "POST",
+      body: JSON.stringify({ proposal_id: proposalId, note }),
     }),
 };
