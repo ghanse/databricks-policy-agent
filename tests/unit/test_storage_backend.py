@@ -200,7 +200,9 @@ def test_remediation_events_round_trip_oldest_first():
     save_remediation_event(
         executor,
         config,
-        make_event("r1", RemediationEventType.OPENED, "system", now, to_status=RemediationStatus.OPEN),
+        make_event(
+            "r1", RemediationEventType.OPENED, "system", now, to_status=RemediationStatus.OPEN
+        ),
     )
     save_remediation_event(
         executor,

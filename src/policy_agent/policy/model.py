@@ -9,10 +9,10 @@ from a small set of frozen node types (`Comparison`, `AllOf`, `AnyOf`,
 from __future__ import annotations
 
 from dataclasses import dataclass
-from enum import Enum
+from enum import StrEnum
 
 
-class ResourceType(str, Enum):
+class ResourceType(StrEnum):
     """A Databricks workspace object type a policy can target."""
 
     JOB = "job"
@@ -32,7 +32,7 @@ class ResourceType(str, Enum):
     SQL_ALERT = "sql_alert"
 
 
-class Effect(str, Enum):
+class Effect(StrEnum):
     """Whether matching a policy's rule means a resource is compliant or violating.
 
     ``ALLOW`` policies are allow-lists: a resource is compliant only when its rule matches.
@@ -43,7 +43,7 @@ class Effect(str, Enum):
     DENY = "deny"
 
 
-class EnforcementLevel(str, Enum):
+class EnforcementLevel(StrEnum):
     """How strongly a policy is enforced, in increasing order of strictness.
 
     ``advisory`` policies only report; ``soft`` policies block a deployment gate but may be
@@ -76,7 +76,7 @@ def meets_threshold(level: EnforcementLevel, threshold: EnforcementLevel) -> boo
     return ENFORCEMENT_ORDER.index(level) >= ENFORCEMENT_ORDER.index(threshold)
 
 
-class PolicyStatus(str, Enum):
+class PolicyStatus(StrEnum):
     """Lifecycle state of a policy in the draft-review-approve workflow."""
 
     DRAFT = "draft"

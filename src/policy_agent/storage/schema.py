@@ -10,13 +10,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from policy_agent.storage.config import StorageConfig
 
 
-class ColumnType(str, Enum):
+class ColumnType(StrEnum):
     """A portable column type mapped to each backend's concrete SQL type."""
 
     STRING = "string"

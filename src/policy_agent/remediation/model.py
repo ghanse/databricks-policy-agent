@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from policy_agent.policy.model import EnforcementLevel, ResourceType
 
 
-class RemediationStatus(str, Enum):
+class RemediationStatus(StrEnum):
     """Lifecycle state of a remediation item."""
 
     OPEN = "open"
@@ -24,7 +24,7 @@ OPEN_STATUSES: frozenset[RemediationStatus] = frozenset(
 """Statuses that represent an unresolved item still requiring attention."""
 
 
-class RemediationEventType(str, Enum):
+class RemediationEventType(StrEnum):
     """The kind of activity captured on a remediation item's audit trail."""
 
     OPENED = "opened"
