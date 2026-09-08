@@ -82,12 +82,8 @@ export function RemediationDetailPage({
       .then((detail) => {
         setItem(detail);
         setAssignee(detail.assignee ?? "");
-        // Restore the latest pending Genie Code proposal from the audit trail so it
-        // survives page navigations. A proposal is "pending" when no agent_accepted or
-        // agent_rejected event follows the last agent_proposed event.
         const restored = _latestPendingProposal(detail.events);
-        if (restored) setProposal(restored);
-      })
+        setProposal(restored);
       .catch((e) => setError(String(e)));
   useEffect(() => {
     load();
