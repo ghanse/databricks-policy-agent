@@ -161,6 +161,22 @@ def test_scan_volumes_includes_created_volume(ws, make_volume):
 
 
 @pytest.mark.integration
+def test_scan_notebooks_includes_created_notebook(ws, make_notebook):
+    """A newly created notebook appears in the notebook scan, keyed by its workspace path."""
+    notebook = make_notebook()
+    snapshots = collect_snapshots(ws, [ResourceType.NOTEBOOK])[ResourceType.NOTEBOOK]
+    assert str(notebook) in {s.attributes["path"] for s in snapshots}
+
+
+@pytest.mark.integration
+def test_scan_workspace_files_includes_created_file(ws, make_workspace_file):
+    """A newly created workspace file appears in the workspace-file scan, keyed by its path."""
+    workspace_file = make_workspace_file()
+    snapshots = collect_snapshots(ws, [ResourceType.WORKSPACE_FILE])[ResourceType.WORKSPACE_FILE]
+    assert str(workspace_file) in {s.attributes["path"] for s in snapshots}
+
+
+@pytest.mark.integration
 def test_scan_secret_scopes_includes_created_scope(ws, make_secret_scope):
     """A newly created secret scope appears in the secret-scope scan."""
     scope = make_secret_scope()

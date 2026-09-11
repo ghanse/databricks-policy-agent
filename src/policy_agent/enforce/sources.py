@@ -44,7 +44,8 @@ def snapshot_bundle(config: dict[str, Any]) -> list[ResourceSnapshot]:
         config: A resolved bundle configuration (see `load_bundle_config`).
 
     Returns:
-        One snapshot per supported declared resource, in resource-group order.
+        One snapshot per supported declared resource, in resource-group order, followed by the
+        distinct notebooks and workspace files the bundle's jobs and pipelines reference.
     """
     resources = config.get("resources") or {}
     snapshots: list[ResourceSnapshot] = []
@@ -52,6 +53,7 @@ def snapshot_bundle(config: dict[str, Any]) -> list[ResourceSnapshot]:
         for key, definition in (resources.get(group) or {}).items():
             attributes = _COMMON[resource_type](key, definition)
             snapshots.append(ResourceSnapshot(resource_type=resource_type, attributes=attributes))
+    snapshots.extend(_workspace_object_snapshots(resources))
     return snapshots
 
 
@@ -334,6 +336,90 @@ def _normalize_tags(tags: Any) -> dict[str, str]:
             }
         return {str(key): str(value) for key, value in tags.items()}
     return {}
+
+
+def _workspace_object_snapshots(resources: dict[str, Any]) -> list[ResourceSnapshot]:
+    """Builds notebook and workspace-file snapshots from the paths a bundle references.
+
+    Notebooks and workspace files are not first-class bundle resources, but a bundle deploys the
+    ones its job tasks (``notebook_task``, ``spark_python_task``, ``sql_task``) and pipeline
+    libraries point at, so those paths are gated. Runtime-only attributes (a notebook's language,
+    a file's size and creation time) are unknown from a bundle and left *None*. Each distinct path
+    yields one snapshot, notebooks first, in first-seen order.
+
+    Args:
+        resources: The ``resources`` block of a resolved bundle configuration.
+
+    Returns:
+        One snapshot per distinct referenced notebook, then one per distinct referenced file.
+    """
+    notebooks: dict[str, None] = {}
+    files: dict[str, None] = {}
+    for job in (resources.get("jobs") or {}).values():
+        for task in _iter_job_tasks(job):
+            _add_reference(task.get("notebook_task"), "notebook_path", notebooks)
+            _add_reference(task.get("spark_python_task"), "python_file", files)
+            sql_task = task.get("sql_task")
+            if isinstance(sql_task, dict):
+                _add_reference(sql_task.get("file"), "path", files)
+    for pipeline in (resources.get("pipelines") or {}).values():
+        if not isinstance(pipeline, dict):
+            continue
+        for library in pipeline.get("libraries") or []:
+            if not isinstance(library, dict):
+                continue
+            _add_reference(library.get("notebook"), "path", notebooks)
+            _add_reference(library.get("file"), "path", files)
+    snapshots = [
+        ResourceSnapshot(ResourceType.NOTEBOOK, _notebook_reference_attributes(path))
+        for path in notebooks
+    ]
+    snapshots += [
+        ResourceSnapshot(ResourceType.WORKSPACE_FILE, _workspace_file_reference_attributes(path))
+        for path in files
+    ]
+    return snapshots
+
+
+def _iter_job_tasks(job: Any) -> list[dict[str, Any]]:
+    # Returns a job's tasks, descending one level into a for-each task's nested task.
+    tasks: list[dict[str, Any]] = []
+    if not isinstance(job, dict):
+        return tasks
+    for task in job.get("tasks") or []:
+        if not isinstance(task, dict):
+            continue
+        tasks.append(task)
+        for_each = task.get("for_each_task")
+        nested = for_each.get("task") if isinstance(for_each, dict) else None
+        if isinstance(nested, dict):
+            tasks.append(nested)
+    return tasks
+
+
+def _add_reference(container: Any, key: str, sink: dict[str, None]) -> None:
+    if isinstance(container, dict):
+        path = container.get(key)
+        if isinstance(path, str) and path:
+            sink.setdefault(path, None)
+
+
+def _notebook_reference_attributes(path: str) -> dict[str, Any]:
+    return {"id": path, "name": _basename(path), "path": path, "language": None}
+
+
+def _workspace_file_reference_attributes(path: str) -> dict[str, Any]:
+    return {
+        "id": path,
+        "name": _basename(path),
+        "path": path,
+        "size": None,
+        "created_time": None,
+    }
+
+
+def _basename(path: str) -> str:
+    return path.rstrip("/").rsplit("/", 1)[-1] or path
 
 
 _COMMON = {

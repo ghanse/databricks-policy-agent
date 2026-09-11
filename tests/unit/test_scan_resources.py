@@ -5,6 +5,7 @@ import pytest
 from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
+    ScanCache,
     classify_principal,
     scan_apps,
     scan_catalogs,
@@ -12,6 +13,7 @@ from policy_agent.scan.resources import (
     scan_external_locations,
     scan_genie_spaces,
     scan_jobs,
+    scan_notebooks,
     scan_pipelines,
     scan_quality_monitors,
     scan_registered_models,
@@ -21,6 +23,7 @@ from policy_agent.scan.resources import (
     scan_sql_alerts,
     scan_sql_warehouses,
     scan_volumes,
+    scan_workspace_files,
 )
 
 
@@ -753,3 +756,144 @@ def test_scan_genie_spaces_without_tag_service_reports_untagged():
     space = SimpleNamespace(space_id="sp-1", title="Sales", description=None, warehouse_id=None)
     (snapshot,) = scan_genie_spaces(_ws(genie=_FakeGenie([space])))
     assert snapshot.attributes["tags"] == {}
+
+
+class _FakeWorkspace:
+    """A fake workspace service backing the tree walk; ``list(path)`` returns a path's children.
+
+    ``errors`` maps a path to an exception ``list`` raises for it, so a test can simulate a path
+    the caller cannot see or a transient failure.
+    """
+
+    def __init__(self, tree, errors=None):
+        self._tree = tree
+        self._errors = errors or {}
+        self.listed = []
+
+    def list(self, path):
+        self.listed.append(path)
+        if path in self._errors:
+            raise self._errors[path]
+        return list(self._tree.get(path, []))
+
+
+def _ws_object(object_type, path, **extra):
+    return SimpleNamespace(object_type=SimpleNamespace(value=object_type), path=path, **extra)
+
+
+def test_scan_notebooks_walks_the_tree_and_recurses_into_directories():
+    tree = {
+        "/": [
+            _ws_object("DIRECTORY", "/Users"),
+            _ws_object(
+                "NOTEBOOK",
+                "/top",
+                object_id=1,
+                language=SimpleNamespace(value="SQL"),
+            ),
+            _ws_object("FILE", "/readme.py", object_id=2, size=10),
+        ],
+        "/Users": [
+            _ws_object(
+                "NOTEBOOK",
+                "/Users/alice/etl",
+                object_id=3,
+                language=SimpleNamespace(value="PYTHON"),
+            ),
+        ],
+    }
+    workspace = _FakeWorkspace(tree)
+    snapshots = scan_notebooks(_ws(workspace=workspace))
+    by_path = {s.attributes["path"]: s for s in snapshots}
+    # Both the top-level notebook and the one nested under /Users are found (recursion works);
+    # the file and directory are not notebooks.
+    assert set(by_path) == {"/top", "/Users/alice/etl"}
+    top = by_path["/top"]
+    assert top.resource_type is ResourceType.NOTEBOOK
+    assert top.attributes["name"] == "top"
+    assert top.attributes["language"] == "SQL"
+    # The workspace API reports a creation time only for files, so notebooks are not timestamped.
+    assert "created_time" not in top.attributes
+    # The nested notebook's name is the final path segment.
+    assert by_path["/Users/alice/etl"].attributes["name"] == "etl"
+
+
+def test_scan_workspace_files_keeps_only_files():
+    tree = {
+        "/": [
+            _ws_object("NOTEBOOK", "/nb", object_id=1),
+            _ws_object("FILE", "/data.csv", object_id=2, size=2048),
+        ]
+    }
+    (snapshot,) = scan_workspace_files(_ws(workspace=_FakeWorkspace(tree)))
+    assert snapshot.resource_type is ResourceType.WORKSPACE_FILE
+    assert snapshot.attributes["path"] == "/data.csv"
+    assert snapshot.attributes["name"] == "data.csv"
+    assert snapshot.attributes["size"] == 2048
+    # Files are listed from the workspace tree, so they never advertise tags or an owner.
+    assert "tags" not in snapshot.attributes
+    assert "owner" not in snapshot.attributes
+
+
+def test_scan_notebooks_descends_into_repos():
+    # Notebooks tracked in a Git folder under /Repos are scanned like any other, so the walk
+    # descends into REPO objects, not just plain directories.
+    tree = {
+        "/": [_ws_object("REPO", "/Repos/team/project")],
+        "/Repos/team/project": [_ws_object("NOTEBOOK", "/Repos/team/project/main", object_id=1)],
+    }
+    snapshots = scan_notebooks(_ws(workspace=_FakeWorkspace(tree)))
+    assert {s.attributes["path"] for s in snapshots} == {"/Repos/team/project/main"}
+
+
+def test_scan_notebooks_skips_directories_the_caller_cannot_see():
+    # A directory the caller lacks permission on is skipped rather than failing the whole scan.
+    from databricks.sdk.errors import PermissionDenied
+
+    tree = {
+        "/": [_ws_object("DIRECTORY", "/locked"), _ws_object("NOTEBOOK", "/ok", object_id=1)],
+        "/locked": [_ws_object("NOTEBOOK", "/locked/secret", object_id=2)],
+    }
+    workspace = _FakeWorkspace(tree, errors={"/locked": PermissionDenied("no access")})
+    snapshots = scan_notebooks(_ws(workspace=workspace))
+    assert {s.attributes["path"] for s in snapshots} == {"/ok"}
+    assert "/locked" in workspace.listed
+
+
+def test_scan_notebooks_raises_on_unexpected_list_error():
+    # A transient or infrastructure error must not be swallowed as an empty subtree; it surfaces
+    # as a ScanError so a partial scan is never mistaken for a clean one.
+    from databricks.sdk.errors import InternalError
+
+    tree = {"/": [_ws_object("DIRECTORY", "/flaky")]}
+    workspace = _FakeWorkspace(tree, errors={"/flaky": InternalError("upstream 500")})
+    with pytest.raises(ScanError):
+        scan_notebooks(_ws(workspace=workspace))
+
+
+def test_scan_notebooks_raises_when_workspace_root_is_denied():
+    # A scan that cannot even read the workspace root is a failed scan, not a clean one, so a
+    # permission error on the root path is raised rather than swallowed like a descendant skip.
+    from databricks.sdk.errors import PermissionDenied
+
+    workspace = _FakeWorkspace({}, errors={"/": PermissionDenied("no root access")})
+    with pytest.raises(ScanError):
+        scan_notebooks(_ws(workspace=workspace))
+
+
+def test_scan_cache_walks_the_workspace_tree_once_for_both_scanners():
+    # Notebooks and workspace files share one workspace tree walk through a ScanCache, so scanning
+    # both walks each path once instead of once per scanner.
+    tree = {
+        "/": [_ws_object("DIRECTORY", "/team")],
+        "/team": [
+            _ws_object("NOTEBOOK", "/team/nb", object_id=1),
+            _ws_object("FILE", "/team/data.csv", object_id=2, size=1),
+        ],
+    }
+    workspace = _FakeWorkspace(tree)
+    cache = ScanCache()
+    scan_notebooks(_ws(workspace=workspace), cache=cache)
+    scan_workspace_files(_ws(workspace=workspace), cache=cache)
+    # "/" and "/team" are each listed exactly once across both scanners.
+    assert sorted(workspace.listed) == ["/", "/team"]
