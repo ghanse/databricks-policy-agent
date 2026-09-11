@@ -322,6 +322,55 @@ Fetches and normalizes every SQL alert in the workspace.
 
   A list of *ResourceSnapshots* for each SQL alert.
 
+#### scan\_notebooks
+
+```python
+def scan_notebooks(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every notebook in the workspace tree.
+
+**Notes**:
+
+  Walks the workspace tree (see *_walk_workspace_objects*) and keeps the notebook objects.
+  Notebooks are listed from the workspace, which reports no owner or tags.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each notebook.
+
+#### scan\_workspace\_files
+
+```python
+def scan_workspace_files(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every workspace file in the workspace tree.
+
+**Notes**:
+
+  Walks the workspace tree (see *_walk_workspace_objects*) and keeps the file objects — the
+  arbitrary files (for example ``.py``, ``.txt``, or ``.whl``) stored alongside notebooks.
+  Files are listed from the workspace, which reports no owner or tags.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each workspace file.
+
 #### classify\_principal
 
 ```python

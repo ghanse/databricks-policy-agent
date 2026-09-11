@@ -9,7 +9,7 @@ every resource to the flat attribute set declared in
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -669,6 +669,113 @@ def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
             )
         )
     return snapshots
+
+
+_WORKSPACE_CONTAINER_TYPES: frozenset[str] = frozenset({"DIRECTORY", "REPO"})
+"""Workspace object types the tree walk descends into. Repos are included so notebooks and files
+tracked in a Git folder are scanned like any other; excluding them would miss production code that
+commonly lives under ``/Repos``."""
+
+
+def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
+    """Yields every object in the workspace tree, walking it depth-first from the root.
+
+    The workspace list API is not recursive, so directories and repos are walked explicitly. A
+    path that cannot be listed (for example one the caller lacks permission on) is skipped rather
+    than failing the whole scan.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Yields:
+        Each *ObjectInfo* the workspace tree contains (notebooks, files, directories, and so on).
+    """
+    from databricks.sdk.errors import DatabricksError
+
+    workspace = getattr(workspace_client, "workspace", None)
+    if workspace is None:
+        return
+    pending = ["/"]
+    while pending:
+        path = pending.pop()
+        try:
+            children = list(workspace.list(path))
+        except DatabricksError:
+            continue
+        for obj in children:
+            if _enum_value(getattr(obj, "object_type", None)) in _WORKSPACE_CONTAINER_TYPES:
+                child_path = getattr(obj, "path", None)
+                if child_path:
+                    pending.append(child_path)
+            yield obj
+
+
+def scan_notebooks(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every notebook in the workspace tree.
+
+    Note:
+        Walks the workspace tree (see *_walk_workspace_objects*) and keeps the notebook objects.
+        Notebooks are listed from the workspace, which reports no owner or tags.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each notebook.
+    """
+    snapshots = []
+    for obj in _walk_workspace_objects(workspace_client):
+        if _enum_value(getattr(obj, "object_type", None)) != "NOTEBOOK":
+            continue
+        path = getattr(obj, "path", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.NOTEBOOK,
+                id=str(getattr(obj, "object_id", "") or path),
+                name=_basename(path),
+                path=path,
+                language=_enum_value(getattr(obj, "language", None)),
+                created_time=_epoch_seconds(getattr(obj, "created_at", None)),
+            )
+        )
+    return snapshots
+
+
+def scan_workspace_files(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every workspace file in the workspace tree.
+
+    Note:
+        Walks the workspace tree (see *_walk_workspace_objects*) and keeps the file objects — the
+        arbitrary files (for example ``.py``, ``.txt``, or ``.whl``) stored alongside notebooks.
+        Files are listed from the workspace, which reports no owner or tags.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each workspace file.
+    """
+    snapshots = []
+    for obj in _walk_workspace_objects(workspace_client):
+        if _enum_value(getattr(obj, "object_type", None)) != "FILE":
+            continue
+        path = getattr(obj, "path", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.WORKSPACE_FILE,
+                id=str(getattr(obj, "object_id", "") or path),
+                name=_basename(path),
+                path=path,
+                size=getattr(obj, "size", None),
+                created_time=_epoch_seconds(getattr(obj, "created_at", None)),
+            )
+        )
+    return snapshots
+
+
+def _basename(path: str) -> str:
+    """Returns the final path segment of a workspace path (its display name)."""
+    return path.rstrip("/").rsplit("/", 1)[-1] if path else ""
 
 
 def _resolve_schema_names(

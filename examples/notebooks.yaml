@@ -1,0 +1,23 @@
+# Notebook policies.
+policy: no-notebooks-outside-repos
+description: Notebooks should live under /Repos so they are version-controlled, not in /Users.
+resource_type: notebook
+effect: deny
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: path, operator: matches_regex, value: "^/Users/.+" }
+remediation: Move the notebook into a Git-backed folder under /Repos.
+---
+policy: production-notebooks-must-be-python-or-sql
+description: Production notebooks must be written in Python or SQL, the supported languages.
+resource_type: notebook
+effect: allow
+enforcement_level: soft
+match:
+  all:
+    - { attribute: path, operator: matches_regex, value: "^/Production/.+" }
+rule:
+  all:
+    - { attribute: language, operator: in, value: [PYTHON, SQL] }
+remediation: Rewrite the notebook in Python or SQL.

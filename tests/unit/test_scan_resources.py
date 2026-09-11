@@ -12,6 +12,7 @@ from policy_agent.scan.resources import (
     scan_external_locations,
     scan_genie_spaces,
     scan_jobs,
+    scan_notebooks,
     scan_pipelines,
     scan_quality_monitors,
     scan_registered_models,
@@ -21,6 +22,7 @@ from policy_agent.scan.resources import (
     scan_sql_alerts,
     scan_sql_warehouses,
     scan_volumes,
+    scan_workspace_files,
 )
 
 
@@ -753,3 +755,101 @@ def test_scan_genie_spaces_without_tag_service_reports_untagged():
     space = SimpleNamespace(space_id="sp-1", title="Sales", description=None, warehouse_id=None)
     (snapshot,) = scan_genie_spaces(_ws(genie=_FakeGenie([space])))
     assert snapshot.attributes["tags"] == {}
+
+
+class _FakeWorkspace:
+    """A fake workspace service backing the tree walk; ``list(path)`` returns a path's children."""
+
+    def __init__(self, tree, unlistable=()):
+        self._tree = tree
+        self._unlistable = set(unlistable)
+        self.listed = []
+
+    def list(self, path):
+        self.listed.append(path)
+        if path in self._unlistable:
+            from databricks.sdk.errors import DatabricksError
+
+            raise DatabricksError("permission denied")
+        return list(self._tree.get(path, []))
+
+
+def _ws_object(object_type, path, **extra):
+    return SimpleNamespace(object_type=SimpleNamespace(value=object_type), path=path, **extra)
+
+
+def test_scan_notebooks_walks_the_tree_and_recurses_into_directories():
+    tree = {
+        "/": [
+            _ws_object("DIRECTORY", "/Users"),
+            _ws_object(
+                "NOTEBOOK",
+                "/top",
+                object_id=1,
+                language=SimpleNamespace(value="SQL"),
+                created_at=1_700_000_000_000,
+            ),
+            _ws_object("FILE", "/readme.py", object_id=2, size=10),
+        ],
+        "/Users": [
+            _ws_object(
+                "NOTEBOOK",
+                "/Users/alice/etl",
+                object_id=3,
+                language=SimpleNamespace(value="PYTHON"),
+            ),
+        ],
+    }
+    workspace = _FakeWorkspace(tree)
+    snapshots = scan_notebooks(_ws(workspace=workspace))
+    by_path = {s.attributes["path"]: s for s in snapshots}
+    # Both the top-level notebook and the one nested under /Users are found (recursion works);
+    # the file and directory are not notebooks.
+    assert set(by_path) == {"/top", "/Users/alice/etl"}
+    top = by_path["/top"]
+    assert top.resource_type is ResourceType.NOTEBOOK
+    assert top.attributes["name"] == "top"
+    assert top.attributes["language"] == "SQL"
+    assert top.attributes["created_time"] is not None
+    # The nested notebook's name is the final path segment.
+    assert by_path["/Users/alice/etl"].attributes["name"] == "etl"
+
+
+def test_scan_workspace_files_keeps_only_files():
+    tree = {
+        "/": [
+            _ws_object("NOTEBOOK", "/nb", object_id=1),
+            _ws_object("FILE", "/data.csv", object_id=2, size=2048),
+        ]
+    }
+    (snapshot,) = scan_workspace_files(_ws(workspace=_FakeWorkspace(tree)))
+    assert snapshot.resource_type is ResourceType.WORKSPACE_FILE
+    assert snapshot.attributes["path"] == "/data.csv"
+    assert snapshot.attributes["name"] == "data.csv"
+    assert snapshot.attributes["size"] == 2048
+    # Files are listed from the workspace tree, so they never advertise tags or an owner.
+    assert "tags" not in snapshot.attributes
+    assert "owner" not in snapshot.attributes
+
+
+def test_scan_notebooks_descends_into_repos():
+    # Notebooks tracked in a Git folder under /Repos are scanned like any other, so the walk
+    # descends into REPO objects, not just plain directories.
+    tree = {
+        "/": [_ws_object("REPO", "/Repos/team/project")],
+        "/Repos/team/project": [_ws_object("NOTEBOOK", "/Repos/team/project/main", object_id=1)],
+    }
+    snapshots = scan_notebooks(_ws(workspace=_FakeWorkspace(tree)))
+    assert {s.attributes["path"] for s in snapshots} == {"/Repos/team/project/main"}
+
+
+def test_scan_notebooks_skips_directories_that_cannot_be_listed():
+    # A directory the caller cannot list is skipped rather than failing the whole scan.
+    tree = {
+        "/": [_ws_object("DIRECTORY", "/locked"), _ws_object("NOTEBOOK", "/ok", object_id=1)],
+        "/locked": [_ws_object("NOTEBOOK", "/locked/secret", object_id=2)],
+    }
+    workspace = _FakeWorkspace(tree, unlistable={"/locked"})
+    snapshots = scan_notebooks(_ws(workspace=workspace))
+    assert {s.attributes["path"] for s in snapshots} == {"/ok"}
+    assert "/locked" in workspace.listed

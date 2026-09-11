@@ -25,6 +25,8 @@ Policies target one of the following resource types.
 | `genie_space`       | Genie spaces                      |
 | `pipeline`          | Spark Declarative Pipelines       |
 | `sql_alert`         | SQL alerts                        |
+| `notebook`          | Workspace notebooks               |
+| `workspace_file`    | Workspace files                   |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
@@ -213,6 +215,30 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 
 <Callout type="warn" title="Unsupported common attributes for SQL alerts">
 SQL alerts are not taggable and do not support the `tags` attribute.
+</Callout>
+
+### Notebook attributes
+
+| Field name | Description                                                   |
+|------------|---------------------------------------------------------------|
+| `path`     | Absolute workspace path of the notebook                       |
+| `language` | Notebook language (e.g. "PYTHON", "SQL", "SCALA", "R")        |
+
+<Callout type="warn" title="Unsupported common attributes for notebooks">
+Notebooks are listed from the workspace tree, so they do not support the `owner`, `owner_type`,
+or `tags` attributes.
+</Callout>
+
+### Workspace file attributes
+
+| Field name | Description                                       |
+|------------|---------------------------------------------------|
+| `path`     | Absolute workspace path of the file               |
+| `size`     | File size in bytes                                |
+
+<Callout type="warn" title="Unsupported common attributes for workspace files">
+Workspace files are listed from the workspace tree, so they do not support the `owner`,
+`owner_type`, or `tags` attributes.
 </Callout>
 
 ## Operators

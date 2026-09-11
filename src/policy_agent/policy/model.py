@@ -30,6 +30,8 @@ class ResourceType(StrEnum):
     PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
     SQL_ALERT = "sql_alert"
+    NOTEBOOK = "notebook"
+    WORKSPACE_FILE = "workspace_file"
 
 
 class Effect(StrEnum):
@@ -310,6 +312,10 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "empty_result_state",
         "has_schedule",
     },
+    # Workspace notebooks and files are listed from the workspace tree, which reports no owner or
+    # tags. They are timestamped by their creation time.
+    ResourceType.NOTEBOOK: _IDENTITY | _TIMESTAMPED | {"path", "language"},
+    ResourceType.WORKSPACE_FILE: _IDENTITY | _TIMESTAMPED | {"path", "size"},
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""
