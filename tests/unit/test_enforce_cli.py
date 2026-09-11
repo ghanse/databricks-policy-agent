@@ -33,12 +33,16 @@ _ADVISORY_TAGGED = _HARD_TAGGED.replace("enforcement_level: hard", "enforcement_
 
 def test_snapshot_parses_resolved_bundle_shape():
     by_id = {s.resource_id: s for s in snapshot_bundle(load_bundle_config(GOLDEN))}
-    assert set(by_id) == {"compliant_job", "violating_job"}
+    assert {"compliant_job", "violating_job"} <= set(by_id)
     assert by_id["compliant_job"].resource_type is ResourceType.JOB
     assert by_id["compliant_job"].attributes["tags"] == {"team": "data-platform"}
     assert by_id["compliant_job"].attributes["has_email_notifications"] is True
     assert by_id["violating_job"].attributes["tags"] == {}
     assert by_id["violating_job"].attributes["has_email_notifications"] is False
+    # Both jobs reference the same notebook, so the bundle contributes one deduped notebook.
+    notebook_path = "/Workspace/Shared/policy-agent-sample/noop"
+    assert by_id[notebook_path].resource_type is ResourceType.NOTEBOOK
+    assert by_id[notebook_path].attributes["path"] == notebook_path
 
 
 def _run_enforce(*args: str):

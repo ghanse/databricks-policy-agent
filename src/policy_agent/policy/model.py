@@ -313,8 +313,9 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "has_schedule",
     },
     # Workspace notebooks and files are listed from the workspace tree, which reports no owner or
-    # tags. They are timestamped by their creation time.
-    ResourceType.NOTEBOOK: _IDENTITY | _TIMESTAMPED | {"path", "language"},
+    # tags. The workspace API returns a creation time only for files, so notebooks are not
+    # timestamped.
+    ResourceType.NOTEBOOK: _IDENTITY | {"path", "language"},
     ResourceType.WORKSPACE_FILE: _IDENTITY | _TIMESTAMPED | {"path", "size"},
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set

@@ -326,7 +326,9 @@ Fetches and normalizes every SQL alert in the workspace.
 
 ```python
 def scan_notebooks(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+        workspace_client: WorkspaceClient,
+        *,
+        cache: ScanCache | None = None) -> list[ResourceSnapshot]
 ```
 
 Fetches and normalizes every notebook in the workspace tree.
@@ -334,12 +336,15 @@ Fetches and normalizes every notebook in the workspace tree.
 **Notes**:
 
   Walks the workspace tree (see *_walk_workspace_objects*) and keeps the notebook objects.
-  Notebooks are listed from the workspace, which reports no owner or tags.
+  Notebooks are listed from the workspace, which reports no owner, tags, or creation time.
   
 
 **Arguments**:
 
 - `workspace_client` - Databricks workspace client.
+- `cache` - Optional per-scan cache of the workspace tree walk, shared with
+  `scan_workspace_files` so a scan of both types walks the tree only once. A private
+  cache is used when *None*.
   
 
 **Returns**:
@@ -350,7 +355,9 @@ Fetches and normalizes every notebook in the workspace tree.
 
 ```python
 def scan_workspace_files(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+        workspace_client: WorkspaceClient,
+        *,
+        cache: ScanCache | None = None) -> list[ResourceSnapshot]
 ```
 
 Fetches and normalizes every workspace file in the workspace tree.
@@ -365,6 +372,8 @@ Fetches and normalizes every workspace file in the workspace tree.
 **Arguments**:
 
 - `workspace_client` - Databricks workspace client.
+- `cache` - Optional per-scan cache of the workspace tree walk, shared with `scan_notebooks`
+  so a scan of both types walks the tree only once. A private cache is used when *None*.
   
 
 **Returns**:

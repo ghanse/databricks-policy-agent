@@ -5,6 +5,7 @@ import pytest
 from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
+    ScanCache,
     classify_principal,
     scan_apps,
     scan_catalogs,
@@ -758,19 +759,21 @@ def test_scan_genie_spaces_without_tag_service_reports_untagged():
 
 
 class _FakeWorkspace:
-    """A fake workspace service backing the tree walk; ``list(path)`` returns a path's children."""
+    """A fake workspace service backing the tree walk; ``list(path)`` returns a path's children.
 
-    def __init__(self, tree, unlistable=()):
+    ``errors`` maps a path to an exception ``list`` raises for it, so a test can simulate a path
+    the caller cannot see or a transient failure.
+    """
+
+    def __init__(self, tree, errors=None):
         self._tree = tree
-        self._unlistable = set(unlistable)
+        self._errors = errors or {}
         self.listed = []
 
     def list(self, path):
         self.listed.append(path)
-        if path in self._unlistable:
-            from databricks.sdk.errors import DatabricksError
-
-            raise DatabricksError("permission denied")
+        if path in self._errors:
+            raise self._errors[path]
         return list(self._tree.get(path, []))
 
 
@@ -787,7 +790,6 @@ def test_scan_notebooks_walks_the_tree_and_recurses_into_directories():
                 "/top",
                 object_id=1,
                 language=SimpleNamespace(value="SQL"),
-                created_at=1_700_000_000_000,
             ),
             _ws_object("FILE", "/readme.py", object_id=2, size=10),
         ],
@@ -810,7 +812,8 @@ def test_scan_notebooks_walks_the_tree_and_recurses_into_directories():
     assert top.resource_type is ResourceType.NOTEBOOK
     assert top.attributes["name"] == "top"
     assert top.attributes["language"] == "SQL"
-    assert top.attributes["created_time"] is not None
+    # The workspace API reports a creation time only for files, so notebooks are not timestamped.
+    assert "created_time" not in top.attributes
     # The nested notebook's name is the final path segment.
     assert by_path["/Users/alice/etl"].attributes["name"] == "etl"
 
@@ -843,13 +846,54 @@ def test_scan_notebooks_descends_into_repos():
     assert {s.attributes["path"] for s in snapshots} == {"/Repos/team/project/main"}
 
 
-def test_scan_notebooks_skips_directories_that_cannot_be_listed():
-    # A directory the caller cannot list is skipped rather than failing the whole scan.
+def test_scan_notebooks_skips_directories_the_caller_cannot_see():
+    # A directory the caller lacks permission on is skipped rather than failing the whole scan.
+    from databricks.sdk.errors import PermissionDenied
+
     tree = {
         "/": [_ws_object("DIRECTORY", "/locked"), _ws_object("NOTEBOOK", "/ok", object_id=1)],
         "/locked": [_ws_object("NOTEBOOK", "/locked/secret", object_id=2)],
     }
-    workspace = _FakeWorkspace(tree, unlistable={"/locked"})
+    workspace = _FakeWorkspace(tree, errors={"/locked": PermissionDenied("no access")})
     snapshots = scan_notebooks(_ws(workspace=workspace))
     assert {s.attributes["path"] for s in snapshots} == {"/ok"}
     assert "/locked" in workspace.listed
+
+
+def test_scan_notebooks_raises_on_unexpected_list_error():
+    # A transient or infrastructure error must not be swallowed as an empty subtree; it surfaces
+    # as a ScanError so a partial scan is never mistaken for a clean one.
+    from databricks.sdk.errors import InternalError
+
+    tree = {"/": [_ws_object("DIRECTORY", "/flaky")]}
+    workspace = _FakeWorkspace(tree, errors={"/flaky": InternalError("upstream 500")})
+    with pytest.raises(ScanError):
+        scan_notebooks(_ws(workspace=workspace))
+
+
+def test_scan_notebooks_raises_when_workspace_root_is_denied():
+    # A scan that cannot even read the workspace root is a failed scan, not a clean one, so a
+    # permission error on the root path is raised rather than swallowed like a descendant skip.
+    from databricks.sdk.errors import PermissionDenied
+
+    workspace = _FakeWorkspace({}, errors={"/": PermissionDenied("no root access")})
+    with pytest.raises(ScanError):
+        scan_notebooks(_ws(workspace=workspace))
+
+
+def test_scan_cache_walks_the_workspace_tree_once_for_both_scanners():
+    # Notebooks and workspace files share one workspace tree walk through a ScanCache, so scanning
+    # both walks each path once instead of once per scanner.
+    tree = {
+        "/": [_ws_object("DIRECTORY", "/team")],
+        "/team": [
+            _ws_object("NOTEBOOK", "/team/nb", object_id=1),
+            _ws_object("FILE", "/team/data.csv", object_id=2, size=1),
+        ],
+    }
+    workspace = _FakeWorkspace(tree)
+    cache = ScanCache()
+    scan_notebooks(_ws(workspace=workspace), cache=cache)
+    scan_workspace_files(_ws(workspace=workspace), cache=cache)
+    # "/" and "/team" are each listed exactly once across both scanners.
+    assert sorted(workspace.listed) == ["/", "/team"]
