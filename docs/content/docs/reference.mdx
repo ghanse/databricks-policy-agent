@@ -17,6 +17,8 @@ Policies target one of the following resource types.
 | `serving_endpoint`  | Model serving endpoints           |
 | `catalog`           | Unity Catalog catalogs            |
 | `schema`            | Unity Catalog schemas             |
+| `table`             | Unity Catalog tables              |
+| `column`            | Unity Catalog table columns       |
 | `volume`            | Unity Catalog volumes             |
 | `registered_model`  | Unity Catalog registered models   |
 | `external_location` | Unity Catalog external locations  |
@@ -25,8 +27,8 @@ Policies target one of the following resource types.
 | `genie_space`       | Genie spaces                      |
 | `pipeline`          | Spark Declarative Pipelines       |
 | `sql_alert`         | SQL alerts                        |
-| `table`             | Unity Catalog tables              |
-| `column`            | Unity Catalog table columns       |
+| `notebook`          | Workspace notebooks               |
+| `workspace_file`    | Workspace files                   |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
@@ -250,16 +252,31 @@ SQL alerts are not taggable and do not support the `tags` attribute.
 | `has_mask`        | Whether a column mask is applied to the column                  |
 
 <Callout type="warn" title="Unsupported common attributes for columns">
-Columns are read from their parent table, so they do not support the `owner`, `owner_type`, or
-`created_time` attributes. Column-level tags are governed per column and are not scanned, so
-columns do not support the `tags` attribute.
+Columns do not support the `owner`, `owner_type`, or `created_time` attributes.
 </Callout>
 
-<Callout type="info" title="Tables and columns are scan-only">
-Tables and columns are evaluated by live scans, not by the deployment gate: they are not
-first-class Databricks Asset Bundle resources, so a bundle has no table or column to gate. A
-`soft` or `hard` enforcement level on a table or column policy still governs how a *scan* reports
-the violation, but it does not block a `databricks bundle deploy`.
+### Notebook attributes
+
+| Field name | Description                                                   |
+|------------|---------------------------------------------------------------|
+| `path`     | Absolute workspace path of the notebook                       |
+| `language` | Notebook language (e.g. "PYTHON", "SQL", "SCALA", "R")        |
+
+<Callout type="warn" title="Unsupported common attributes for notebooks">
+Notebooks do not support the `owner`, `owner_type`, or `tags` attributes.  Enforcement does
+not support `language`, `size`, or `created_time`.
+</Callout>
+
+### Workspace file attributes
+
+| Field name | Description                                       |
+|------------|---------------------------------------------------|
+| `path`     | Absolute workspace path of the file               |
+| `size`     | File size in bytes                                |
+
+<Callout type="warn" title="Unsupported common attributes for workspace files">
+Workspace files do not support the `owner`, `owner_type`, or `tags` attributes. Enforcement does
+not support `language`, `size`, or `created_time`.
 </Callout>
 
 ## Operators

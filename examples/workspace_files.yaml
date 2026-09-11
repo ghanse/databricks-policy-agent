@@ -1,0 +1,10 @@
+# Workspace file policies.
+policy: no-large-workspace-files
+description: Large files do not belong in the workspace; store data in a volume or cloud storage.
+resource_type: workspace_file
+effect: deny
+enforcement_level: soft
+rule:
+  all:
+    - { attribute: size, operator: greater_than, value: 10485760 }
+remediation: Move the file to a Unity Catalog volume or external storage.

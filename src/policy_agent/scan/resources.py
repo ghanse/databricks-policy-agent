@@ -680,14 +680,20 @@ class ScanCache:
     re-listing every catalog, schema, and table. A cache is scoped to one ``run_scan`` (or
     ``collect_snapshots``) call, so it never serves stale results across scans.
     """
+    _WORKSPACE_CONTAINER_TYPES: frozenset[str] = frozenset({"DIRECTORY", "REPO"})
 
     def __init__(self) -> None:
         self._metastore_tables: list[tuple[str, str, str, Any]] | None = None
+        self._workspace_objects: list[Any] | None = None
 
     def metastore_tables(
         self, workspace_client: WorkspaceClient
     ) -> list[tuple[str, str, str, Any]]:
         """Returns the metastore table walk, listing it once and reusing it thereafter.
+        self._workspace_objects: list[Any] | None = None
+
+    def workspace_objects(self, workspace_client: WorkspaceClient) -> list[Any]:
+        """Returns the workspace tree walk, walking it once and reusing it thereafter.
 
         Args:
             workspace_client: Databricks workspace client.
@@ -707,6 +713,23 @@ def _iter_metastore_tables(
     """Yields ``(catalog_name, schema_name, table_full_name, table)`` for every table in the
     metastore. Shared by the table and column scanners, which walk the same catalog/schema/table
     hierarchy. ``table.columns`` is populated because ``tables.list`` does not omit columns.
+            The *ObjectInfo* objects from `_walk_workspace_objects`.
+        """
+        if self._workspace_objects is None:
+            self._workspace_objects = list(_walk_workspace_objects(workspace_client))
+        return self._workspace_objects
+
+
+def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
+    """Yields every object in the workspace tree, walking it depth-first from the root.
+
+    The workspace list API is not recursive, so directories and repos are walked explicitly. A
+    *descendant* path the caller cannot see (permission denied) or that vanished mid-walk (not
+    found) is skipped, but any other failure — a rate limit, a 5xx, a timeout — is raised as a
+    `ScanError` rather than silently treated as an empty subtree, so an infrastructure error
+    cannot quietly return a false-clean, incomplete scan. A failure listing the *root* is always
+    raised, including permission denied: a scan that cannot read the workspace root is a failed
+    scan, not an empty one.
 
     Args:
         workspace_client: Databricks workspace client.
@@ -779,6 +802,72 @@ def scan_tables(
                 ),
                 pipeline_id=getattr(table, "pipeline_id", None),
                 view_definition=getattr(table, "view_definition", None),
+        Each *ObjectInfo* the workspace tree contains (notebooks, files, directories, and so on).
+
+    Raises:
+        ScanError: If listing the root fails for any reason, or listing a descendant path fails
+            for a reason other than permission or a missing path.
+    """
+    from databricks.sdk.errors import DatabricksError, NotFound, PermissionDenied
+
+    workspace = getattr(workspace_client, "workspace", None)
+    if workspace is None:
+        return
+    pending = ["/"]
+    is_root = True
+    while pending:
+        path = pending.pop()
+        try:
+            children = list(workspace.list(path))
+        except (PermissionDenied, NotFound) as error:
+            if is_root:
+                raise ScanError(
+                    f"Could not list the workspace root {path!r}: {error}. The scan principal "
+                    "must be able to read the workspace root."
+                ) from error
+            continue
+        except DatabricksError as error:
+            raise ScanError(f"Could not list workspace path {path!r}: {error}") from error
+        is_root = False
+        for obj in children:
+            if _enum_value(getattr(obj, "object_type", None)) in _WORKSPACE_CONTAINER_TYPES:
+                child_path = getattr(obj, "path", None)
+                if child_path:
+                    pending.append(child_path)
+            yield obj
+
+
+def scan_notebooks(
+    workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
+) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every notebook in the workspace tree.
+
+    Note:
+        Walks the workspace tree (see *_walk_workspace_objects*) and keeps the notebook objects.
+        Notebooks are listed from the workspace, which reports no owner, tags, or creation time.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        cache: Optional per-scan cache of the workspace tree walk, shared with
+            `scan_workspace_files` so a scan of both types walks the tree only once. A private
+            cache is used when *None*.
+
+    Returns:
+        A list of *ResourceSnapshots* for each notebook.
+    """
+    cache = cache or ScanCache()
+    snapshots = []
+    for obj in cache.workspace_objects(workspace_client):
+        if _enum_value(getattr(obj, "object_type", None)) != "NOTEBOOK":
+            continue
+        path = getattr(obj, "path", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.NOTEBOOK,
+                id=str(getattr(obj, "object_id", "") or path),
+                name=_basename(path),
+                path=path,
+                language=_enum_value(getattr(obj, "language", None)),
             )
         )
     return snapshots
@@ -830,6 +919,48 @@ def scan_columns(
                 )
             )
     return snapshots
+
+
+def scan_workspace_files(
+    workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
+) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every workspace file in the workspace tree.
+
+    Note:
+        Walks the workspace tree (see *_walk_workspace_objects*) and keeps the file objects — the
+        arbitrary files (for example ``.py``, ``.txt``, or ``.whl``) stored alongside notebooks.
+        Files are listed from the workspace, which reports no owner or tags.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        cache: Optional per-scan cache of the workspace tree walk, shared with `scan_notebooks`
+            so a scan of both types walks the tree only once. A private cache is used when *None*.
+
+    Returns:
+        A list of *ResourceSnapshots* for each workspace file.
+    """
+    cache = cache or ScanCache()
+    snapshots = []
+    for obj in cache.workspace_objects(workspace_client):
+        if _enum_value(getattr(obj, "object_type", None)) != "FILE":
+            continue
+        path = getattr(obj, "path", "") or ""
+        snapshots.append(
+            _snapshot(
+                ResourceType.WORKSPACE_FILE,
+                id=str(getattr(obj, "object_id", "") or path),
+                name=_basename(path),
+                path=path,
+                size=getattr(obj, "size", None),
+                created_time=_epoch_seconds(getattr(obj, "created_at", None)),
+            )
+        )
+    return snapshots
+
+
+def _basename(path: str) -> str:
+    """Returns the final path segment of a workspace path (its display name)."""
+    return path.rstrip("/").rsplit("/", 1)[-1] if path else ""
 
 
 def _resolve_schema_names(

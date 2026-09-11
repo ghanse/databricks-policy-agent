@@ -87,6 +87,8 @@ def test_supported_resource_types_match_registry():
         ResourceType.SQL_ALERT,
         ResourceType.TABLE,
         ResourceType.COLUMN,
+        ResourceType.NOTEBOOK,
+        ResourceType.WORKSPACE_FILE,
     }
 
 

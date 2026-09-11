@@ -129,6 +129,14 @@ def test_validate_rejects_tags_on_non_taggable_column():
     invalid = deny("bad", "column", leaf("tags", "not_empty"))
     with pytest.raises(InvalidPolicyError):
         validate_policy(invalid)
+        
+        
+def test_validate_rejects_tags_on_non_taggable_workspace_types():
+    # Notebooks and workspace files are listed from the workspace tree, which reports no tags, so
+    # a policy referencing `tags` is rejected at author time.
+    for resource_type in ("notebook", "workspace_file"):
+        with pytest.raises(InvalidPolicyError):
+            validate_policy(deny("bad", resource_type, leaf("tags", "not_empty")))
 
 
 def test_validate_rejects_unknown_operator():
@@ -152,7 +160,7 @@ def test_load_rejects_unknown_resource_type():
         policy_from_dict(
             {
                 "policy": "x",
-                "resource_type": "notebook",
+                "resource_type": "dashboard",
                 "effect": "deny",
                 "rule": {"attribute": "name", "operator": "exists"},
             }

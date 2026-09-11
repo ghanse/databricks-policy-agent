@@ -42,6 +42,70 @@ def test_snapshot_bundle_maps_declared_jobs():
     assert adhoc["owner_type"] == "unknown"
 
 
+def test_snapshot_bundle_maps_notebooks_and_files_referenced_by_jobs_and_pipelines():
+    config = {
+        "resources": {
+            "jobs": {
+                "etl": {
+                    "name": "etl",
+                    "tasks": [
+                        {"notebook_task": {"notebook_path": "/Workspace/prod/etl"}},
+                        {"spark_python_task": {"python_file": "/Workspace/prod/run.py"}},
+                        {"sql_task": {"file": {"path": "/Workspace/prod/report.sql"}}},
+                        {
+                            "for_each_task": {
+                                "task": {"notebook_task": {"notebook_path": "/Workspace/prod/each"}}
+                            }
+                        },
+                        # A duplicate reference is deduped.
+                        {"notebook_task": {"notebook_path": "/Workspace/prod/etl"}},
+                    ],
+                }
+            },
+            "pipelines": {
+                "ingest": {
+                    "libraries": [
+                        {"notebook": {"path": "/Workspace/prod/dlt"}},
+                        {"file": {"path": "/Workspace/prod/helpers.py"}},
+                    ]
+                }
+            },
+        }
+    }
+    by_id = {(s.resource_type, s.resource_id): s for s in snapshot_bundle(config)}
+    notebooks = {rid for (rt, rid) in by_id if rt is ResourceType.NOTEBOOK}
+    files = {rid for (rt, rid) in by_id if rt is ResourceType.WORKSPACE_FILE}
+    assert notebooks == {"/Workspace/prod/etl", "/Workspace/prod/each", "/Workspace/prod/dlt"}
+    assert files == {
+        "/Workspace/prod/run.py",
+        "/Workspace/prod/report.sql",
+        "/Workspace/prod/helpers.py",
+    }
+    # Runtime-only attributes are unknown from a bundle; identity and path are populated.
+    notebook = by_id[(ResourceType.NOTEBOOK, "/Workspace/prod/etl")].attributes
+    assert notebook["name"] == "etl"
+    assert notebook["language"] is None
+
+
+def test_gate_blocks_bundle_notebook_outside_allowed_path():
+    config = {
+        "resources": {
+            "jobs": {
+                "etl": {"tasks": [{"notebook_task": {"notebook_path": "/Users/alice/scratch"}}]}
+            }
+        }
+    }
+    must_be_in_workspace = allow(
+        "notebooks-under-workspace",
+        "notebook",
+        leaf("path", "matches_regex", r"^/Workspace/.+"),
+    )
+    result = run_gate(
+        [must_be_in_workspace], snapshot_bundle(config), fail_on=EnforcementLevel.ADVISORY
+    )
+    assert result.blocked
+
+
 def test_snapshot_bundle_maps_declared_sql_warehouses():
     # A warehouse policy must see declared warehouses; otherwise a non-compliant bundle would
     # pass because the gate evaluated zero resources.

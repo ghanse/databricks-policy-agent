@@ -25,5 +25,6 @@ Builds resource snapshots from a resolved bundle configuration.
 
 **Returns**:
 
-  One snapshot per supported declared resource, in resource-group order.
+  One snapshot per supported declared resource, in resource-group order, followed by the
+  distinct notebooks and workspace files the bundle's jobs and pipelines reference.
 

@@ -24,6 +24,9 @@ from policy_agent.scan.resources import (
     scan_columns,
     scan_jobs,
     scan_tables,
+    scan_jobs,
+    scan_notebooks,
+    scan_workspace_files,
 )
 from policy_agent.scan.results import Finding, ResourceSnapshot, ScanResult
 
@@ -136,11 +139,19 @@ def _scan_type(
     Tables and columns derive from the same metastore walk, so they take the per-scan cache and
     list the metastore only once when both are scanned. Every other scanner is a plain function
     of the workspace client.
+    
+    Notebooks and workspace files derive from the same workspace tree walk, so they take the
+    per-scan cache and walk the tree only once when both are scanned. Every other scanner is a
+    plain function of the workspace client.
     """
     if resource_type is ResourceType.TABLE:
         return scan_tables(workspace_client, cache=cache)
     if resource_type is ResourceType.COLUMN:
         return scan_columns(workspace_client, cache=cache)
+    if resource_type is ResourceType.NOTEBOOK:
+        return scan_notebooks(workspace_client, cache=cache)
+    if resource_type is ResourceType.WORKSPACE_FILE:
+        return scan_workspace_files(workspace_client, cache=cache)
     return scanner_for(resource_type)(workspace_client)
 
 

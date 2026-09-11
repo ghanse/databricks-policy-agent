@@ -32,6 +32,8 @@ class ResourceType(StrEnum):
     SQL_ALERT = "sql_alert"
     TABLE = "table"
     COLUMN = "column"
+    NOTEBOOK = "notebook"
+    WORKSPACE_FILE = "workspace_file"
 
 
 class Effect(StrEnum):
@@ -329,9 +331,6 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "pipeline_id",
         "view_definition",
     },
-    # Columns are read from their parent table, so they are not owned or timestamped. Column-level
-    # tags are governed per column and would cost one API call each to fetch at scan time, so they
-    # are not scanned and columns do not advertise `tags`.
     ResourceType.COLUMN: _IDENTITY
     | {
         "table_name",
@@ -347,6 +346,8 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "partition_index",
         "has_mask",
     },
+    ResourceType.NOTEBOOK: _IDENTITY | {"path", "language"},
+    ResourceType.WORKSPACE_FILE: _IDENTITY | _TIMESTAMPED | {"path", "size"},
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
 policy validation checks attribute names against."""
