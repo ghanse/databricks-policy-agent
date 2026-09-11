@@ -326,10 +326,6 @@ Fetches and normalizes every SQL alert in the workspace.
 
 ```python
 def scan_tables(
-#### scan\_notebooks
-
-```python
-def scan_notebooks(
         workspace_client: WorkspaceClient,
         *,
         cache: ScanCache | None = None) -> list[ResourceSnapshot]
@@ -344,6 +340,29 @@ Fetches and normalizes every table across every schema in the metastore.
   Unity Catalog securable, so tags are read from the entity-tag-assignments API. The storage
   format (for example Delta or Iceberg) is reported as *data_source_format*, and Delta and
   other table settings surface as the *properties* mapping.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+- `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
+  a scan of both types lists the metastore only once. A private cache is used when
+  *None*.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each table.
+
+#### scan\_notebooks
+
+```python
+def scan_notebooks(
+        workspace_client: WorkspaceClient,
+        *,
+        cache: ScanCache | None = None) -> list[ResourceSnapshot]
+```
+
 Fetches and normalizes every notebook in the workspace tree.
 
 **Notes**:
@@ -355,9 +374,6 @@ Fetches and normalizes every notebook in the workspace tree.
 **Arguments**:
 
 - `workspace_client` - Databricks workspace client.
-- `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
-  a scan of both types lists the metastore only once. A private cache is used when
-  *None*.
 - `cache` - Optional per-scan cache of the workspace tree walk, shared with
   `scan_workspace_files` so a scan of both types walks the tree only once. A private
   cache is used when *None*.
@@ -365,18 +381,12 @@ Fetches and normalizes every notebook in the workspace tree.
 
 **Returns**:
 
-  A list of *ResourceSnapshots* for each table.
+  A list of *ResourceSnapshots* for each notebook.
 
 #### scan\_columns
 
 ```python
 def scan_columns(
-  A list of *ResourceSnapshots* for each notebook.
-
-#### scan\_workspace\_files
-
-```python
-def scan_workspace_files(
         workspace_client: WorkspaceClient,
         *,
         cache: ScanCache | None = None) -> list[ResourceSnapshot]
@@ -389,6 +399,29 @@ Fetches and normalizes every column of every table in the metastore.
   Columns are read from the *columns* block each table listing returns, so no per-column
   API call is made. Column-level tags are not scanned (see the note on the *column*
   resource type). A column's id is its fully-qualified name (*catalog.schema.table.column*).
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+- `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_tables` so
+  a scan of both types lists the metastore only once. A private cache is used when
+  *None*.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each column.
+
+#### scan\_workspace\_files
+
+```python
+def scan_workspace_files(
+        workspace_client: WorkspaceClient,
+        *,
+        cache: ScanCache | None = None) -> list[ResourceSnapshot]
+```
+
 Fetches and normalizes every workspace file in the workspace tree.
 
 **Notes**:
@@ -401,16 +434,12 @@ Fetches and normalizes every workspace file in the workspace tree.
 **Arguments**:
 
 - `workspace_client` - Databricks workspace client.
-- `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_tables` so
-  a scan of both types lists the metastore only once. A private cache is used when
-  *None*.
 - `cache` - Optional per-scan cache of the workspace tree walk, shared with `scan_notebooks`
   so a scan of both types walks the tree only once. A private cache is used when *None*.
   
 
 **Returns**:
 
-  A list of *ResourceSnapshots* for each column.
   A list of *ResourceSnapshots* for each workspace file.
 
 #### classify\_principal

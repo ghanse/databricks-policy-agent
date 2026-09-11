@@ -252,7 +252,16 @@ SQL alerts are not taggable and do not support the `tags` attribute.
 | `has_mask`        | Whether a column mask is applied to the column                  |
 
 <Callout type="warn" title="Unsupported common attributes for columns">
-Columns do not support the `owner`, `owner_type`, or `created_time` attributes.
+Columns are read from their parent table, so they do not support the `owner`, `owner_type`, or
+`created_time` attributes. Column-level tags are governed per column and are not scanned, so
+columns do not support the `tags` attribute.
+</Callout>
+
+<Callout type="info" title="Tables and columns are scan-only">
+Tables and columns are evaluated by live scans, not by the deployment gate: they are not
+first-class Databricks Asset Bundle resources, so a bundle has no table or column to gate. A
+`soft` or `hard` enforcement level on a table or column policy still governs how a *scan* reports
+the violation, but it does not block a `databricks bundle deploy`.
 </Callout>
 
 ### Notebook attributes
@@ -263,8 +272,9 @@ Columns do not support the `owner`, `owner_type`, or `created_time` attributes.
 | `language` | Notebook language (e.g. "PYTHON", "SQL", "SCALA", "R")        |
 
 <Callout type="warn" title="Unsupported common attributes for notebooks">
-Notebooks do not support the `owner`, `owner_type`, or `tags` attributes.  Enforcement does
-not support `language`, `size`, or `created_time`.
+Notebooks are listed from the workspace tree, so they do not support the `owner`, `owner_type`,
+or `tags` attributes. The workspace API reports a creation time only for files, so notebooks do
+not support `created_time` either.
 </Callout>
 
 ### Workspace file attributes
@@ -275,8 +285,16 @@ not support `language`, `size`, or `created_time`.
 | `size`     | File size in bytes                                |
 
 <Callout type="warn" title="Unsupported common attributes for workspace files">
-Workspace files do not support the `owner`, `owner_type`, or `tags` attributes. Enforcement does
-not support `language`, `size`, or `created_time`.
+Workspace files are listed from the workspace tree, so they do not support the `owner`,
+`owner_type`, or `tags` attributes.
+</Callout>
+
+<Callout type="info" title="Notebooks and files in a bundle">
+A live scan walks the whole workspace tree, so it evaluates every notebook and file. A
+deployment gate instead sees the notebooks and files a bundle references through its job tasks
+(`notebook_task`, `spark_python_task`, `sql_task`) and pipeline libraries, since those are the
+ones the bundle deploys. In a bundle, `language`, `size`, and `created_time` are not yet known,
+so gate policies on notebooks and files should test `path`.
 </Callout>
 
 ## Operators

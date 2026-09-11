@@ -671,16 +671,21 @@ def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
     return snapshots
 
 
+_WORKSPACE_CONTAINER_TYPES: frozenset[str] = frozenset({"DIRECTORY", "REPO"})
+"""Workspace object types the tree walk descends into. Repos are included so notebooks and files
+tracked in a Git folder are scanned like any other; excluding them would miss production code that
+commonly lives under ``/Repos``."""
+
+
 class ScanCache:
     """Per-scan cache of expensive listings shared across scanners in one run.
 
-    Some resource types derive from the same underlying listing: tables and columns both come
-    from a single metastore table walk. When one scan evaluates policies on more than one such
-    type, caching the walk here lets the second scanner reuse the first's work instead of
-    re-listing every catalog, schema, and table. A cache is scoped to one ``run_scan`` (or
-    ``collect_snapshots``) call, so it never serves stale results across scans.
+    Some resource types derive from the same underlying listing: tables and columns from one
+    metastore table walk, and notebooks and workspace files from one workspace tree walk. When a
+    scan evaluates policies on more than one such type, caching the walk here lets the second
+    scanner reuse the first's work instead of re-listing. A cache is scoped to one ``run_scan``
+    (or ``collect_snapshots``) call, so it never serves stale results across scans.
     """
-    _WORKSPACE_CONTAINER_TYPES: frozenset[str] = frozenset({"DIRECTORY", "REPO"})
 
     def __init__(self) -> None:
         self._metastore_tables: list[tuple[str, str, str, Any]] | None = None
@@ -690,10 +695,6 @@ class ScanCache:
         self, workspace_client: WorkspaceClient
     ) -> list[tuple[str, str, str, Any]]:
         """Returns the metastore table walk, listing it once and reusing it thereafter.
-        self._workspace_objects: list[Any] | None = None
-
-    def workspace_objects(self, workspace_client: WorkspaceClient) -> list[Any]:
-        """Returns the workspace tree walk, walking it once and reusing it thereafter.
 
         Args:
             workspace_client: Databricks workspace client.
@@ -706,13 +707,13 @@ class ScanCache:
             self._metastore_tables = list(_iter_metastore_tables(workspace_client))
         return self._metastore_tables
 
+    def workspace_objects(self, workspace_client: WorkspaceClient) -> list[Any]:
+        """Returns the workspace tree walk, walking it once and reusing it thereafter.
 
-def _iter_metastore_tables(
-    workspace_client: WorkspaceClient,
-) -> Iterator[tuple[str, str, str, Any]]:
-    """Yields ``(catalog_name, schema_name, table_full_name, table)`` for every table in the
-    metastore. Shared by the table and column scanners, which walk the same catalog/schema/table
-    hierarchy. ``table.columns`` is populated because ``tables.list`` does not omit columns.
+        Args:
+            workspace_client: Databricks workspace client.
+
+        Returns:
             The *ObjectInfo* objects from `_walk_workspace_objects`.
         """
         if self._workspace_objects is None:
@@ -720,16 +721,12 @@ def _iter_metastore_tables(
         return self._workspace_objects
 
 
-def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
-    """Yields every object in the workspace tree, walking it depth-first from the root.
-
-    The workspace list API is not recursive, so directories and repos are walked explicitly. A
-    *descendant* path the caller cannot see (permission denied) or that vanished mid-walk (not
-    found) is skipped, but any other failure — a rate limit, a 5xx, a timeout — is raised as a
-    `ScanError` rather than silently treated as an empty subtree, so an infrastructure error
-    cannot quietly return a false-clean, incomplete scan. A failure listing the *root* is always
-    raised, including permission denied: a scan that cannot read the workspace root is a failed
-    scan, not an empty one.
+def _iter_metastore_tables(
+    workspace_client: WorkspaceClient,
+) -> Iterator[tuple[str, str, str, Any]]:
+    """Yields ``(catalog_name, schema_name, table_full_name, table)`` for every table in the
+    metastore. Shared by the table and column scanners, which walk the same catalog/schema/table
+    hierarchy. ``table.columns`` is populated because ``tables.list`` does not omit columns.
 
     Args:
         workspace_client: Databricks workspace client.
@@ -754,6 +751,56 @@ def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
                     getattr(table, "full_name", None) or f"{catalog_name}.{schema_name}.{name}"
                 )
                 yield catalog_name, schema_name, full_name, table
+
+
+def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
+    """Yields every object in the workspace tree, walking it depth-first from the root.
+
+    The workspace list API is not recursive, so directories and repos are walked explicitly. A
+    *descendant* path the caller cannot see (permission denied) or that vanished mid-walk (not
+    found) is skipped, but any other failure — a rate limit, a 5xx, a timeout — is raised as a
+    `ScanError` rather than silently treated as an empty subtree, so an infrastructure error
+    cannot quietly return a false-clean, incomplete scan. A failure listing the *root* is always
+    raised, including permission denied: a scan that cannot read the workspace root is a failed
+    scan, not an empty one.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Yields:
+        Each *ObjectInfo* the workspace tree contains (notebooks, files, directories, and so on).
+
+    Raises:
+        ScanError: If listing the root fails for any reason, or listing a descendant path fails
+            for a reason other than permission or a missing path.
+    """
+    from databricks.sdk.errors import DatabricksError, NotFound, PermissionDenied
+
+    workspace = getattr(workspace_client, "workspace", None)
+    if workspace is None:
+        return
+    pending = ["/"]
+    is_root = True
+    while pending:
+        path = pending.pop()
+        try:
+            children = list(workspace.list(path))
+        except (PermissionDenied, NotFound) as error:
+            if is_root:
+                raise ScanError(
+                    f"Could not list the workspace root {path!r}: {error}. The scan principal "
+                    "must be able to read the workspace root."
+                ) from error
+            continue
+        except DatabricksError as error:
+            raise ScanError(f"Could not list workspace path {path!r}: {error}") from error
+        is_root = False
+        for obj in children:
+            if _enum_value(getattr(obj, "object_type", None)) in _WORKSPACE_CONTAINER_TYPES:
+                child_path = getattr(obj, "path", None)
+                if child_path:
+                    pending.append(child_path)
+            yield obj
 
 
 def scan_tables(
@@ -802,39 +849,9 @@ def scan_tables(
                 ),
                 pipeline_id=getattr(table, "pipeline_id", None),
                 view_definition=getattr(table, "view_definition", None),
-        Each *ObjectInfo* the workspace tree contains (notebooks, files, directories, and so on).
-
-    Raises:
-        ScanError: If listing the root fails for any reason, or listing a descendant path fails
-            for a reason other than permission or a missing path.
-    """
-    from databricks.sdk.errors import DatabricksError, NotFound, PermissionDenied
-
-    workspace = getattr(workspace_client, "workspace", None)
-    if workspace is None:
-        return
-    pending = ["/"]
-    is_root = True
-    while pending:
-        path = pending.pop()
-        try:
-            children = list(workspace.list(path))
-        except (PermissionDenied, NotFound) as error:
-            if is_root:
-                raise ScanError(
-                    f"Could not list the workspace root {path!r}: {error}. The scan principal "
-                    "must be able to read the workspace root."
-                ) from error
-            continue
-        except DatabricksError as error:
-            raise ScanError(f"Could not list workspace path {path!r}: {error}") from error
-        is_root = False
-        for obj in children:
-            if _enum_value(getattr(obj, "object_type", None)) in _WORKSPACE_CONTAINER_TYPES:
-                child_path = getattr(obj, "path", None)
-                if child_path:
-                    pending.append(child_path)
-            yield obj
+            )
+        )
+    return snapshots
 
 
 def scan_notebooks(

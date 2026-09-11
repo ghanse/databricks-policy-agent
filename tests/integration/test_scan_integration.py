@@ -189,6 +189,7 @@ def test_scan_columns_includes_columns_of_created_table(ws, make_table):
     assert table_columns
     assert all(isinstance(s.attributes["has_mask"], bool) for s in table_columns)
 
+
 @pytest.mark.integration
 def test_scan_notebooks_includes_created_notebook(ws, make_notebook):
     """A newly created notebook appears in the notebook scan, keyed by its workspace path."""

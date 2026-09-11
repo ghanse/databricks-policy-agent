@@ -61,16 +61,11 @@ RESOURCE_SCANNERS: dict[ResourceType, ResourceScanner] = {
     ResourceType.WORKSPACE_FILE: scan_workspace_files,
     ResourceType.QUALITY_MONITOR: scan_quality_monitors,
 }
-"""
-The resource types the framework can scan, keyed to their fetch functions. A type without a
+"""The resource types the framework can scan, keyed to their fetch functions. A type without a
 registered scanner is enforce-only — it can still be gated from a bundle but never live-scanned.
 The inverse also holds: a scannable type may intentionally have no bundle enforce mapping (see
 `policy_agent.enforce.sources`), making it scan-only — for example tables and columns, which are
-not first-class Databricks Asset Bundle resources.
-
-The inverse can also hold: a scannable type may have no bundle enforce mapping (see
-`policy_agent.enforce.sources`), making it scan-only.
-"""
+not first-class Databricks Asset Bundle resources."""
 
 
 def supported_resource_types() -> tuple[ResourceType, ...]:

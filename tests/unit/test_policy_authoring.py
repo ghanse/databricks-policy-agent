@@ -129,8 +129,8 @@ def test_validate_rejects_tags_on_non_taggable_column():
     invalid = deny("bad", "column", leaf("tags", "not_empty"))
     with pytest.raises(InvalidPolicyError):
         validate_policy(invalid)
-        
-        
+
+
 def test_validate_rejects_tags_on_non_taggable_workspace_types():
     # Notebooks and workspace files are listed from the workspace tree, which reports no tags, so
     # a policy referencing `tags` is rejected at author time.
