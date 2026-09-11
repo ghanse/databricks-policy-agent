@@ -1,0 +1,23 @@
+# UC column policies.
+policy: sensitive-columns-must-be-masked
+description: Columns that look like PII must have a column mask applied.
+resource_type: column
+effect: allow
+enforcement_level: hard
+match:
+  all:
+    - { attribute: name, operator: matches_regex, value: "(?i).*(ssn|email|phone).*" }
+rule:
+  all:
+    - { attribute: has_mask, operator: equals, value: true }
+remediation: Apply a column mask to the sensitive column.
+---
+policy: columns-must-be-documented
+description: Columns must have a comment so their meaning is clear to consumers.
+resource_type: column
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: comment, operator: exists }
+remediation: Add a comment describing the column.

@@ -161,6 +161,28 @@ def test_scan_volumes_includes_created_volume(ws, make_volume):
 
 
 @pytest.mark.integration
+def test_scan_tables_includes_created_table(ws, make_table):
+    """A newly created table appears in the table scan, keyed by its full name."""
+    table = make_table()
+    snapshots = collect_snapshots(ws, [ResourceType.TABLE])[ResourceType.TABLE]
+    assert table.full_name in {s.resource_id for s in snapshots}
+
+
+@pytest.mark.integration
+def test_scan_columns_includes_columns_of_created_table(ws, make_table):
+    """The columns of a newly created table appear in the column scan.
+
+    A column's id is its fully-qualified name, so every column of the created table is prefixed
+    by the table's full name. ``has_mask`` is always a boolean (a schema-drift guard).
+    """
+    table = make_table()
+    snapshots = collect_snapshots(ws, [ResourceType.COLUMN])[ResourceType.COLUMN]
+    table_columns = [s for s in snapshots if s.resource_id.startswith(f"{table.full_name}.")]
+    assert table_columns
+    assert all(isinstance(s.attributes["has_mask"], bool) for s in table_columns)
+
+
+@pytest.mark.integration
 def test_scan_secret_scopes_includes_created_scope(ws, make_secret_scope):
     """A newly created secret scope appears in the secret-scope scan."""
     scope = make_secret_scope()

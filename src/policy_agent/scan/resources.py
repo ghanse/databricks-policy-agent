@@ -9,7 +9,7 @@ every resource to the flat attribute set declared in
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -668,6 +668,113 @@ def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
                 has_schedule=bool(getattr(alert, "schedule", None)),
             )
         )
+    return snapshots
+
+
+def _iter_metastore_tables(
+    workspace_client: WorkspaceClient,
+) -> Iterator[tuple[str, str, str, Any]]:
+    """Yields ``(catalog_name, schema_name, table_full_name, table)`` for every table in the
+    metastore. Shared by the table and column scanners, which walk the same catalog/schema/table
+    hierarchy. ``table.columns`` is populated because ``tables.list`` does not omit columns.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Yields:
+        One tuple per table, with the table's fully-qualified name resolved from ``full_name`` or
+        composed from its catalog, schema, and name.
+    """
+    for catalog in workspace_client.catalogs.list():
+        catalog_name = getattr(catalog, "name", None)
+        if not catalog_name:
+            continue
+        for schema in workspace_client.schemas.list(catalog_name=catalog_name):
+            schema_name = getattr(schema, "name", None)
+            if not schema_name:
+                continue
+            for table in workspace_client.tables.list(
+                catalog_name=catalog_name, schema_name=schema_name
+            ):
+                name = getattr(table, "name", "") or ""
+                full_name = (
+                    getattr(table, "full_name", None) or f"{catalog_name}.{schema_name}.{name}"
+                )
+                yield catalog_name, schema_name, full_name, table
+
+
+def scan_tables(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every table across every schema in the metastore.
+
+    Note:
+        Walks catalogs and schemas and lists their tables. This includes views and materialized
+        views, distinguished by the *table_type* attribute. Tables are a Unity Catalog securable,
+        so tags are read from the entity-tag-assignments API.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each table.
+    """
+    snapshots = []
+    for catalog_name, schema_name, full_name, table in _iter_metastore_tables(workspace_client):
+        owner = getattr(table, "owner", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.TABLE,
+                id=full_name,
+                name=getattr(table, "name", "") or "",
+                owner=owner,
+                owner_type=classify_principal(owner),
+                tags=_get_uc_entity_tags(workspace_client, "tables", full_name),
+                created_time=_epoch_seconds(getattr(table, "created_at", None)),
+                comment=getattr(table, "comment", None),
+                catalog_name=catalog_name,
+                schema_name=schema_name,
+                table_type=_enum_value(getattr(table, "table_type", None)),
+                data_source_format=_enum_value(getattr(table, "data_source_format", None)),
+                storage_location=getattr(table, "storage_location", None),
+            )
+        )
+    return snapshots
+
+
+def scan_columns(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every column of every table in the metastore.
+
+    Note:
+        Columns are read from the *columns* block each table listing returns, so no per-column
+        API call is made. Column-level tags are not scanned (see the note on the *column*
+        resource type). A column's id is its fully-qualified name (*catalog.schema.table.column*).
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Returns:
+        A list of *ResourceSnapshots* for each column.
+    """
+    snapshots = []
+    for catalog_name, schema_name, table_full_name, table in _iter_metastore_tables(
+        workspace_client
+    ):
+        for column in getattr(table, "columns", None) or []:
+            column_name = getattr(column, "name", "") or ""
+            snapshots.append(
+                _snapshot(
+                    ResourceType.COLUMN,
+                    id=f"{table_full_name}.{column_name}",
+                    name=column_name,
+                    table_name=table_full_name,
+                    catalog_name=catalog_name,
+                    schema_name=schema_name,
+                    data_type=_enum_value(getattr(column, "type_name", None)),
+                    nullable=getattr(column, "nullable", None),
+                    comment=getattr(column, "comment", None),
+                    partition_index=getattr(column, "partition_index", None),
+                    has_mask=bool(getattr(column, "mask", None)),
+                )
+            )
     return snapshots
 
 

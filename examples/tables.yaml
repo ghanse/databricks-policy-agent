@@ -1,0 +1,36 @@
+# UC table policies.
+policy: tables-must-be-documented
+description: Every table must have a comment so its purpose is discoverable in the catalog.
+resource_type: table
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: comment, operator: exists }
+remediation: Add a comment describing the table.
+---
+policy: tables-must-be-delta
+description: Managed tables must use Delta so they get ACID guarantees and time travel.
+resource_type: table
+effect: allow
+enforcement_level: soft
+match:
+  all:
+    - { attribute: table_type, operator: equals, value: MANAGED }
+rule:
+  all:
+    - { attribute: data_source_format, operator: equals, value: DELTA }
+remediation: Recreate the table in Delta format.
+---
+policy: production-tables-must-be-owned-by-a-service-principal
+description: Production tables must be owned by a service principal, not an individual user.
+resource_type: table
+effect: allow
+enforcement_level: hard
+match:
+  all:
+    - { attribute: catalog_name, operator: equals, value: prod }
+rule:
+  all:
+    - { attribute: owner_type, operator: equals, value: service_principal }
+remediation: Transfer ownership of the table to the team's service principal.

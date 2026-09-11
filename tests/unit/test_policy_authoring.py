@@ -117,6 +117,20 @@ def test_validate_rejects_tags_on_non_taggable_sql_alert():
         validate_policy(invalid)
 
 
+def test_validate_allows_tags_on_taggable_table():
+    # Tables are a UC securable and can carry governed tags, so `tags` is valid at author time.
+    valid = deny("table-tagged", "table", leaf("tags", "not_empty"))
+    validate_policy(valid)
+
+
+def test_validate_rejects_tags_on_non_taggable_column():
+    # Column-level tags are not scanned, so `tags` is not in a column's attribute set and a policy
+    # that references it is rejected at author time.
+    invalid = deny("bad", "column", leaf("tags", "not_empty"))
+    with pytest.raises(InvalidPolicyError):
+        validate_policy(invalid)
+
+
 def test_validate_rejects_unknown_operator():
     invalid = deny("bad", "job", leaf("name", "sounds_like", "x"))
     with pytest.raises(UnknownConditionError):

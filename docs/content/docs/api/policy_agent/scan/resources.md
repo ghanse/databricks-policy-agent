@@ -322,6 +322,56 @@ Fetches and normalizes every SQL alert in the workspace.
 
   A list of *ResourceSnapshots* for each SQL alert.
 
+#### scan\_tables
+
+```python
+def scan_tables(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every table across every schema in the metastore.
+
+**Notes**:
+
+  Walks catalogs and schemas and lists their tables. This includes views and materialized
+  views, distinguished by the *table_type* attribute. Tables are a Unity Catalog securable,
+  so tags are read from the entity-tag-assignments API.
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each table.
+
+#### scan\_columns
+
+```python
+def scan_columns(
+        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+```
+
+Fetches and normalizes every column of every table in the metastore.
+
+**Notes**:
+
+  Columns are read from the *columns* block each table listing returns, so no per-column
+  API call is made. Column-level tags are not scanned (see the note on the *column*
+  resource type). A column's id is its fully-qualified name (*catalog.schema.table.column*).
+  
+
+**Arguments**:
+
+- `workspace_client` - Databricks workspace client.
+  
+
+**Returns**:
+
+  A list of *ResourceSnapshots* for each column.
+
 #### classify\_principal
 
 ```python

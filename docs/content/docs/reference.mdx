@@ -25,6 +25,8 @@ Policies target one of the following resource types.
 | `genie_space`       | Genie spaces                      |
 | `pipeline`          | Spark Declarative Pipelines       |
 | `sql_alert`         | SQL alerts                        |
+| `table`             | Unity Catalog tables              |
+| `column`            | Unity Catalog table columns       |
 
 <Callout type="info" title="Adding new resource types">
 You can add custom resource types for any resources that aren't supported.
@@ -213,6 +215,36 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 
 <Callout type="warn" title="Unsupported common attributes for SQL alerts">
 SQL alerts are not taggable and do not support the `tags` attribute.
+</Callout>
+
+### Table attributes
+
+| Field name           | Description                                                        |
+|----------------------|--------------------------------------------------------------------|
+| `comment`            | Free-text description of the table                                 |
+| `catalog_name`       | Name of the catalog the table belongs to                          |
+| `schema_name`        | Name of the schema the table belongs to                           |
+| `table_type`         | Table type (e.g. "MANAGED", "EXTERNAL", "VIEW", "MATERIALIZED_VIEW") |
+| `data_source_format` | Storage format of the table's data (e.g. "DELTA", "PARQUET")      |
+| `storage_location`   | Cloud storage path backing an external table                      |
+
+### Column attributes
+
+| Field name        | Description                                                     |
+|-------------------|-----------------------------------------------------------------|
+| `table_name`      | Fully-qualified name of the table the column belongs to         |
+| `catalog_name`    | Name of the catalog the column's table belongs to              |
+| `schema_name`     | Name of the schema the column's table belongs to               |
+| `data_type`       | Column data type (e.g. "INT", "STRING", "TIMESTAMP")           |
+| `nullable`        | Whether the column accepts null values                          |
+| `comment`         | Free-text description of the column                             |
+| `partition_index` | Zero-based position of the column in the table's partitioning   |
+| `has_mask`        | Whether a column mask is applied to the column                  |
+
+<Callout type="warn" title="Unsupported common attributes for columns">
+Columns are read from their parent table, so they do not support the `owner`, `owner_type`, or
+`created_time` attributes. Column-level tags are governed per column and are not scanned, so
+columns do not support the `tags` attribute.
 </Callout>
 
 ## Operators

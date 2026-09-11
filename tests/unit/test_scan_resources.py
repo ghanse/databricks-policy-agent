@@ -9,6 +9,7 @@ from policy_agent.scan.resources import (
     scan_apps,
     scan_catalogs,
     scan_clusters,
+    scan_columns,
     scan_external_locations,
     scan_genie_spaces,
     scan_jobs,
@@ -20,6 +21,7 @@ from policy_agent.scan.resources import (
     scan_serving_endpoints,
     scan_sql_alerts,
     scan_sql_warehouses,
+    scan_tables,
     scan_volumes,
 )
 
@@ -376,6 +378,98 @@ def test_scan_volumes_iterates_catalogs_and_schemas():
     assert attrs["catalog_name"] == "main"
     assert attrs["schema_name"] == "analytics"
     assert attrs["volume_type"] == "MANAGED"
+
+
+def test_scan_tables_iterates_catalogs_and_schemas_and_reads_uc_tags():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        owner="alice@example.com",
+        created_at=1_700_000_000_000,
+        comment="fact table",
+        table_type=SimpleNamespace(value="MANAGED"),
+        data_source_format=SimpleNamespace(value="DELTA"),
+        storage_location=None,
+    )
+    tag_service = _FakeUcTagAssignments(
+        {("tables", "main.sales.orders"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_tables(ws)
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.TABLE
+    assert attrs["id"] == "main.sales.orders"
+    assert attrs["catalog_name"] == "main"
+    assert attrs["schema_name"] == "sales"
+    assert attrs["owner_type"] == "user"
+    assert attrs["created_time"] is not None
+    assert attrs["table_type"] == "MANAGED"
+    assert attrs["data_source_format"] == "DELTA"
+    # Tables are a UC securable, so tags come from the entity-tag-assignments API by full name.
+    assert attrs["tags"] == {"pii": "true"}
+    assert tag_service.calls == [("tables", "main.sales.orders")]
+
+
+def test_scan_columns_reads_every_column_of_every_table():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        columns=[
+            SimpleNamespace(
+                name="id",
+                type_name=SimpleNamespace(value="LONG"),
+                nullable=False,
+                comment="primary key",
+                partition_index=None,
+                mask=None,
+            ),
+            SimpleNamespace(
+                name="email",
+                type_name=SimpleNamespace(value="STRING"),
+                nullable=True,
+                comment=None,
+                partition_index=None,
+                mask=SimpleNamespace(function_name="main.security.mask_email"),
+            ),
+        ],
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+    )
+    id_col, email_col = scan_columns(ws)
+    assert id_col.resource_type is ResourceType.COLUMN
+    # A column's id is its fully-qualified name; masks are reported as a boolean.
+    assert id_col.attributes["id"] == "main.sales.orders.id"
+    assert id_col.attributes["table_name"] == "main.sales.orders"
+    assert id_col.attributes["data_type"] == "LONG"
+    assert id_col.attributes["nullable"] is False
+    assert id_col.attributes["has_mask"] is False
+    assert email_col.attributes["has_mask"] is True
+    # Columns are read from their parent table, so they never advertise tags.
+    assert "tags" not in id_col.attributes
+
+
+def test_scan_columns_handles_table_without_columns():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(name="empty", full_name="main.sales.empty", columns=None)
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+    )
+    assert scan_columns(ws) == []
 
 
 def test_scan_registered_models_maps_names():

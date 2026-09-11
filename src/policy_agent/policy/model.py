@@ -30,6 +30,8 @@ class ResourceType(StrEnum):
     PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
     SQL_ALERT = "sql_alert"
+    TABLE = "table"
+    COLUMN = "column"
 
 
 class Effect(StrEnum):
@@ -195,6 +197,7 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.SCHEMA,
         ResourceType.VOLUME,
         ResourceType.EXTERNAL_LOCATION,
+        ResourceType.TABLE,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -309,6 +312,32 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "comparison_operator",
         "empty_result_state",
         "has_schedule",
+    },
+    ResourceType.TABLE: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | _TAGGABLE
+    | {
+        "comment",
+        "catalog_name",
+        "schema_name",
+        "table_type",
+        "data_source_format",
+        "storage_location",
+    },
+    # Columns are read from their parent table, so they are not owned or timestamped. Column-level
+    # tags are governed per column and would cost one API call each to fetch at scan time, so they
+    # are not scanned and columns do not advertise `tags`.
+    ResourceType.COLUMN: _IDENTITY
+    | {
+        "table_name",
+        "catalog_name",
+        "schema_name",
+        "data_type",
+        "nullable",
+        "comment",
+        "partition_index",
+        "has_mask",
     },
 }
 """Attributes each resource type exposes; the contract scanning must satisfy and the set
