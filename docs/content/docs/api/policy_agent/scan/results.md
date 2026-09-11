@@ -21,9 +21,11 @@ A normalized, evaluable view of one workspace resource.
 **Attributes**:
 
 - `resource_type` - The type of resource this snapshot describes.
-- `attributes` - Flat mapping of attribute names to values that policy conditions read.
-  Always contains the common attributes ``id``, ``name``, ``owner``,
-  ``owner_type``, ``tags``, and ``created_time``.
+- `attributes` - Flat mapping of attribute names to values that policy conditions read. The
+  keys are resource-type-specific — the set a type advertises in
+  `policy_agent.policy.model.RESOURCE_ATTRIBUTES`. Only ``id`` and ``name`` are common
+  to every type; others such as ``owner``, ``owner_type``, ``created_time``, and
+  ``tags`` appear only for the types that expose them.
 
 #### resource\_id
 

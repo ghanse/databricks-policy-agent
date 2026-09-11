@@ -5,6 +5,7 @@ import pytest
 from policy_agent.errors import ScanError, UnsupportedResourceError
 from policy_agent.policy.model import ResourceType
 from policy_agent.scan.resources import (
+    ScanCache,
     classify_principal,
     scan_apps,
     scan_catalogs,
@@ -392,6 +393,10 @@ def test_scan_tables_iterates_catalogs_and_schemas_and_reads_uc_tags():
         table_type=SimpleNamespace(value="MANAGED"),
         data_source_format=SimpleNamespace(value="DELTA"),
         storage_location=None,
+        properties={"delta.enableChangeDataFeed": "true"},
+        enable_predictive_optimization=SimpleNamespace(value="ENABLE"),
+        pipeline_id="pl-123",
+        view_definition=None,
     )
     tag_service = _FakeUcTagAssignments(
         {("tables", "main.sales.orders"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
@@ -412,6 +417,11 @@ def test_scan_tables_iterates_catalogs_and_schemas_and_reads_uc_tags():
     assert attrs["created_time"] is not None
     assert attrs["table_type"] == "MANAGED"
     assert attrs["data_source_format"] == "DELTA"
+    # Table properties are exposed as a mapping (dotted-key resolution is covered in
+    # test_conditions and test_examples).
+    assert attrs["properties"] == {"delta.enableChangeDataFeed": "true"}
+    assert attrs["enable_predictive_optimization"] == "ENABLE"
+    assert attrs["pipeline_id"] == "pl-123"
     # Tables are a UC securable, so tags come from the entity-tag-assignments API by full name.
     assert attrs["tags"] == {"pii": "true"}
     assert tag_service.calls == [("tables", "main.sales.orders")]
@@ -427,6 +437,10 @@ def test_scan_columns_reads_every_column_of_every_table():
             SimpleNamespace(
                 name="id",
                 type_name=SimpleNamespace(value="LONG"),
+                type_text="bigint",
+                type_precision=None,
+                type_scale=None,
+                position=0,
                 nullable=False,
                 comment="primary key",
                 partition_index=None,
@@ -435,6 +449,10 @@ def test_scan_columns_reads_every_column_of_every_table():
             SimpleNamespace(
                 name="email",
                 type_name=SimpleNamespace(value="STRING"),
+                type_text="string",
+                type_precision=None,
+                type_scale=None,
+                position=1,
                 nullable=True,
                 comment=None,
                 partition_index=None,
@@ -453,6 +471,8 @@ def test_scan_columns_reads_every_column_of_every_table():
     assert id_col.attributes["id"] == "main.sales.orders.id"
     assert id_col.attributes["table_name"] == "main.sales.orders"
     assert id_col.attributes["data_type"] == "LONG"
+    assert id_col.attributes["type_text"] == "bigint"
+    assert id_col.attributes["position"] == 0
     assert id_col.attributes["nullable"] is False
     assert id_col.attributes["has_mask"] is False
     assert email_col.attributes["has_mask"] is True
@@ -470,6 +490,48 @@ def test_scan_columns_handles_table_without_columns():
         tables=_FakeService([table]),
     )
     assert scan_columns(ws) == []
+
+
+def test_scan_cache_lists_metastore_tables_once_for_both_scanners():
+    # Tables and columns share one metastore walk through a ScanCache, so scanning both lists the
+    # metastore's tables only once instead of once per scanner.
+    class _CountingService:
+        def __init__(self, items):
+            self._items = items
+            self.calls = 0
+
+        def list(self, **kwargs):
+            self.calls += 1
+            return list(self._items)
+
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        columns=[SimpleNamespace(name="id")],
+    )
+    tables_service = _CountingService([table])
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=tables_service,
+    )
+    cache = ScanCache()
+    scan_tables(ws, cache=cache)
+    scan_columns(ws, cache=cache)
+    assert tables_service.calls == 1
+
+    # Without a shared cache, each scanner walks the metastore itself.
+    tables_service_uncached = _CountingService([table])
+    ws_uncached = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=tables_service_uncached,
+    )
+    scan_tables(ws_uncached)
+    scan_columns(ws_uncached)
+    assert tables_service_uncached.calls == 2
 
 
 def test_scan_registered_models_maps_names():

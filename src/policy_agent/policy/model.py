@@ -324,6 +324,10 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "table_type",
         "data_source_format",
         "storage_location",
+        "properties",
+        "enable_predictive_optimization",
+        "pipeline_id",
+        "view_definition",
     },
     # Columns are read from their parent table, so they are not owned or timestamped. Column-level
     # tags are governed per column and would cost one API call each to fetch at scan time, so they
@@ -334,6 +338,10 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "catalog_name",
         "schema_name",
         "data_type",
+        "type_text",
+        "type_precision",
+        "type_scale",
+        "position",
         "nullable",
         "comment",
         "partition_index",

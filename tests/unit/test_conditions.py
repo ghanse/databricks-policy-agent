@@ -61,6 +61,19 @@ def test_dotted_attribute_resolution():
     assert resolve_attribute(snapshot, "missing.deep") is None
 
 
+def test_dotted_attribute_resolution_matches_literal_dotted_keys():
+    # Table properties (TBLPROPERTIES) use keys that themselves contain dots. The longest leading
+    # run of segments that is a literal key is matched, so a dotted path reaches such a key.
+    snapshot = {"properties": {"delta.enableChangeDataFeed": "true"}}
+    assert resolve_attribute(snapshot, "properties.delta.enableChangeDataFeed") == "true"
+    assert resolve_attribute(snapshot, "properties.delta.missing") is None
+    # A dotted key nested one level deeper still resolves.
+    nested = {"a": {"b.c": {"d": 1}}}
+    assert resolve_attribute(nested, "a.b.c.d") == 1
+    # And a leaf value cannot be indexed further.
+    assert resolve_attribute(snapshot, "properties.delta.enableChangeDataFeed.extra") is None
+
+
 def test_nested_boolean_logic():
     rule = all_of(
         leaf("owner_type", "not_equals", "service_principal"),

@@ -671,6 +671,36 @@ def scan_sql_alerts(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
     return snapshots
 
 
+class ScanCache:
+    """Per-scan cache of expensive listings shared across scanners in one run.
+
+    Some resource types derive from the same underlying listing: tables and columns both come
+    from a single metastore table walk. When one scan evaluates policies on more than one such
+    type, caching the walk here lets the second scanner reuse the first's work instead of
+    re-listing every catalog, schema, and table. A cache is scoped to one ``run_scan`` (or
+    ``collect_snapshots``) call, so it never serves stale results across scans.
+    """
+
+    def __init__(self) -> None:
+        self._metastore_tables: list[tuple[str, str, str, Any]] | None = None
+
+    def metastore_tables(
+        self, workspace_client: WorkspaceClient
+    ) -> list[tuple[str, str, str, Any]]:
+        """Returns the metastore table walk, listing it once and reusing it thereafter.
+
+        Args:
+            workspace_client: Databricks workspace client.
+
+        Returns:
+            The ``(catalog_name, schema_name, table_full_name, table)`` tuples from
+            `_iter_metastore_tables`.
+        """
+        if self._metastore_tables is None:
+            self._metastore_tables = list(_iter_metastore_tables(workspace_client))
+        return self._metastore_tables
+
+
 def _iter_metastore_tables(
     workspace_client: WorkspaceClient,
 ) -> Iterator[tuple[str, str, str, Any]]:
@@ -703,22 +733,30 @@ def _iter_metastore_tables(
                 yield catalog_name, schema_name, full_name, table
 
 
-def scan_tables(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+def scan_tables(
+    workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
+) -> list[ResourceSnapshot]:
     """Fetches and normalizes every table across every schema in the metastore.
 
     Note:
-        Walks catalogs and schemas and lists their tables. This includes views and materialized
-        views, distinguished by the *table_type* attribute. Tables are a Unity Catalog securable,
-        so tags are read from the entity-tag-assignments API.
+        Walks catalogs and schemas and lists their tables. This includes views, materialized
+        views, and streaming tables, distinguished by the *table_type* attribute. Tables are a
+        Unity Catalog securable, so tags are read from the entity-tag-assignments API. The storage
+        format (for example Delta or Iceberg) is reported as *data_source_format*, and Delta and
+        other table settings surface as the *properties* mapping.
 
     Args:
         workspace_client: Databricks workspace client.
+        cache: Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
+            a scan of both types lists the metastore only once. A private cache is used when
+            *None*.
 
     Returns:
         A list of *ResourceSnapshots* for each table.
     """
+    cache = cache or ScanCache()
     snapshots = []
-    for catalog_name, schema_name, full_name, table in _iter_metastore_tables(workspace_client):
+    for catalog_name, schema_name, full_name, table in cache.metastore_tables(workspace_client):
         owner = getattr(table, "owner", None)
         snapshots.append(
             _snapshot(
@@ -735,12 +773,20 @@ def scan_tables(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                 table_type=_enum_value(getattr(table, "table_type", None)),
                 data_source_format=_enum_value(getattr(table, "data_source_format", None)),
                 storage_location=getattr(table, "storage_location", None),
+                properties=_normalize_tags(getattr(table, "properties", None)),
+                enable_predictive_optimization=_enum_value(
+                    getattr(table, "enable_predictive_optimization", None)
+                ),
+                pipeline_id=getattr(table, "pipeline_id", None),
+                view_definition=getattr(table, "view_definition", None),
             )
         )
     return snapshots
 
 
-def scan_columns(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
+def scan_columns(
+    workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
+) -> list[ResourceSnapshot]:
     """Fetches and normalizes every column of every table in the metastore.
 
     Note:
@@ -750,12 +796,16 @@ def scan_columns(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
 
     Args:
         workspace_client: Databricks workspace client.
+        cache: Optional per-scan cache of the metastore table walk, shared with `scan_tables` so
+            a scan of both types lists the metastore only once. A private cache is used when
+            *None*.
 
     Returns:
         A list of *ResourceSnapshots* for each column.
     """
+    cache = cache or ScanCache()
     snapshots = []
-    for catalog_name, schema_name, table_full_name, table in _iter_metastore_tables(
+    for catalog_name, schema_name, table_full_name, table in cache.metastore_tables(
         workspace_client
     ):
         for column in getattr(table, "columns", None) or []:
@@ -769,6 +819,10 @@ def scan_columns(workspace_client: WorkspaceClient) -> list[ResourceSnapshot]:
                     catalog_name=catalog_name,
                     schema_name=schema_name,
                     data_type=_enum_value(getattr(column, "type_name", None)),
+                    type_text=getattr(column, "type_text", None),
+                    type_precision=getattr(column, "type_precision", None),
+                    type_scale=getattr(column, "type_scale", None),
+                    position=getattr(column, "position", None),
                     nullable=getattr(column, "nullable", None),
                     comment=getattr(column, "comment", None),
                     partition_index=getattr(column, "partition_index", None),

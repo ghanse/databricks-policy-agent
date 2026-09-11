@@ -326,21 +326,28 @@ Fetches and normalizes every SQL alert in the workspace.
 
 ```python
 def scan_tables(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+        workspace_client: WorkspaceClient,
+        *,
+        cache: ScanCache | None = None) -> list[ResourceSnapshot]
 ```
 
 Fetches and normalizes every table across every schema in the metastore.
 
 **Notes**:
 
-  Walks catalogs and schemas and lists their tables. This includes views and materialized
-  views, distinguished by the *table_type* attribute. Tables are a Unity Catalog securable,
-  so tags are read from the entity-tag-assignments API.
+  Walks catalogs and schemas and lists their tables. This includes views, materialized
+  views, and streaming tables, distinguished by the *table_type* attribute. Tables are a
+  Unity Catalog securable, so tags are read from the entity-tag-assignments API. The storage
+  format (for example Delta or Iceberg) is reported as *data_source_format*, and Delta and
+  other table settings surface as the *properties* mapping.
   
 
 **Arguments**:
 
 - `workspace_client` - Databricks workspace client.
+- `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
+  a scan of both types lists the metastore only once. A private cache is used when
+  *None*.
   
 
 **Returns**:
@@ -351,7 +358,9 @@ Fetches and normalizes every table across every schema in the metastore.
 
 ```python
 def scan_columns(
-        workspace_client: WorkspaceClient) -> list[ResourceSnapshot]
+        workspace_client: WorkspaceClient,
+        *,
+        cache: ScanCache | None = None) -> list[ResourceSnapshot]
 ```
 
 Fetches and normalizes every column of every table in the metastore.
@@ -366,6 +375,9 @@ Fetches and normalizes every column of every table in the metastore.
 **Arguments**:
 
 - `workspace_client` - Databricks workspace client.
+- `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_tables` so
+  a scan of both types lists the metastore only once. A private cache is used when
+  *None*.
   
 
 **Returns**:

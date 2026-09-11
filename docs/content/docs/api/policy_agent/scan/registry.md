@@ -13,6 +13,9 @@ in `policy_agent.scan.resources` and an attribute set in
 
 The resource types the framework can scan, keyed to their fetch functions. A type without a
 registered scanner is enforce-only — it can still be gated from a bundle but never live-scanned.
+The inverse also holds: a scannable type may intentionally have no bundle enforce mapping (see
+`policy_agent.enforce.sources`), making it scan-only — for example tables and columns, which are
+not first-class Databricks Asset Bundle resources.
 
 #### supported\_resource\_types
 

@@ -18,7 +18,13 @@ from policy_agent.policy.model import Policy, ResourceType, referenced_attribute
 from policy_agent.policy.validation import validate_policy
 from policy_agent.scan.evaluator import evaluate_resource
 from policy_agent.scan.registry import is_scannable, scanner_for
-from policy_agent.scan.resources import TASK_DERIVED_JOB_ATTRIBUTES, scan_jobs
+from policy_agent.scan.resources import (
+    TASK_DERIVED_JOB_ATTRIBUTES,
+    ScanCache,
+    scan_columns,
+    scan_jobs,
+    scan_tables,
+)
 from policy_agent.scan.results import Finding, ResourceSnapshot, ScanResult
 
 if TYPE_CHECKING:
@@ -59,10 +65,11 @@ def run_scan(
     types_to_scan = [rt for rt in policies_by_type if rt in requested and is_scannable(rt)]
 
     started_at = datetime.now(UTC)
+    cache = ScanCache()
     findings: list[Finding] = []
     for resource_type in types_to_scan:
         snapshots = _fetch_snapshots(
-            workspace_client, resource_type, policies_by_type[resource_type]
+            workspace_client, resource_type, policies_by_type[resource_type], cache
         )
         findings.extend(_evaluate_type(policies_by_type[resource_type], snapshots))
     finished_at = datetime.now(UTC)
@@ -93,8 +100,9 @@ def collect_snapshots(
     Returns:
         A mapping from each requested resource type to its snapshots.
     """
+    cache = ScanCache()
     return {
-        resource_type: scanner_for(resource_type)(workspace_client)
+        resource_type: _scan_type(workspace_client, resource_type, cache)
         for resource_type in resource_types
     }
 
@@ -103,6 +111,7 @@ def _fetch_snapshots(
     workspace_client: WorkspaceClient,
     resource_type: ResourceType,
     policies: list[Policy],
+    cache: ScanCache,
 ) -> list[ResourceSnapshot]:
     """Fetches snapshots for one resource type, fetching only the data its policies need.
 
@@ -116,6 +125,22 @@ def _fetch_snapshots(
             referenced |= referenced_attributes(policy)
         expand_tasks = bool(referenced & TASK_DERIVED_JOB_ATTRIBUTES)
         return scan_jobs(workspace_client, expand_tasks=expand_tasks)
+    return _scan_type(workspace_client, resource_type, cache)
+
+
+def _scan_type(
+    workspace_client: WorkspaceClient, resource_type: ResourceType, cache: ScanCache
+) -> list[ResourceSnapshot]:
+    """Runs one type's scanner, passing the shared cache to the scanners that can reuse it.
+
+    Tables and columns derive from the same metastore walk, so they take the per-scan cache and
+    list the metastore only once when both are scanned. Every other scanner is a plain function
+    of the workspace client.
+    """
+    if resource_type is ResourceType.TABLE:
+        return scan_tables(workspace_client, cache=cache)
+    if resource_type is ResourceType.COLUMN:
+        return scan_columns(workspace_client, cache=cache)
     return scanner_for(resource_type)(workspace_client)
 
 

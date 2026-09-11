@@ -162,10 +162,18 @@ def test_scan_volumes_includes_created_volume(ws, make_volume):
 
 @pytest.mark.integration
 def test_scan_tables_includes_created_table(ws, make_table):
-    """A newly created table appears in the table scan, keyed by its full name."""
+    """A newly created table appears in the table scan, keyed by its full name.
+
+    ``properties`` is always a mapping and ``data_source_format`` is populated (schema-drift
+    guards on the attributes read from the live table listing).
+    """
     table = make_table()
     snapshots = collect_snapshots(ws, [ResourceType.TABLE])[ResourceType.TABLE]
-    assert table.full_name in {s.resource_id for s in snapshots}
+    by_id = {s.resource_id: s for s in snapshots}
+    assert table.full_name in by_id
+    snapshot = by_id[table.full_name]
+    assert isinstance(snapshot.attributes["properties"], dict)
+    assert snapshot.attributes["data_source_format"] is not None
 
 
 @pytest.mark.integration
