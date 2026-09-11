@@ -225,9 +225,8 @@ SQL alerts are not taggable and do not support the `tags` attribute.
 | `language` | Notebook language (e.g. "PYTHON", "SQL", "SCALA", "R")        |
 
 <Callout type="warn" title="Unsupported common attributes for notebooks">
-Notebooks are listed from the workspace tree, so they do not support the `owner`, `owner_type`,
-or `tags` attributes. The workspace API reports a creation time only for files, so notebooks do
-not support `created_time` either.
+Notebooks do not support the `owner`, `owner_type`, or `tags` attributes.  Enforcement does
+not support `language`, `size`, or `created_time`.
 </Callout>
 
 ### Workspace file attributes
@@ -238,16 +237,8 @@ not support `created_time` either.
 | `size`     | File size in bytes                                |
 
 <Callout type="warn" title="Unsupported common attributes for workspace files">
-Workspace files are listed from the workspace tree, so they do not support the `owner`,
-`owner_type`, or `tags` attributes.
-</Callout>
-
-<Callout type="info" title="Notebooks and files in a bundle">
-A live scan walks the whole workspace tree, so it evaluates every notebook and file. A
-deployment gate instead sees the notebooks and files a bundle references through its job tasks
-(`notebook_task`, `spark_python_task`, `sql_task`) and pipeline libraries, since those are the
-ones the bundle deploys. In a bundle, `language`, `size`, and `created_time` are not yet known,
-so gate policies on notebooks and files should test `path`.
+Workspace files do not support the `owner`, `owner_type`, or `tags` attributes. Enforcement does
+not support `language`, `size`, or `created_time`.
 </Callout>
 
 ## Operators
