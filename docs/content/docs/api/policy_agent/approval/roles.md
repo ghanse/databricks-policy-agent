@@ -12,7 +12,7 @@ of truth for which role a workflow transition requires.
 ## Role Objects
 
 ```python
-class Role(str, Enum)
+class Role(StrEnum)
 ```
 
 A privilege level in the policy approval workflow.

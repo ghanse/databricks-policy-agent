@@ -30,6 +30,8 @@ class ResourceType(StrEnum):
     PIPELINE = "pipeline"
     GENIE_SPACE = "genie_space"
     SQL_ALERT = "sql_alert"
+    TABLE = "table"
+    COLUMN = "column"
     NOTEBOOK = "notebook"
     WORKSPACE_FILE = "workspace_file"
 
@@ -197,6 +199,8 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.SCHEMA,
         ResourceType.VOLUME,
         ResourceType.EXTERNAL_LOCATION,
+        ResourceType.TABLE,
+        ResourceType.COLUMN,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -312,9 +316,38 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "empty_result_state",
         "has_schedule",
     },
-    # Workspace notebooks and files are listed from the workspace tree, which reports no owner or
-    # tags. The workspace API returns a creation time only for files, so notebooks are not
-    # timestamped.
+    ResourceType.TABLE: _IDENTITY
+    | _OWNED
+    | _TIMESTAMPED
+    | _TAGGABLE
+    | {
+        "comment",
+        "catalog_name",
+        "schema_name",
+        "table_type",
+        "data_source_format",
+        "storage_location",
+        "properties",
+        "enable_predictive_optimization",
+        "pipeline_id",
+        "view_definition",
+    },
+    ResourceType.COLUMN: _IDENTITY
+    | _TAGGABLE
+    | {
+        "table_name",
+        "catalog_name",
+        "schema_name",
+        "data_type",
+        "type_text",
+        "type_precision",
+        "type_scale",
+        "position",
+        "nullable",
+        "comment",
+        "partition_index",
+        "has_mask",
+    },
     ResourceType.NOTEBOOK: _IDENTITY | {"path", "language"},
     ResourceType.WORKSPACE_FILE: _IDENTITY | _TIMESTAMPED | {"path", "size"},
 }

@@ -10,6 +10,7 @@ from policy_agent.scan.resources import (
     scan_apps,
     scan_catalogs,
     scan_clusters,
+    scan_columns,
     scan_external_locations,
     scan_genie_spaces,
     scan_jobs,
@@ -22,6 +23,7 @@ from policy_agent.scan.resources import (
     scan_serving_endpoints,
     scan_sql_alerts,
     scan_sql_warehouses,
+    scan_tables,
     scan_volumes,
     scan_workspace_files,
 )
@@ -379,6 +381,212 @@ def test_scan_volumes_iterates_catalogs_and_schemas():
     assert attrs["catalog_name"] == "main"
     assert attrs["schema_name"] == "analytics"
     assert attrs["volume_type"] == "MANAGED"
+
+
+def test_scan_tables_iterates_catalogs_and_schemas_and_reads_uc_tags():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        owner="alice@example.com",
+        created_at=1_700_000_000_000,
+        comment="fact table",
+        table_type=SimpleNamespace(value="MANAGED"),
+        data_source_format=SimpleNamespace(value="DELTA"),
+        storage_location=None,
+        properties={"delta.enableChangeDataFeed": "true"},
+        enable_predictive_optimization=SimpleNamespace(value="ENABLE"),
+        pipeline_id="pl-123",
+        view_definition=None,
+    )
+    tag_service = _FakeUcTagAssignments(
+        {("tables", "main.sales.orders"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+        entity_tag_assignments=tag_service,
+    )
+    (snapshot,) = scan_tables(ws)
+    attrs = snapshot.attributes
+    assert snapshot.resource_type is ResourceType.TABLE
+    assert attrs["id"] == "main.sales.orders"
+    assert attrs["catalog_name"] == "main"
+    assert attrs["schema_name"] == "sales"
+    assert attrs["owner_type"] == "user"
+    assert attrs["created_time"] is not None
+    assert attrs["table_type"] == "MANAGED"
+    assert attrs["data_source_format"] == "DELTA"
+    # Table properties are exposed as a mapping (dotted-key resolution is covered in
+    # test_conditions and test_examples).
+    assert attrs["properties"] == {"delta.enableChangeDataFeed": "true"}
+    assert attrs["enable_predictive_optimization"] == "ENABLE"
+    assert attrs["pipeline_id"] == "pl-123"
+    # Tables are a UC securable, so tags come from the entity-tag-assignments API by full name.
+    assert attrs["tags"] == {"pii": "true"}
+    assert tag_service.calls == [("tables", "main.sales.orders")]
+
+
+def test_scan_tables_skips_tag_fetch_when_not_requested():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(name="orders", full_name="main.sales.orders", owner="alice@example.com")
+    tag_service = _FakeUcTagAssignments(
+        {("tables", "main.sales.orders"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+        entity_tag_assignments=tag_service,
+    )
+    # With fetch_tags disabled, tags are empty and no per-table tag API call is made.
+    (snapshot,) = scan_tables(ws, fetch_tags=False)
+    assert snapshot.attributes["tags"] == {}
+    assert tag_service.calls == []
+
+
+def test_scan_columns_reads_every_column_of_every_table():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        columns=[
+            SimpleNamespace(
+                name="id",
+                type_name=SimpleNamespace(value="LONG"),
+                type_text="bigint",
+                type_precision=None,
+                type_scale=None,
+                position=0,
+                nullable=False,
+                comment="primary key",
+                partition_index=None,
+                mask=None,
+            ),
+            SimpleNamespace(
+                name="email",
+                type_name=SimpleNamespace(value="STRING"),
+                type_text="string",
+                type_precision=None,
+                type_scale=None,
+                position=1,
+                nullable=True,
+                comment=None,
+                partition_index=None,
+                mask=SimpleNamespace(function_name="main.security.mask_email"),
+            ),
+        ],
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+    )
+    id_col, email_col = scan_columns(ws)
+    assert id_col.resource_type is ResourceType.COLUMN
+    # A column's id is its fully-qualified name; masks are reported as a boolean.
+    assert id_col.attributes["id"] == "main.sales.orders.id"
+    assert id_col.attributes["table_name"] == "main.sales.orders"
+    assert id_col.attributes["data_type"] == "LONG"
+    assert id_col.attributes["type_text"] == "bigint"
+    assert id_col.attributes["position"] == 0
+    assert id_col.attributes["nullable"] is False
+    assert id_col.attributes["has_mask"] is False
+    assert email_col.attributes["has_mask"] is True
+    # Tags are not fetched unless requested, so by default they are empty and no per-column tag
+    # API call is made.
+    assert id_col.attributes["tags"] == {}
+
+
+def test_scan_columns_fetches_tags_per_column_only_when_requested():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        columns=[SimpleNamespace(name="email"), SimpleNamespace(name="id")],
+    )
+    tag_service = _FakeUcTagAssignments(
+        {("columns", "main.sales.orders.email"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+        entity_tag_assignments=tag_service,
+    )
+
+    # Without fetch_tags the tag service is never called; tags are empty.
+    by_name = {s.name: s for s in scan_columns(ws)}
+    assert by_name["email"].attributes["tags"] == {}
+    assert tag_service.calls == []
+
+    # With fetch_tags each column's tags are fetched by its fully-qualified name, one call each.
+    by_name = {s.name: s for s in scan_columns(ws, fetch_tags=True)}
+    assert by_name["email"].attributes["tags"] == {"pii": "true"}
+    assert by_name["id"].attributes["tags"] == {}
+    assert tag_service.calls == [
+        ("columns", "main.sales.orders.email"),
+        ("columns", "main.sales.orders.id"),
+    ]
+
+
+def test_scan_columns_handles_table_without_columns():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(name="empty", full_name="main.sales.empty", columns=None)
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+    )
+    assert scan_columns(ws) == []
+
+
+def test_scan_cache_lists_metastore_tables_once_for_both_scanners():
+    # Tables and columns share one metastore walk through a ScanCache, so scanning both lists the
+    # metastore's tables only once instead of once per scanner.
+    class _CountingService:
+        def __init__(self, items):
+            self._items = items
+            self.calls = 0
+
+        def list(self, **kwargs):
+            self.calls += 1
+            return list(self._items)
+
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        columns=[SimpleNamespace(name="id")],
+    )
+    tables_service = _CountingService([table])
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=tables_service,
+    )
+    cache = ScanCache()
+    scan_tables(ws, cache=cache)
+    scan_columns(ws, cache=cache)
+    assert tables_service.calls == 1
+
+    # Without a shared cache, each scanner walks the metastore itself.
+    tables_service_uncached = _CountingService([table])
+    ws_uncached = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=tables_service_uncached,
+    )
+    scan_tables(ws_uncached)
+    scan_columns(ws_uncached)
+    assert tables_service_uncached.calls == 2
 
 
 def test_scan_registered_models_maps_names():

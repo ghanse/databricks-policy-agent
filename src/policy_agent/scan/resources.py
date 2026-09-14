@@ -680,14 +680,32 @@ commonly lives under ``/Repos``."""
 class ScanCache:
     """Per-scan cache of expensive listings shared across scanners in one run.
 
-    Notebooks and workspace files both derive from a single walk of the workspace tree. When one
-    scan evaluates policies on both types, caching the walk here lets the second scanner reuse the
-    first's work instead of walking the whole tree again. A cache is scoped to one ``run_scan`` (or
-    ``collect_snapshots``) call, so it never serves stale results across scans.
+    Some resource types derive from the same underlying listing: tables and columns from one
+    metastore table walk, and notebooks and workspace files from one workspace tree walk. When a
+    scan evaluates policies on more than one such type, caching the walk here lets the second
+    scanner reuse the first's work instead of re-listing. A cache is scoped to one ``run_scan``
+    (or ``collect_snapshots``) call, so it never serves stale results across scans.
     """
 
     def __init__(self) -> None:
+        self._metastore_tables: list[tuple[str, str, str, Any]] | None = None
         self._workspace_objects: list[Any] | None = None
+
+    def metastore_tables(
+        self, workspace_client: WorkspaceClient
+    ) -> list[tuple[str, str, str, Any]]:
+        """Returns the metastore table walk, listing it once and reusing it thereafter.
+
+        Args:
+            workspace_client: Databricks workspace client.
+
+        Returns:
+            The ``(catalog_name, schema_name, table_full_name, table)`` tuples from
+            `_iter_metastore_tables`.
+        """
+        if self._metastore_tables is None:
+            self._metastore_tables = list(_iter_metastore_tables(workspace_client))
+        return self._metastore_tables
 
     def workspace_objects(self, workspace_client: WorkspaceClient) -> list[Any]:
         """Returns the workspace tree walk, walking it once and reusing it thereafter.
@@ -701,6 +719,38 @@ class ScanCache:
         if self._workspace_objects is None:
             self._workspace_objects = list(_walk_workspace_objects(workspace_client))
         return self._workspace_objects
+
+
+def _iter_metastore_tables(
+    workspace_client: WorkspaceClient,
+) -> Iterator[tuple[str, str, str, Any]]:
+    """Yields ``(catalog_name, schema_name, table_full_name, table)`` for every table in the
+    metastore. Shared by the table and column scanners, which walk the same catalog/schema/table
+    hierarchy. ``table.columns`` is populated because ``tables.list`` does not omit columns.
+
+    Args:
+        workspace_client: Databricks workspace client.
+
+    Yields:
+        One tuple per table, with the table's fully-qualified name resolved from ``full_name`` or
+        composed from its catalog, schema, and name.
+    """
+    for catalog in workspace_client.catalogs.list():
+        catalog_name = getattr(catalog, "name", None)
+        if not catalog_name:
+            continue
+        for schema in workspace_client.schemas.list(catalog_name=catalog_name):
+            schema_name = getattr(schema, "name", None)
+            if not schema_name:
+                continue
+            for table in workspace_client.tables.list(
+                catalog_name=catalog_name, schema_name=schema_name
+            ):
+                name = getattr(table, "name", "") or ""
+                full_name = (
+                    getattr(table, "full_name", None) or f"{catalog_name}.{schema_name}.{name}"
+                )
+                yield catalog_name, schema_name, full_name, table
 
 
 def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
@@ -753,6 +803,67 @@ def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
             yield obj
 
 
+def scan_tables(
+    workspace_client: WorkspaceClient,
+    *,
+    cache: ScanCache | None = None,
+    fetch_tags: bool = True,
+) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every table across every schema in the metastore.
+
+    Note:
+        Walks catalogs and schemas and lists their tables. This includes views, materialized
+        views, and streaming tables, distinguished by the *table_type* attribute. Tables are a
+        Unity Catalog securable, so tags are read from the entity-tag-assignments API. The storage
+        format (for example Delta or Iceberg) is reported as *data_source_format*, and Delta and
+        other table settings surface as the *properties* mapping.
+
+    Args:
+        workspace_client: Databricks workspace client.
+        cache: Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
+            a scan of both types lists the metastore only once. A private cache is used when
+            *None*.
+        fetch_tags: Whether to fetch each table's governed tags. This is one entity-tag-
+            assignments API call per table, so a scan that does not read the ``tags`` attribute
+            leaves it *False* to avoid a request per table. When *False* the reported ``tags`` are
+            always empty. Defaults to *True* so direct and inventory callers get complete
+            snapshots.
+
+    Returns:
+        A list of *ResourceSnapshots* for each table.
+    """
+    cache = cache or ScanCache()
+    snapshots = []
+    for catalog_name, schema_name, full_name, table in cache.metastore_tables(workspace_client):
+        owner = getattr(table, "owner", None)
+        snapshots.append(
+            _snapshot(
+                ResourceType.TABLE,
+                id=full_name,
+                name=getattr(table, "name", "") or "",
+                owner=owner,
+                owner_type=classify_principal(owner),
+                tags=_get_uc_entity_tags(workspace_client, "tables", full_name)
+                if fetch_tags
+                else {},
+                created_time=_epoch_seconds(getattr(table, "created_at", None)),
+                comment=getattr(table, "comment", None),
+                catalog_name=catalog_name,
+                schema_name=schema_name,
+                table_type=_enum_value(getattr(table, "table_type", None)),
+                data_source_format=_enum_value(getattr(table, "data_source_format", None)),
+                storage_location=getattr(table, "storage_location", None),
+                properties=_normalize_tags(getattr(table, "properties", None)),
+                enable_predictive_optimization=_enum_value(
+                    getattr(table, "enable_predictive_optimization", None)
+                ),
+                pipeline_id=getattr(table, "pipeline_id", None),
+                view_definition=getattr(table, "view_definition", None),
+            )
+        )
+    return snapshots
+
+
 def scan_notebooks(
     workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
 ) -> list[ResourceSnapshot]:
@@ -786,6 +897,66 @@ def scan_notebooks(
                 language=_enum_value(getattr(obj, "language", None)),
             )
         )
+    return snapshots
+
+
+def scan_columns(
+    workspace_client: WorkspaceClient,
+    *,
+    cache: ScanCache | None = None,
+    fetch_tags: bool = False,
+) -> list[ResourceSnapshot]:
+    """Fetches and normalizes every column of every table in the metastore.
+
+    Note:
+        Columns are read from the *columns* block each table listing returns, so listing them
+        makes no per-column API call. Column tags are the exception: the entity-tag-assignments
+        API is queried per column, one call each, so they are fetched only when *fetch_tags* is
+        set. A column's id is its fully-qualified name (*catalog.schema.table.column*).
+
+    Args:
+        workspace_client: Databricks workspace client.
+        cache: Optional per-scan cache of the metastore table walk, shared with `scan_tables` so
+            a scan of both types lists the metastore only once. A private cache is used when
+            *None*.
+        fetch_tags: Whether to fetch each column's governed tags. This is one entity-tag-
+            assignments API call per column, so it is costly on a metastore with many columns
+            and is left *False* unless a policy reads the ``tags`` attribute. When *False* the
+            reported ``tags`` are always empty.
+
+    Returns:
+        A list of *ResourceSnapshots* for each column.
+    """
+    cache = cache or ScanCache()
+    snapshots = []
+    for catalog_name, schema_name, table_full_name, table in cache.metastore_tables(
+        workspace_client
+    ):
+        for column in getattr(table, "columns", None) or []:
+            column_name = getattr(column, "name", "") or ""
+            column_id = f"{table_full_name}.{column_name}"
+            snapshots.append(
+                _snapshot(
+                    ResourceType.COLUMN,
+                    id=column_id,
+                    name=column_name,
+                    table_name=table_full_name,
+                    catalog_name=catalog_name,
+                    schema_name=schema_name,
+                    tags=_get_uc_entity_tags(workspace_client, "columns", column_id)
+                    if fetch_tags
+                    else {},
+                    data_type=_enum_value(getattr(column, "type_name", None)),
+                    type_text=getattr(column, "type_text", None),
+                    type_precision=getattr(column, "type_precision", None),
+                    type_scale=getattr(column, "type_scale", None),
+                    position=getattr(column, "position", None),
+                    nullable=getattr(column, "nullable", None),
+                    comment=getattr(column, "comment", None),
+                    partition_index=getattr(column, "partition_index", None),
+                    has_mask=bool(getattr(column, "mask", None)),
+                )
+            )
     return snapshots
 
 

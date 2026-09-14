@@ -117,6 +117,19 @@ def test_validate_rejects_tags_on_non_taggable_sql_alert():
         validate_policy(invalid)
 
 
+def test_validate_allows_tags_on_taggable_table():
+    # Tables are a UC securable and can carry governed tags, so `tags` is valid at author time.
+    valid = deny("table-tagged", "table", leaf("tags", "not_empty"))
+    validate_policy(valid)
+
+
+def test_validate_allows_tags_on_taggable_column():
+    # Columns carry governed tags, so `tags` is in their attribute set and a policy that references
+    # it is valid at author time.
+    valid = deny("column-tagged", "column", leaf("tags", "not_empty"))
+    validate_policy(valid)
+
+
 def test_validate_rejects_tags_on_non_taggable_workspace_types():
     # Notebooks and workspace files are listed from the workspace tree, which reports no tags, so
     # a policy referencing `tags` is rejected at author time.

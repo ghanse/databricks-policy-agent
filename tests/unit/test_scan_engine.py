@@ -85,6 +85,8 @@ def test_supported_resource_types_match_registry():
         ResourceType.GENIE_SPACE,
         ResourceType.QUALITY_MONITOR,
         ResourceType.SQL_ALERT,
+        ResourceType.TABLE,
+        ResourceType.COLUMN,
         ResourceType.NOTEBOOK,
         ResourceType.WORKSPACE_FILE,
     }
@@ -157,6 +159,73 @@ def test_run_scan_expands_job_tasks_only_when_a_policy_reads_a_task_attribute():
         [deny("no-retry", "job", leaf("has_retry_policy", "equals", False))],
     )
     assert task_aware.list_kwargs == {"expand_tasks": True}
+
+
+def test_run_scan_fetches_column_tags_only_when_a_policy_reads_tags():
+    # Fetching column tags is one API call per column, so it happens only when a policy reads the
+    # tags attribute.
+    class _TagService:
+        def __init__(self):
+            self.calls = 0
+
+        def list(self, entity_type, entity_name, **kwargs):
+            self.calls += 1
+            return []
+
+    def _ws_with_columns(tag_service):
+        return SimpleNamespace(
+            catalogs=_Service([SimpleNamespace(name="main")]),
+            schemas=_Service([SimpleNamespace(name="sales")]),
+            tables=_Service(
+                [
+                    SimpleNamespace(
+                        name="orders",
+                        full_name="main.sales.orders",
+                        columns=[SimpleNamespace(name="email")],
+                    )
+                ]
+            ),
+            entity_tag_assignments=tag_service,
+        )
+
+    # A policy on a non-tag column attribute must not fetch tags.
+    no_tags = _TagService()
+    run_scan(_ws_with_columns(no_tags), [deny("pii", "column", leaf("name", "equals", "ssn"))])
+    assert no_tags.calls == 0
+
+    # A policy that reads tags fetches them, one call per column.
+    with_tags = _TagService()
+    run_scan(_ws_with_columns(with_tags), [deny("untagged", "column", leaf("tags", "not_empty"))])
+    assert with_tags.calls == 1
+
+
+def test_run_scan_fetches_table_tags_only_when_a_policy_reads_tags():
+    # Fetching table tags is one API call per table, so it happens only when a policy reads tags.
+    class _TagService:
+        def __init__(self):
+            self.calls = 0
+
+        def list(self, entity_type, entity_name, **kwargs):
+            self.calls += 1
+            return []
+
+    def _ws_with_tables(tag_service):
+        return SimpleNamespace(
+            catalogs=_Service([SimpleNamespace(name="main")]),
+            schemas=_Service([SimpleNamespace(name="sales")]),
+            tables=_Service([SimpleNamespace(name="orders", full_name="main.sales.orders")]),
+            entity_tag_assignments=tag_service,
+        )
+
+    # A policy on a non-tag table attribute must not fetch tags.
+    no_tags = _TagService()
+    run_scan(_ws_with_tables(no_tags), [deny("named", "table", leaf("name", "equals", "temp"))])
+    assert no_tags.calls == 0
+
+    # A policy that reads tags fetches them.
+    with_tags = _TagService()
+    run_scan(_ws_with_tables(with_tags), [deny("untagged", "table", leaf("tags", "not_empty"))])
+    assert with_tags.calls == 1
 
 
 def test_run_scan_respects_resource_type_restriction():

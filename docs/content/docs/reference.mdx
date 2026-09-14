@@ -17,6 +17,8 @@ Policies target one of the following resource types.
 | `serving_endpoint`  | Model serving endpoints           |
 | `catalog`           | Unity Catalog catalogs            |
 | `schema`            | Unity Catalog schemas             |
+| `table`             | Unity Catalog tables              |
+| `column`            | Unity Catalog table columns       |
 | `volume`            | Unity Catalog volumes             |
 | `registered_model`  | Unity Catalog registered models   |
 | `external_location` | Unity Catalog external locations  |
@@ -217,6 +219,51 @@ Genie spaces do not support the `owner`, `owner_type`, or `created_time` attribu
 SQL alerts are not taggable and do not support the `tags` attribute.
 </Callout>
 
+### Table attributes
+
+| Field name                       | Description                                                                                                                                                                                |
+|----------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `comment`                        | Table description                                                                                                                                                                          |
+| `catalog_name`                   | Name of the catalog the table belongs to                                                                                                                                                   |
+| `schema_name`                    | Name of the schema the table belongs to                                                                                                                                                    |
+| `table_type`                     | Table type (e.g. "MANAGED", "EXTERNAL", "VIEW", "MATERIALIZED_VIEW", "STREAMING_TABLE")                                                                                                    |
+| `data_source_format`             | Storage format for the table (e.g. "DELTA", "ICEBERG", "PARQUET")                                                                                                                          |
+| `storage_location`               | Cloud storage path backing an external table                                                                                                                                               |
+| `properties`                     | Table properties (TBLPROPERTIES) as key-value pairs; Delta and other table settings surface here. Read a single property with a dotted path (e.g. `properties.delta.enableChangeDataFeed`) |
+| `enable_predictive_optimization` | Whether predictive optimization is enabled (e.g. "ENABLE", "DISABLE", "INHERIT")                                                                                                           |
+| `pipeline_id`                    | ID of the pipeline that produces the table (streaming tables and materialized views)                                                                                                       |
+| `view_definition`                | SQL text defining a view                                                                                                                                                                   |
+
+### Column attributes
+
+| Field name        | Description                                                   |
+|-------------------|---------------------------------------------------------------|
+| `table_name`      | Fully-qualified name of the table the column belongs to       |
+| `catalog_name`    | Name of the catalog the column's table belongs to             |
+| `schema_name`     | Name of the schema the column's table belongs to              |
+| `data_type`       | Column data type name (e.g. "INT", "STRING", "DECIMAL")       |
+| `type_text`       | Full column type as text (e.g. "decimal(10,2)")               |
+| `type_precision`  | Numeric precision for decimal types                           |
+| `type_scale`      | Numeric scale for decimal types                               |
+| `position`        | Zero-based ordinal position of the column in the table        |
+| `nullable`        | Whether the column accepts null values                        |
+| `comment`         | Free-text description of the column                           |
+| `partition_index` | Zero-based position of the column in the table's partitioning |
+| `has_mask`        | Whether a column mask is applied to the column                |
+| `tags`            | Governed tags on the column, as key-value pairs               |
+
+<Callout type="warn" title="Unsupported common attributes for columns">
+Columns do not support the `owner`, `owner_type`, or `created_time` attributes.
+</Callout>
+
+<Callout type="warn" title="Column tags are fetched one call per column">
+A column's governed tags are not returned by the table listing — each column needs its own
+entity-tag-assignments API call. A scan fetches column tags only when a policy reads the `tags`
+attribute. A `match` selector limits which columns are reported as violations, but it does not
+reduce the API calls: the scan still fetches tags for every column in the metastore. Use
+column-tags policies sparingly on large metastores.
+</Callout>
+
 ### Notebook attributes
 
 | Field name | Description                                                   |
@@ -225,8 +272,7 @@ SQL alerts are not taggable and do not support the `tags` attribute.
 | `language` | Notebook language (e.g. "PYTHON", "SQL", "SCALA", "R")        |
 
 <Callout type="warn" title="Unsupported common attributes for notebooks">
-Notebooks do not support the `owner`, `owner_type`, or `tags` attributes.  Enforcement does
-not support `language`, `size`, or `created_time`.
+Notebooks do not support the `owner`, `owner_type`, `created_time`, or `tags` attributes.
 </Callout>
 
 ### Workspace file attributes
@@ -237,8 +283,15 @@ not support `language`, `size`, or `created_time`.
 | `size`     | File size in bytes                                |
 
 <Callout type="warn" title="Unsupported common attributes for workspace files">
-Workspace files do not support the `owner`, `owner_type`, or `tags` attributes. Enforcement does
-not support `language`, `size`, or `created_time`.
+Workspace files do not support the `owner`, `owner_type`, or `tags` attributes.
+</Callout>
+
+<Callout type="info" title="Notebooks and files in a bundle">
+A live scan reads every notebook and file in the workspace tree. A deployment gate instead sees
+only the notebooks and files a bundle references — through its job tasks (`notebook_task`,
+`spark_python_task`, `sql_task`) and pipeline libraries. In a bundle those runtime-only values are
+not known yet: a notebook's `language` and a file's `size` and `created_time` are all null, so a
+gate policy on notebooks or files should test `path`.
 </Callout>
 
 ## Operators

@@ -1,0 +1,40 @@
+# UC column policies.
+policy: sensitive-columns-must-be-masked
+description: Columns that look like PII must have a column mask applied.
+resource_type: column
+effect: allow
+enforcement_level: hard
+match:
+  all:
+    - { attribute: name, operator: matches_regex, value: "(?i).*(ssn|email|phone).*" }
+rule:
+  all:
+    - { attribute: has_mask, operator: equals, value: true }
+remediation: Apply a column mask to the sensitive column.
+---
+policy: columns-must-be-documented
+description: Columns must have a comment so their meaning is clear to consumers.
+resource_type: column
+effect: allow
+enforcement_level: advisory
+rule:
+  all:
+    - { attribute: comment, operator: exists }
+remediation: Add a comment describing the column.
+---
+# Reading column tags is one API call per column. The match selector below limits which columns
+# are reported, but a scan still fetches tags for every column in the metastore, so use
+# column-tags policies sparingly on large metastores.
+policy: sensitive-columns-must-be-tagged
+description: Columns in the customer schema that look like PII must carry a data_sensitivity tag.
+resource_type: column
+effect: allow
+enforcement_level: soft
+match:
+  all:
+    - { attribute: schema_name, operator: equals, value: customer }
+    - { attribute: name, operator: matches_regex, value: "(?i).*(ssn|email|phone).*" }
+rule:
+  all:
+    - { attribute: tags, operator: has_tag, value: data_sensitivity }
+remediation: Assign a data_sensitivity governed tag to the sensitive column.

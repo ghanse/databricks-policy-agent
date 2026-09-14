@@ -247,6 +247,43 @@ Reads every remediation item.
 
   The remediation items.
 
+#### save\_remediation\_event
+
+```python
+def save_remediation_event(executor: SqlExecutor, config: StorageConfig,
+                           event: RemediationEvent) -> None
+```
+
+Appends a remediation audit event.
+
+**Arguments**:
+
+- `executor` - The SQL executor.
+- `config` - The storage configuration.
+- `event` - The remediation event to persist.
+
+#### read\_remediation\_events
+
+```python
+def read_remediation_events(
+        executor: SqlExecutor,
+        config: StorageConfig,
+        remediation_id: str | None = None) -> list[RemediationEvent]
+```
+
+Reads remediation audit events, optionally for a single item, oldest first.
+
+**Arguments**:
+
+- `executor` - The SQL executor.
+- `config` - The storage configuration.
+- `remediation_id` - When provided, only events for this item are returned.
+  
+
+**Returns**:
+
+  The matching remediation events, ordered oldest to newest.
+
 #### save\_schedule
 
 ```python

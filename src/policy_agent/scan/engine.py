@@ -21,8 +21,10 @@ from policy_agent.scan.registry import is_scannable, scanner_for
 from policy_agent.scan.resources import (
     TASK_DERIVED_JOB_ATTRIBUTES,
     ScanCache,
+    scan_columns,
     scan_jobs,
     scan_notebooks,
+    scan_tables,
     scan_workspace_files,
 )
 from policy_agent.scan.results import Finding, ResourceSnapshot, ScanResult
@@ -115,17 +117,29 @@ def _fetch_snapshots(
 ) -> list[ResourceSnapshot]:
     """Fetches snapshots for one resource type, fetching only the data its policies need.
 
-    Jobs are the one type with an expensive optional expansion: task definitions are fetched
-    only when a policy reads a task-derived attribute (retry policy or serverless compute).
-    Every other type has a single, uniform scanner.
+    Some types have an expensive optional fetch that is done only when a policy reads an attribute
+    that needs it: jobs fetch task definitions for the task-derived attributes, and tables and
+    columns fetch their governed tags (one entity-tag API call per resource). Every other type has
+    a single, uniform scanner.
     """
     if resource_type is ResourceType.JOB:
-        referenced: set[str] = set()
-        for policy in policies:
-            referenced |= referenced_attributes(policy)
+        referenced = _referenced_attributes(policies)
         expand_tasks = bool(referenced & TASK_DERIVED_JOB_ATTRIBUTES)
         return scan_jobs(workspace_client, expand_tasks=expand_tasks)
+    if resource_type is ResourceType.TABLE:
+        fetch_tags = "tags" in _referenced_attributes(policies)
+        return scan_tables(workspace_client, cache=cache, fetch_tags=fetch_tags)
+    if resource_type is ResourceType.COLUMN:
+        fetch_tags = "tags" in _referenced_attributes(policies)
+        return scan_columns(workspace_client, cache=cache, fetch_tags=fetch_tags)
     return _scan_type(workspace_client, resource_type, cache)
+
+
+def _referenced_attributes(policies: list[Policy]) -> set[str]:
+    referenced: set[str] = set()
+    for policy in policies:
+        referenced |= referenced_attributes(policy)
+    return referenced
 
 
 def _scan_type(
@@ -133,10 +147,15 @@ def _scan_type(
 ) -> list[ResourceSnapshot]:
     """Runs one type's scanner, passing the shared cache to the scanners that can reuse it.
 
-    Notebooks and workspace files derive from the same workspace tree walk, so they take the
-    per-scan cache and walk the tree only once when both are scanned. Every other scanner is a
-    plain function of the workspace client.
+    Tables and columns derive from the same metastore walk, and notebooks and workspace files
+    from the same workspace tree walk, so those four take the per-scan cache and list only once
+    when both types of a pair are scanned. Every other scanner is a plain function of the
+    workspace client.
     """
+    if resource_type is ResourceType.TABLE:
+        return scan_tables(workspace_client, cache=cache)
+    if resource_type is ResourceType.COLUMN:
+        return scan_columns(workspace_client, cache=cache)
     if resource_type is ResourceType.NOTEBOOK:
         return scan_notebooks(workspace_client, cache=cache)
     if resource_type is ResourceType.WORKSPACE_FILE:

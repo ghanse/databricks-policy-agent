@@ -12,7 +12,7 @@ deployment pipeline should proceed.
 ## GateVerdict Objects
 
 ```python
-class GateVerdict(str, Enum)
+class GateVerdict(StrEnum)
 ```
 
 Outcome of an enforcement gate over a bundle.
