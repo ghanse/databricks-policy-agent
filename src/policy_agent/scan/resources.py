@@ -804,7 +804,10 @@ def _walk_workspace_objects(workspace_client: WorkspaceClient) -> Iterator[Any]:
 
 
 def scan_tables(
-    workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
+    workspace_client: WorkspaceClient,
+    *,
+    cache: ScanCache | None = None,
+    fetch_tags: bool = True,
 ) -> list[ResourceSnapshot]:
     """Fetches and normalizes every table across every schema in the metastore.
 
@@ -820,6 +823,11 @@ def scan_tables(
         cache: Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
             a scan of both types lists the metastore only once. A private cache is used when
             *None*.
+        fetch_tags: Whether to fetch each table's governed tags. This is one entity-tag-
+            assignments API call per table, so a scan that does not read the ``tags`` attribute
+            leaves it *False* to avoid a request per table. When *False* the reported ``tags`` are
+            always empty. Defaults to *True* so direct and inventory callers get complete
+            snapshots.
 
     Returns:
         A list of *ResourceSnapshots* for each table.
@@ -835,7 +843,9 @@ def scan_tables(
                 name=getattr(table, "name", "") or "",
                 owner=owner,
                 owner_type=classify_principal(owner),
-                tags=_get_uc_entity_tags(workspace_client, "tables", full_name),
+                tags=_get_uc_entity_tags(workspace_client, "tables", full_name)
+                if fetch_tags
+                else {},
                 created_time=_epoch_seconds(getattr(table, "created_at", None)),
                 comment=getattr(table, "comment", None),
                 catalog_name=catalog_name,

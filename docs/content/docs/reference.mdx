@@ -256,6 +256,14 @@ SQL alerts are not taggable and do not support the `tags` attribute.
 Columns do not support the `owner`, `owner_type`, or `created_time` attributes.
 </Callout>
 
+<Callout type="warn" title="Column tags are fetched one call per column">
+A column's governed tags are not returned by the table listing — each column needs its own
+entity-tag-assignments API call. A scan fetches column tags only when a policy reads the `tags`
+attribute. A `match` selector limits which columns are reported as violations, but it does not
+reduce the API calls: the scan still fetches tags for every column in the metastore. Use
+column-tags policies sparingly on large metastores.
+</Callout>
+
 ### Notebook attributes
 
 | Field name | Description                                                   |
@@ -276,6 +284,14 @@ Notebooks do not support the `owner`, `owner_type`, `created_time`, or `tags` at
 
 <Callout type="warn" title="Unsupported common attributes for workspace files">
 Workspace files do not support the `owner`, `owner_type`, or `tags` attributes.
+</Callout>
+
+<Callout type="info" title="Notebooks and files in a bundle">
+A live scan reads every notebook and file in the workspace tree. A deployment gate instead sees
+only the notebooks and files a bundle references — through its job tasks (`notebook_task`,
+`spark_python_task`, `sql_task`) and pipeline libraries. In a bundle those runtime-only values are
+not known yet: a notebook's `language` and a file's `size` and `created_time` are all null, so a
+gate policy on notebooks or files should test `path`.
 </Callout>
 
 ## Operators

@@ -22,8 +22,9 @@ rule:
     - { attribute: comment, operator: exists }
 remediation: Add a comment describing the column.
 ---
-# Reading column tags is one API call per column, so scope the policy to a single schema with a
-# match selector rather than scanning every column in the metastore.
+# Reading column tags is one API call per column. The match selector below limits which columns
+# are reported, but a scan still fetches tags for every column in the metastore, so use
+# column-tags policies sparingly on large metastores.
 policy: sensitive-columns-must-be-tagged
 description: Columns in the customer schema that look like PII must carry a data_sensitivity tag.
 resource_type: column

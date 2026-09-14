@@ -429,6 +429,25 @@ def test_scan_tables_iterates_catalogs_and_schemas_and_reads_uc_tags():
     assert tag_service.calls == [("tables", "main.sales.orders")]
 
 
+def test_scan_tables_skips_tag_fetch_when_not_requested():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(name="orders", full_name="main.sales.orders", owner="alice@example.com")
+    tag_service = _FakeUcTagAssignments(
+        {("tables", "main.sales.orders"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+        entity_tag_assignments=tag_service,
+    )
+    # With fetch_tags disabled, tags are empty and no per-table tag API call is made.
+    (snapshot,) = scan_tables(ws, fetch_tags=False)
+    assert snapshot.attributes["tags"] == {}
+    assert tag_service.calls == []
+
+
 def test_scan_columns_reads_every_column_of_every_table():
     catalog = SimpleNamespace(name="main")
     schema = SimpleNamespace(name="sales")

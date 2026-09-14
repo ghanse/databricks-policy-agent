@@ -377,7 +377,8 @@ Returns the workspace tree walk, walking it once and reusing it thereafter.
 ```python
 def scan_tables(workspace_client: WorkspaceClient,
                 *,
-                cache: ScanCache | None = None) -> list[ResourceSnapshot]
+                cache: ScanCache | None = None,
+                fetch_tags: bool = True) -> list[ResourceSnapshot]
 ```
 
 Fetches and normalizes every table across every schema in the metastore.
@@ -397,6 +398,10 @@ Fetches and normalizes every table across every schema in the metastore.
 - `cache` - Optional per-scan cache of the metastore table walk, shared with `scan_columns` so
   a scan of both types lists the metastore only once. A private cache is used when
   *None*.
+- `fetch_tags` - Whether to fetch each table's governed tags. This is one entity-tag-
+  assignments API call per table, so a scan that does not read the `tags` attribute leaves it
+  *False* to avoid a request per table. When *False* the reported `tags` are always empty.
+  Defaults to *True* so direct and inventory callers get complete snapshots.
   
 
 **Returns**:

@@ -117,14 +117,18 @@ def _fetch_snapshots(
 ) -> list[ResourceSnapshot]:
     """Fetches snapshots for one resource type, fetching only the data its policies need.
 
-    Two types have an expensive optional fetch that is done only when a policy reads an attribute
-    that needs it: jobs fetch task definitions for the task-derived attributes, and columns fetch
-    their governed tags (one API call per column). Every other type has a single, uniform scanner.
+    Some types have an expensive optional fetch that is done only when a policy reads an attribute
+    that needs it: jobs fetch task definitions for the task-derived attributes, and tables and
+    columns fetch their governed tags (one entity-tag API call per resource). Every other type has
+    a single, uniform scanner.
     """
     if resource_type is ResourceType.JOB:
         referenced = _referenced_attributes(policies)
         expand_tasks = bool(referenced & TASK_DERIVED_JOB_ATTRIBUTES)
         return scan_jobs(workspace_client, expand_tasks=expand_tasks)
+    if resource_type is ResourceType.TABLE:
+        fetch_tags = "tags" in _referenced_attributes(policies)
+        return scan_tables(workspace_client, cache=cache, fetch_tags=fetch_tags)
     if resource_type is ResourceType.COLUMN:
         fetch_tags = "tags" in _referenced_attributes(policies)
         return scan_columns(workspace_client, cache=cache, fetch_tags=fetch_tags)
