@@ -191,6 +191,22 @@ def test_scan_columns_includes_columns_of_created_table(ws, make_table):
 
 
 @pytest.mark.integration
+def test_scan_columns_fetches_tags_against_the_live_entity_tag_api(ws, make_table):
+    """Fetching column tags hits the real entity-tag-assignments API with entity_type "columns".
+
+    A freshly created table's columns have no tags, so this asserts the call succeeds and returns
+    an empty mapping rather than erroring — which is what would fail if the entity type were wrong.
+    """
+    from policy_agent.scan.resources import scan_columns
+
+    table = make_table()
+    snapshots = scan_columns(ws, fetch_tags=True)
+    table_columns = [s for s in snapshots if s.resource_id.startswith(f"{table.full_name}.")]
+    assert table_columns
+    assert all(s.attributes["tags"] == {} for s in table_columns)
+
+
+@pytest.mark.integration
 def test_scan_notebooks_includes_created_notebook(ws, make_notebook):
     """A newly created notebook appears in the notebook scan, keyed by its workspace path."""
     notebook = make_notebook()

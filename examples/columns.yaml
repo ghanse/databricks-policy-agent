@@ -21,3 +21,19 @@ rule:
   all:
     - { attribute: comment, operator: exists }
 remediation: Add a comment describing the column.
+---
+# Reading column tags is one API call per column, so scope the policy to a single schema with a
+# match selector rather than scanning every column in the metastore.
+policy: sensitive-columns-must-be-tagged
+description: Columns in the customer schema that look like PII must carry a data_sensitivity tag.
+resource_type: column
+effect: allow
+enforcement_level: soft
+match:
+  all:
+    - { attribute: schema_name, operator: equals, value: customer }
+    - { attribute: name, operator: matches_regex, value: "(?i).*(ssn|email|phone).*" }
+rule:
+  all:
+    - { attribute: tags, operator: has_tag, value: data_sensitivity }
+remediation: Assign a data_sensitivity governed tag to the sensitive column.

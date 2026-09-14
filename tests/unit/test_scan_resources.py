@@ -478,8 +478,42 @@ def test_scan_columns_reads_every_column_of_every_table():
     assert id_col.attributes["nullable"] is False
     assert id_col.attributes["has_mask"] is False
     assert email_col.attributes["has_mask"] is True
-    # Columns are read from their parent table, so they never advertise tags.
-    assert "tags" not in id_col.attributes
+    # Tags are not fetched unless requested, so by default they are empty and no per-column tag
+    # API call is made.
+    assert id_col.attributes["tags"] == {}
+
+
+def test_scan_columns_fetches_tags_per_column_only_when_requested():
+    catalog = SimpleNamespace(name="main")
+    schema = SimpleNamespace(name="sales")
+    table = SimpleNamespace(
+        name="orders",
+        full_name="main.sales.orders",
+        columns=[SimpleNamespace(name="email"), SimpleNamespace(name="id")],
+    )
+    tag_service = _FakeUcTagAssignments(
+        {("columns", "main.sales.orders.email"): [SimpleNamespace(tag_key="pii", tag_value="true")]}
+    )
+    ws = _ws(
+        catalogs=_FakeService([catalog]),
+        schemas=_FakeService([schema]),
+        tables=_FakeService([table]),
+        entity_tag_assignments=tag_service,
+    )
+
+    # Without fetch_tags the tag service is never called; tags are empty.
+    by_name = {s.name: s for s in scan_columns(ws)}
+    assert by_name["email"].attributes["tags"] == {}
+    assert tag_service.calls == []
+
+    # With fetch_tags each column's tags are fetched by its fully-qualified name, one call each.
+    by_name = {s.name: s for s in scan_columns(ws, fetch_tags=True)}
+    assert by_name["email"].attributes["tags"] == {"pii": "true"}
+    assert by_name["id"].attributes["tags"] == {}
+    assert tag_service.calls == [
+        ("columns", "main.sales.orders.email"),
+        ("columns", "main.sales.orders.id"),
+    ]
 
 
 def test_scan_columns_handles_table_without_columns():

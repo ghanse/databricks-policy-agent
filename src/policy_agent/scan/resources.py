@@ -891,20 +891,28 @@ def scan_notebooks(
 
 
 def scan_columns(
-    workspace_client: WorkspaceClient, *, cache: ScanCache | None = None
+    workspace_client: WorkspaceClient,
+    *,
+    cache: ScanCache | None = None,
+    fetch_tags: bool = False,
 ) -> list[ResourceSnapshot]:
     """Fetches and normalizes every column of every table in the metastore.
 
     Note:
-        Columns are read from the *columns* block each table listing returns, so no per-column
-        API call is made. Column-level tags are not scanned (see the note on the *column*
-        resource type). A column's id is its fully-qualified name (*catalog.schema.table.column*).
+        Columns are read from the *columns* block each table listing returns, so listing them
+        makes no per-column API call. Column tags are the exception: the entity-tag-assignments
+        API is queried per column, one call each, so they are fetched only when *fetch_tags* is
+        set. A column's id is its fully-qualified name (*catalog.schema.table.column*).
 
     Args:
         workspace_client: Databricks workspace client.
         cache: Optional per-scan cache of the metastore table walk, shared with `scan_tables` so
             a scan of both types lists the metastore only once. A private cache is used when
             *None*.
+        fetch_tags: Whether to fetch each column's governed tags. This is one entity-tag-
+            assignments API call per column, so it is costly on a metastore with many columns
+            and is left *False* unless a policy reads the ``tags`` attribute. When *False* the
+            reported ``tags`` are always empty.
 
     Returns:
         A list of *ResourceSnapshots* for each column.
@@ -916,14 +924,18 @@ def scan_columns(
     ):
         for column in getattr(table, "columns", None) or []:
             column_name = getattr(column, "name", "") or ""
+            column_id = f"{table_full_name}.{column_name}"
             snapshots.append(
                 _snapshot(
                     ResourceType.COLUMN,
-                    id=f"{table_full_name}.{column_name}",
+                    id=column_id,
                     name=column_name,
                     table_name=table_full_name,
                     catalog_name=catalog_name,
                     schema_name=schema_name,
+                    tags=_get_uc_entity_tags(workspace_client, "columns", column_id)
+                    if fetch_tags
+                    else {},
                     data_type=_enum_value(getattr(column, "type_name", None)),
                     type_text=getattr(column, "type_text", None),
                     type_precision=getattr(column, "type_precision", None),

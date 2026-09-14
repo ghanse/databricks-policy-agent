@@ -200,6 +200,7 @@ TAGGABLE_RESOURCE_TYPES: frozenset[ResourceType] = frozenset(
         ResourceType.VOLUME,
         ResourceType.EXTERNAL_LOCATION,
         ResourceType.TABLE,
+        ResourceType.COLUMN,
     }
 )
 """Resource types that can carry tags. This is the source of truth for the tag-attribute part
@@ -332,6 +333,7 @@ RESOURCE_ATTRIBUTES: dict[ResourceType, frozenset[str]] = {
         "view_definition",
     },
     ResourceType.COLUMN: _IDENTITY
+    | _TAGGABLE
     | {
         "table_name",
         "catalog_name",
