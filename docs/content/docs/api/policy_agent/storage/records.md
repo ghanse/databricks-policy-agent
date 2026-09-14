@@ -177,6 +177,40 @@ Deserialises a ``remediations`` row into a remediation item.
 
   The reconstructed remediation item.
 
+#### remediation\_event\_to\_row
+
+```python
+def remediation_event_to_row(event: RemediationEvent) -> dict[str, Any]
+```
+
+Serialises a remediation audit event to a ``remediation_events`` row.
+
+**Arguments**:
+
+- `event` - The remediation event to serialise.
+  
+
+**Returns**:
+
+  A row mapping ready for insertion.
+
+#### row\_to\_remediation\_event
+
+```python
+def row_to_remediation_event(row: dict[str, Any]) -> RemediationEvent
+```
+
+Deserialises a ``remediation_events`` row into a remediation event.
+
+**Arguments**:
+
+- `row` - The row mapping read from storage.
+  
+
+**Returns**:
+
+  The reconstructed remediation event.
+
 #### schedule\_to\_row
 
 ```python

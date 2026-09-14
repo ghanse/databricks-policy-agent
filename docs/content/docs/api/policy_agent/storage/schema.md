@@ -13,7 +13,7 @@ upsert strategy (delete-then-insert, which both dialects support without vendor 
 ## ColumnType Objects
 
 ```python
-class ColumnType(str, Enum)
+class ColumnType(StrEnum)
 ```
 
 A portable column type mapped to each backend's concrete SQL type.

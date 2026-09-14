@@ -42,6 +42,17 @@ def resolve_attribute(snapshot: Snapshot, attribute: str) -> Any
 
 Reads an attribute from a snapshot, following dotted paths into nested mappings.
 
+At each level the longest leading run of segments that is a literal key is matched before
+descending, so a dotted path resolves a key that itself contains dots — for example
+``properties.delta.enableChangeDataFeed`` finds the ``delta.enableChangeDataFeed`` key of a
+``properties`` mapping, and ``tags.environment`` still finds the ``environment`` key of
+``tags``.
+
+The match is greedy and does not backtrack, which is unambiguous because each mapping a
+snapshot exposes is either nested simple keys (``tags``) or a flat map of literal dotted keys
+(``properties``), never both at one level. A future attribute that nested maps under a
+dotted-key level would need this resolver revisited.
+
 **Arguments**:
 
 - `snapshot` - The resource snapshot.
@@ -50,7 +61,7 @@ Reads an attribute from a snapshot, following dotted paths into nested mappings.
 
 **Returns**:
 
-  The attribute value, or ``None`` when any path segment is missing.
+  The attribute value, or ``None`` when the path does not resolve.
 
 #### is\_registered\_operator
 

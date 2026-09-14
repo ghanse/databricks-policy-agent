@@ -13,7 +13,7 @@ from a small set of frozen node types (`Comparison`, `AllOf`, `AnyOf`,
 ## ResourceType Objects
 
 ```python
-class ResourceType(str, Enum)
+class ResourceType(StrEnum)
 ```
 
 A Databricks workspace object type a policy can target.
@@ -21,7 +21,7 @@ A Databricks workspace object type a policy can target.
 ## Effect Objects
 
 ```python
-class Effect(str, Enum)
+class Effect(StrEnum)
 ```
 
 Whether matching a policy's rule means a resource is compliant or violating.
@@ -32,7 +32,7 @@ Whether matching a policy's rule means a resource is compliant or violating.
 ## EnforcementLevel Objects
 
 ```python
-class EnforcementLevel(str, Enum)
+class EnforcementLevel(StrEnum)
 ```
 
 How strongly a policy is enforced, in increasing order of strictness.
@@ -66,7 +66,7 @@ Returns whether ``level`` is at least as strict as ``threshold``.
 ## PolicyStatus Objects
 
 ```python
-class PolicyStatus(str, Enum)
+class PolicyStatus(StrEnum)
 ```
 
 Lifecycle state of a policy in the draft-review-approve workflow.

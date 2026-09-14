@@ -137,3 +137,54 @@ Assigns an item to a principal responsible for resolving it.
 
   The updated item.
 
+#### comment
+
+```python
+def comment(item: RemediationItem, now: datetime,
+            note: str) -> RemediationItem
+```
+
+Records a comment on an item without changing its status.
+
+**Arguments**:
+
+- `item` - The item being commented on.
+- `now` - Timestamp of the comment.
+- `note` - The comment text.
+  
+
+**Returns**:
+
+  The item with its ``updated_at`` and latest ``note`` refreshed.
+
+#### make\_event
+
+```python
+def make_event(remediation_id: str,
+               event_type: RemediationEventType,
+               actor: str,
+               now: datetime,
+               note: str = "",
+               from_status: RemediationStatus | None = None,
+               to_status: RemediationStatus | None = None,
+               payload: str = "") -> RemediationEvent
+```
+
+Builds an audit-trail event for a remediation item.
+
+**Arguments**:
+
+- `remediation_id` - The item the event belongs to.
+- `event_type` - The kind of activity recorded.
+- `actor` - Principal or process that performed the activity.
+- `now` - When the activity occurred.
+- `note` - Free-text comment or justification, if any.
+- `from_status` - Status before the change, when it changed status.
+- `to_status` - Status after the change, when it changed status.
+- `payload` - Optional serialized detail (for example a Genie Code proposal), as JSON.
+  
+
+**Returns**:
+
+  A new `RemediationEvent` with a generated id and the given timestamp.
+
