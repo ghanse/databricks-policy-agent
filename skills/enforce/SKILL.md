@@ -1,16 +1,22 @@
+---
+name: enforce
+description: "Gate a Databricks Asset Bundle's declared resources against Policy Agent policies before deployment. Use when running the `policy-agent enforce` CLI as a pre-deploy check in CI, setting the fail-on enforcement threshold, overriding soft violations with a recorded reason, or emitting fix suggestions and JSON output. To write policies see policy-agent:author; to scan a live workspace see policy-agent:scan."
+---
+
 # Enforcing policies on a bundle
 
 `enforce` gates a Databricks Asset Bundle's **declared** resources against policies *before* it
 deploys, so a non-compliant resource is caught at deploy time rather than by a later scan. It
-evaluates the bundle's resolved configuration — no workspace resources are fetched — so any
-resource type a policy targets can be gated, including types that are never live-scanned.
+evaluates the bundle's resolved configuration — no workspace resources are fetched — so any resource
+type a policy targets can be gated, including types that are never live-scanned. Author the policies
+first with **policy-agent:author**.
 
 ```bash
 uv run policy-agent enforce --bundle . --target dev --policies examples/
 ```
 
-The command exits `1` when the gate is blocked and `0` otherwise, so it drops into CI as a
-pre-deploy check.
+The command exits `1` when the gate is blocked and `0` otherwise, so it drops into CI as a pre-deploy
+check.
 
 ## Flags
 
@@ -54,5 +60,6 @@ uv run policy-agent enforce --bundle . --target prod --policies policies/ \
 uv run policy-agent enforce --bundle . --target dev --policies policies/ --fix --output json
 ```
 
-Enforcement and scanning share one policy model, so a policy behaves identically whether it gates
-a bundle here or evaluates live resources in a [scan](scanning.md).
+Enforcement and scanning share one policy model, so a policy behaves identically whether it gates a
+bundle here or evaluates live resources in a scan (**policy-agent:scan**). Ready-made example
+policies are in [`examples/`](https://github.com/ghanse/databricks-policy-agent/tree/main/examples).

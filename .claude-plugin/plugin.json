@@ -1,0 +1,12 @@
+{
+  "name": "policy-agent",
+  "version": "0.1.5",
+  "description": "Skills for the Databricks Policy Agent: author and validate allow/deny compliance policies over Databricks workspace objects, run compliance scans, and gate Databricks Asset Bundle deployments.",
+  "author": {
+    "name": "Databricks Field Engineering"
+  },
+  "repository": "https://github.com/ghanse/databricks-policy-agent",
+  "homepage": "https://github.com/ghanse/databricks-policy-agent",
+  "keywords": ["databricks", "policy", "compliance", "governance", "unity-catalog"],
+  "skills": "./skills/"
+}

@@ -1,8 +1,40 @@
+---
+name: author
+description: "Author and validate Databricks Policy Agent compliance policies. Use when writing allow/deny policies over Databricks workspace objects (jobs, clusters, SQL warehouses, apps, serving endpoints, Unity Catalog objects, pipelines, and more), choosing resource attributes or operators, using the Python DSL, or validating policy YAML with the `policy-agent validate` CLI or `policy_agent` library. See also policy-agent:scan and policy-agent:enforce."
+---
+
 # Authoring & validating policies
 
-A policy binds one `resource_type`, an `effect`, and a condition `rule` (a tree over the
-resource's attributes), with an optional `match` selector. Policies are declarative data — the
-only executable part is the fixed operator registry, so a policy can never run arbitrary code.
+The [Policy Agent](https://github.com/ghanse/databricks-policy-agent) declares **allow**/**deny**
+compliance policies over Databricks workspace objects. A policy binds one `resource_type`, an
+`effect`, and a condition `rule` (a tree over the resource's attributes), with an optional `match`
+selector. Policies are declarative data — the only executable part is a fixed operator registry, so
+a policy can never run arbitrary code, and validation rejects unknown attributes or operators at
+author time.
+
+Once authored, run policies with **policy-agent:scan** (live workspace) or **policy-agent:enforce**
+(bundle deploy gate).
+
+## A policy at a glance
+
+```yaml
+policy: production-jobs-need-failure-alerts
+description: Production jobs must configure on-failure email notifications.
+resource_type: job
+effect: allow                     # allow = compliant only when the rule matches
+enforcement_level: hard           # advisory | soft | hard
+match:                            # optional selector: which resources this applies to
+  all:
+    - { attribute: name, operator: matches_regex, value: "^prod_.+$" }
+rule:                             # the compliance condition
+  all:
+    - { attribute: has_email_notifications, operator: equals, value: true }
+remediation: Add an on-failure email notification to the job.
+```
+
+Ready-made policies for every resource type live in
+[`examples/`](https://github.com/ghanse/databricks-policy-agent/tree/main/examples), one YAML file
+per type — copy from there.
 
 ## Policy schema
 
@@ -19,8 +51,8 @@ only executable part is the fixed operator registry, so a policy can never run a
 | `status` | no | `draft` (default), `in_review`, `approved`, `rejected`, `archived`. |
 | `version` | no | Integer, defaults to `1`. |
 
-A YAML file may hold one policy mapping, a list of them, or several documents separated by
-`---`. Every loaded policy is validated immediately, so a bad policy fails at load time.
+A YAML file may hold one policy mapping, a list of them, or several documents separated by `---`.
+Every loaded policy is validated immediately, so a bad policy fails at load time.
 
 ### Effect semantics
 
@@ -31,9 +63,9 @@ A YAML file may hold one policy mapping, a list of them, or several documents se
 
 ### Enforcement levels
 
-Ordered least to most strict: `advisory` < `soft` < `hard`. `advisory` only reports; `soft`
-blocks the deploy gate but can be overridden with a recorded reason; `hard` blocks and cannot be
-overridden. See [enforcement.md](enforcement.md).
+Ordered least to most strict: `advisory` < `soft` < `hard`. `advisory` only reports; `soft` blocks
+the deploy gate but can be overridden with a recorded reason; `hard` blocks and cannot be
+overridden. See **policy-agent:enforce**.
 
 ## Condition trees
 
@@ -46,8 +78,8 @@ A condition is one of four node shapes:
 { attribute: <name>, operator: <op>, value: <expected> }   # leaf comparison
 ```
 
-Leaves read an attribute off the resource and compare it with an operator. Dotted paths index
-into nested mappings, e.g. `attribute: tags.environment`.
+Leaves read an attribute off the resource and compare it with an operator. Dotted paths index into
+nested mappings, e.g. `attribute: tags.environment`.
 
 ### Operators
 
@@ -67,8 +99,8 @@ into nested mappings, e.g. `attribute: tags.environment`.
 ## Resource types and their attributes
 
 Validation rejects any attribute a resource type does not expose. Every type below carries the
-identity attributes `id` and `name`. Types marked *owned* add `owner`, `owner_type`; *taggable*
-add `tags`; *timestamped* add `created_time`.
+identity attributes `id` and `name`. Types marked *owned* add `owner`, `owner_type`; *taggable* add
+`tags`; *timestamped* add `created_time`.
 
 | Resource type | Extra attributes (beyond id/name/owner/tags/created_time) |
 | --- | --- |
@@ -108,7 +140,7 @@ For code that builds policies programmatically, the DSL wraps the model types an
 enum values:
 
 ```python
-from policy_agent.policy import allow, deny, all_of, any_of, not_, leaf, ResourceType
+from policy_agent import allow, deny, all_of, any_of, not_, leaf, ResourceType
 
 policy = allow(
     name="clusters-must-autoterminate",
@@ -122,17 +154,30 @@ policy = allow(
 )
 ```
 
-Constructors: `allow(...)`, `deny(...)`, and `policy(..., effect=...)` build policies;
-`all_of`, `any_of`, `not_`, and `leaf` build the condition tree. Policies default to
+Constructors: `allow(...)`, `deny(...)`, and `policy(..., effect=...)` build policies; `all_of`,
+`any_of`, `not_`, and `leaf` build the condition tree. Policies default to
 `enforcement_level="advisory"` and `status="draft"`.
 
 ## Validate
+
+From the CLI — offline, no workspace connection:
 
 ```bash
 uv run policy-agent validate examples/          # a directory of .yml/.yaml files
 uv run policy-agent validate my_policy.yaml      # a single file
 ```
 
-`validate` parses each file offline and reports `OK`/`ERR` per file; it exits non-zero if any
-file fails. It needs no workspace connection. In Python, `load_policies_from_yaml(path_or_text)`
-loads and validates in one call.
+`validate` reports `OK`/`ERR` per file and exits non-zero if any file fails.
+
+From Python — `load_policies_from_yaml` loads and validates in one call, and `validate_policy`
+checks an in-memory policy (both raise `PolicyAgentError` on the first problem):
+
+```python
+from policy_agent import load_policies_from_yaml, validate_policy
+
+# Loading from a file (or a YAML string) validates every policy and raises on failure.
+policies = load_policies_from_yaml("examples/jobs.yaml")
+
+# Validate a policy built in code, e.g. from the DSL above.
+validate_policy(policy)
+```
