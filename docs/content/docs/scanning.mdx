@@ -57,6 +57,10 @@ uv run policy-agent scan --profile my-profile --policies examples/
 </Tab>
 </Tabs>
 
+For a runnable walkthrough, import [`examples/scan_workspace.py`](https://github.com/ghanse/databricks-policy-agent/blob/main/examples/scan_workspace.py)
+as a Databricks notebook: it defines a few policies inline, runs a read-only scan, and displays
+the findings — no storage configuration required.
+
 ## Scheduling recurring scans
 You can also schedule recurring scans as Databricks jobs. Each job run scans every approved policy 
 and persists the results. You can create a schedule in code or set the cadence directly through the 
