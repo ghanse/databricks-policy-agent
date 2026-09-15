@@ -20,6 +20,8 @@ avoid rate-limiting.
 Users can run ad-hoc scans using either Python or shell commands. This uses the Databricks SDK to 
 fetch resource snapshots, then evaluates policies against the fetched snapshots.
 
+For an example notebook that shows how to run ad-hoc scans, see [`examples/scan_workspace.py`](https://github.com/ghanse/databricks-policy-agent/blob/main/examples/scan_workspace.py)
+
 <Tabs items={['Python', 'Shell']}>
 <Tab value='Python'>
 ```python
@@ -56,11 +58,6 @@ uv run policy-agent scan --profile my-profile --policies examples/
 ```
 </Tab>
 </Tabs>
-
-For a runnable walkthrough, import [`examples/scan_workspace.py`](https://github.com/ghanse/databricks-policy-agent/blob/main/examples/scan_workspace.py)
-as a Databricks notebook: it defines a few policies inline, runs a read-only scan, and displays
-the findings — no storage configuration required.
-
 ## Scheduling recurring scans
 You can also schedule recurring scans as Databricks jobs. Each job run scans every approved policy 
 and persists the results. You can create a schedule in code or set the cadence directly through the 

@@ -2,41 +2,44 @@
 # MAGIC %md
 # MAGIC # Scan a workspace for policy compliance
 # MAGIC
-# MAGIC This notebook runs an ad-hoc compliance scan against the current workspace with the
-# MAGIC `policy_agent` library. It defines a few policies inline, scans the workspace, and shows
-# MAGIC the findings.
+# MAGIC This notebook runs an ad-hoc compliance scan against the current workspace using the
+# MAGIC `policy_agent` library. It defines policies inline, scans the workspace, and shows the
+# MAGIC findings.
 # MAGIC
-# MAGIC The scan is **read-only**: it fetches resource snapshots through the Databricks SDK and
-# MAGIC evaluates the policies in memory. Nothing is written to storage, so no catalog, schema,
-# MAGIC or SQL warehouse configuration is required. Persisting results is shown as an optional
-# MAGIC step at the end.
+# MAGIC Scans are **read-only**. They fetches resource snapshots using the Databricks SDK,
+# MAGIC then evaluate policies in memory. Data from scans can be converted to a DataFrame,
+# MAGIC queried directly, and written to a table.
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Install the library
 # MAGIC
-# MAGIC In the provisioned app and jobs the wheel is already installed, so this step is only
-# MAGIC needed when running the notebook on a general-purpose cluster.
+# MAGIC We'll first install the policy agent library from GitHub.
+# MAGIC
+# MAGIC **NOTE:**
+# MAGIC This step is only needed when running the notebook on a general-purpose cluster. The
+# MAGIC provisioned app and jobs install the library by default.
 
 # COMMAND ----------
 
-# MAGIC %pip install databricks-policy-agent
-# MAGIC dbutils.library.restartPython()
+# MAGIC %pip install 'git+https://github.com/ghanse/databricks-policy-agent'
+# MAGIC %restart_python
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Define policies
 # MAGIC
-# MAGIC Policies are declared with the Python DSL (`allow` / `deny`, combined with `all_of`,
-# MAGIC `any_of`, `leaf`). An `allow` policy is an allow-list: a resource is compliant only when
-# MAGIC its rule matches. Each policy targets one `resource_type` and carries an
-# MAGIC `enforcement_level` of `advisory`, `soft`, or `hard`.
+# MAGIC Policies are declared using a Python DSL (`allow` / `deny`, combined with `all_of`, `any_of`,
+# MAGIC `leaf`). An `allow` policy is an allow-list: a resource is compliant only when its rule
+# MAGIC matches. Each policy carries an `enforcement_level` of `advisory`, `soft`, or `hard` and
+# MAGIC targets one `resource_type`. The examples below cover jobs, clusters, and SQL warehouses.
 # MAGIC
+# MAGIC **NOTE:**
 # MAGIC The examples below cover jobs, clusters, and SQL warehouses. The same policies are also
-# MAGIC available as YAML under [`examples/`](https://github.com/ghanse/databricks-policy-agent/tree/main/examples);
-# MAGIC load those with `load_policies_from_yaml` instead of the DSL if you prefer.
+# MAGIC available as YAML. See [`examples/`](https://github.com/ghanse/databricks-policy-agent/tree/main/examples).
+# MAGIC Load policies from YAML using `load_policies_from_yaml`.
 
 # COMMAND ----------
 
@@ -57,15 +60,15 @@ policies = [
         rule=all_of(leaf("name", "matches_regex", r"^(prod|stg|dev)_[a-z0-9_]+$")),
         description="Job names must be prefixed with an environment (prod_, stg_, or dev_).",
         enforcement_level="advisory",
-        remediation="Rename the job to start with prod_, stg_, or dev_.",
+        remediation="Rename the job to start with 'prod_', 'stg_', or 'dev_'.",
     ),
     allow(
         name="clusters-must-auto-terminate",
         resource_type="cluster",
-        rule=all_of(leaf("autotermination_minutes", "greater_than", 0)),
-        description="Interactive clusters must set an auto-termination window.",
+        rule=all_of(leaf("autotermination_minutes", "less_than", 60)),
+        description="Interactive clusters must set an auto-termination window shorter than 60 minutes.",
         enforcement_level="soft",
-        remediation="Set autotermination_minutes to a nonzero value on the cluster.",
+        remediation="Set autotermination_minutes to a value less than 60 on the cluster.",
     ),
     allow(
         name="warehouses-should-be-serverless",
@@ -83,12 +86,15 @@ for policy in policies:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Run the scan
+# MAGIC ## Run a scan
 # MAGIC
-# MAGIC `run_scan` fetches only the resource types referenced by the policies (here jobs,
-# MAGIC clusters, and SQL warehouses), evaluates every applicable policy against every resource,
-# MAGIC and returns an immutable `ScanResult`. Pass `resource_types=[...]` to restrict the scan
-# MAGIC further.
+# MAGIC `run_scan` fetches the resource types referenced by each policy, evaluates each applicable
+# MAGIC policy against every workspace resource, and returns an immutable `ScanResult`.
+# MAGIC
+# MAGIC **NOTE:**
+# MAGIC You must have *VIEW* access to scan workspace resources and evaluate their associated policies.
+# MAGIC Scanning Unity Catalog securables requires *USE CATALOG* and *USE SCHEMA* permissions
+# MAGIC on the securable's parent catalog and/or schema.
 
 # COMMAND ----------
 
@@ -107,16 +113,14 @@ print(f"  compliance:  {summary.compliance_rate:.1%}")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Inspect the findings
+# MAGIC ## Review findings
 # MAGIC
-# MAGIC Each finding is one (policy, resource) evaluation. Build a table from the findings to
-# MAGIC review them, filter, or export.
+# MAGIC Each finding contains a combination of a policy and a resource. Build a table from the
+# MAGIC findings to review, filter, or share the data.
 
 # COMMAND ----------
 
-import pandas as pd
-
-findings = pd.DataFrame(
+findings = spark.createDataFrame(
     [
         {
             "policy_name": finding.policy_name,
@@ -130,7 +134,7 @@ findings = pd.DataFrame(
             "owner": finding.owner,
         }
         for finding in result.findings
-    ]
+    ],
 )
 
 display(findings)
@@ -138,58 +142,23 @@ display(findings)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Violations only
+# MAGIC ### Review Violations
 # MAGIC
-# MAGIC `result.violations` is the subset of findings that failed their policy.
+# MAGIC Violations are created when resources do not comply with defined policies.
+# MAGIC Check the `result.violations` for a subset of findings that failed their policy.
 
 # COMMAND ----------
 
-for finding in result.violations:
-    print(
-        f"[{finding.enforcement_level.value}] {finding.policy_name} "
-        f"-> {finding.resource_name}: {finding.remediation}"
-    )
-
-if not result.violations:
-    print("No violations found.")
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Persisting results (optional)
-# MAGIC
-# MAGIC The scan above evaluates policies without writing anything. To persist scan results and
-# MAGIC reconcile the remediation cycle — as the provisioned jobs do — use `run_policy_scan`
-# MAGIC with a configured storage backend. Configuration is read from `POLICY_AGENT_*`
-# MAGIC environment variables:
-# MAGIC
-# MAGIC | Variable | Purpose |
-# MAGIC | --- | --- |
-# MAGIC | `POLICY_AGENT_STORAGE_BACKEND` | `unity_catalog` (default) or `lakebase` |
-# MAGIC | `POLICY_AGENT_CATALOG` / `POLICY_AGENT_SCHEMA` | Where state tables live |
-# MAGIC | `POLICY_AGENT_WAREHOUSE_ID` | SQL warehouse for the Unity Catalog backend |
-# MAGIC | `POLICY_AGENT_LAKEBASE_URL` | SQLAlchemy URL for the Lakebase backend |
-# MAGIC
-# MAGIC The cell below is commented out because it requires that configuration.
-
-# COMMAND ----------
-
-# from policy_agent import config_from_env, create_executor
-# from policy_agent.jobs.runner import run_policy_scan
-#
-# config = config_from_env()
-# workspace_client = WorkspaceClient()
-# executor = create_executor(config, workspace_client)
-# result = run_policy_scan(workspace_client, executor, config, policies, triggered_by="notebook")
-# print(result.summary())
+violations = findings.where("not compliant")
+display(violations)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ## Next steps
 # MAGIC
-# MAGIC - Policy syntax, the Python DSL, and the full attribute reference are in the
-# MAGIC   [docs](https://github.com/ghanse/databricks-policy-agent/tree/main/docs).
-# MAGIC - Ready-made example policies for every resource type are under
-# MAGIC   [`examples/`](https://github.com/ghanse/databricks-policy-agent/tree/main/examples).
-# MAGIC - To gate a Databricks Asset Bundle before deployment, see the `policy-agent enforce` CLI.
+# MAGIC - For the complete policy syntax, Python DSL, and attribute reference, see
+# MAGIC   [Documentation](https://github.com/ghanse/databricks-policy-agent/tree/main/docs).
+# MAGIC - For example YAML policies for every resource type, see
+# MAGIC   [Examples](https://github.com/ghanse/databricks-policy-agent/tree/main/examples).
+# MAGIC - To gate deployments with Declarative Automation Bundles, see the `policy-agent enforce` CLI.

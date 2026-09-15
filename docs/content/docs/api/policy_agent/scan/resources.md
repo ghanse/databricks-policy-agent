@@ -399,9 +399,10 @@ Fetches and normalizes every table across every schema in the metastore.
   a scan of both types lists the metastore only once. A private cache is used when
   *None*.
 - `fetch_tags` - Whether to fetch each table's governed tags. This is one entity-tag-
-  assignments API call per table, so a scan that does not read the `tags` attribute leaves it
-  *False* to avoid a request per table. When *False* the reported `tags` are always empty.
-  Defaults to *True* so direct and inventory callers get complete snapshots.
+  assignments API call per table, so a scan that does not read the ``tags`` attribute
+  leaves it *False* to avoid a request per table. When *False* the reported ``tags`` are
+  always empty. Defaults to *True* so direct and inventory callers get complete
+  snapshots.
   
 
 **Returns**:
