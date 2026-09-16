@@ -8,9 +8,9 @@ description: "Author and validate Databricks Policy Agent compliance policies. U
 The [Policy Agent](https://github.com/ghanse/databricks-policy-agent) declares **allow**/**deny**
 compliance policies over Databricks workspace objects. A policy binds one `resource_type`, an
 `effect`, and a condition `rule` (a tree over the resource's attributes), with an optional `match`
-selector. Policies are declarative data — the only executable part is a fixed operator registry, so
-a policy can never run arbitrary code, and validation rejects unknown attributes or operators at
-author time.
+selector. Policies are declarative. The only executable part is a fixed operator registry, so a
+policy can never run arbitrary code. Validation rejects unknown attributes or operators at author
+time.
 
 Once authored, run policies with **policy-agent:scan** (live workspace) or **policy-agent:enforce**
 (bundle deploy gate).
@@ -52,19 +52,19 @@ per type — copy from there.
 | `version` | no | Integer, defaults to `1`. |
 
 A YAML file may hold one policy mapping, a list of them, or several documents separated by `---`.
-Every loaded policy is validated immediately, so a bad policy fails at load time.
+Every loaded policy is validated immediately, so bad policies fail at load time.
 
 ### Effect semantics
 
-- **`allow`** is an allow-list: a resource is **compliant only when `rule` matches**.
-- **`deny`** is a deny-list: a resource is a **violation when `rule` matches**.
-- A `match` selector that excludes a resource produces **no finding** for it — use it to scope a
+- **`allow`** specifies an allow-list. A resource is **compliant only when `rule` matches**.
+- **`deny`** specifies a deny-list. A resource is a **violation when `rule` matches**.
+- A `match` selector that excludes a resource produces **no finding**. Use it to scope a
   policy to a subset (e.g. only `prod_` jobs).
 
 ### Enforcement levels
 
 Ordered least to most strict: `advisory` < `soft` < `hard`. `advisory` only reports; `soft` blocks
-the deploy gate but can be overridden with a recorded reason; `hard` blocks and cannot be
+deployments but can be overridden with a recorded reason; `hard` blocks deployments and cannot be
 overridden. See **policy-agent:enforce**.
 
 ## Condition trees
@@ -98,9 +98,10 @@ nested mappings, e.g. `attribute: tags.environment`.
 
 ## Resource types and their attributes
 
-Validation rejects any attribute a resource type does not expose. Every type below carries the
-identity attributes `id` and `name`. Types marked *owned* add `owner`, `owner_type`; *taggable* add
-`tags`; *timestamped* add `created_time`.
+Validation rejects attributes a resource type does not expose or attributes that cannot be
+retrieved from a known Databricks API. Every resource type below carries the identity attributes
+`id` and `name`. Types marked *owned* add `owner`, `owner_type`; *taggable* add `tags`;
+*timestamped* add `created_time`.
 
 | Resource type | Extra attributes (beyond id/name/owner/tags/created_time) |
 | --- | --- |
@@ -134,17 +135,17 @@ Types with narrower attribute sets:
 Only *taggable* types accept a `tags` (or `has_tag`/`missing_tag`) condition; a tag policy on any
 other type is rejected at author time.
 
-## The Python DSL
+## Using the Python DSL
 
-For code that builds policies programmatically, the DSL wraps the model types and coerces string
-enum values:
+To build policies programmatically, use the Python DSL. This wraps the policy model types and
+coerces string enum values:
 
 ```python
 from policy_agent import allow, deny, all_of, any_of, not_, leaf, ResourceType
 
 policy = allow(
     name="clusters-must-autoterminate",
-    resource_type=ResourceType.CLUSTER,       # or just "cluster"
+    resource_type=ResourceType.CLUSTER,       # or "cluster"
     enforcement_level="soft",
     rule=all_of(
         leaf("autotermination_minutes", "greater_than", 0),

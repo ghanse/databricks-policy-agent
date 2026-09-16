@@ -10,7 +10,7 @@ every resource, and returns a `ScanResult` — one `Finding` per (policy, resour
 fetches the resource types its policies reference, so it never calls an API it does not need. Write
 and validate policies first with **policy-agent:author**.
 
-## From the CLI
+## Using the CLI
 
 ```bash
 uv run policy-agent scan --profile <profile> --policies examples/ --dry-run
@@ -18,9 +18,9 @@ uv run policy-agent scan --profile <profile> --policies examples/ --dry-run
 
 | Flag | Meaning |
 | --- | --- |
-| `--profile` | Databricks CLI profile to authenticate with (omit to use the default). |
-| `--policies` | Policy file or directory; **omit** to scan the stored *approved* policies. |
-| `--resource-types` | Comma-separated types to restrict the scan to, e.g. `job,cluster`. |
+| `--profile` | Databricks CLI profile for authentication (omit to use the user's default profile). |
+| `--policies` | Policy file or directory; **omit** to scan *approved* policies stored in the configured storage backend. |
+| `--resource-types` | Comma-separated types; specify only to restrict the scan to specific resource types, e.g. `job,cluster`. |
 | `--dry-run` | Evaluate without writing results or notifying. |
 
 The summary line reports evaluated / violation counts and a compliance rate, then lists each
@@ -30,7 +30,7 @@ Omitting `--policies` reads the approved policies from configured storage, which
 `POLICY_AGENT_*` environment (below). With `--policies`, a `--dry-run` needs only workspace access;
 without `--dry-run` it also persists results and reconciles remediations.
 
-## From the library
+## Using the library
 
 ```python
 from databricks.sdk import WorkspaceClient
@@ -41,12 +41,12 @@ policies = load_policies_from_yaml("examples/jobs.yaml")
 result = run_scan(ws, policies, resource_types=None)   # None = every type the policies reference
 ```
 
-`run_scan(workspace_client, policies, resource_types=None)` is a pure function of workspace state
-and the policies — it validates each policy, fetches, evaluates, and returns a `ScanResult` without
-writing anything. Use it for ad-hoc checks, dry runs, and notebooks (see the runnable notebook at
+`run_scan(workspace_client, policies, resource_types=None)` validates each policy, fetches,
+evaluates, and returns a `ScanResult` without writing anything. Use it for ad-hoc checks, dry runs,
+and notebooks (see the runnable notebook at
 [`examples/scan_workspace.py`](https://github.com/ghanse/databricks-policy-agent/blob/main/examples/scan_workspace.py)).
 
-To also persist results and reconcile the remediation cycle, use
+To persist results and reconcile the remediation cycle, use
 `run_policy_scan(workspace_client, executor, config, policies, triggered_by, resource_types=None,
 dry_run=False)` from `policy_agent.jobs.runner`, building `config` and `executor` from the
 environment:
@@ -62,12 +62,12 @@ result = run_policy_scan(ws, executor, config, policies, triggered_by="notebook"
 
 ## Configuration (`POLICY_AGENT_*`)
 
-`config_from_env()` reads these environment variables (the Asset Bundle sets them for the app and
-jobs, so a single call configures every runtime):
+`config_from_env()` reads environment variables. The Asset Bundle sets them for the app and jobs,
+so a single call configures every runtime:
 
 | Variable | Purpose |
 | --- | --- |
-| `POLICY_AGENT_STORAGE_BACKEND` | `unity_catalog` (default) or the Lakebase backend. |
+| `POLICY_AGENT_STORAGE_BACKEND` | `uc` (default) or `lakebase`. |
 | `POLICY_AGENT_CATALOG` / `POLICY_AGENT_SCHEMA` | Delta storage location (schema defaults to `policy_agent`). |
 | `POLICY_AGENT_TABLE_PREFIX` | Optional prefix on the state tables. |
 | `POLICY_AGENT_WAREHOUSE_ID` | SQL warehouse id — **required** for the Unity Catalog backend. |
@@ -77,7 +77,7 @@ jobs, so a single call configures every runtime):
 | `POLICY_AGENT_NOTIFICATION_WEBHOOK` | Optional webhook posted with scan summaries. |
 
 `create_executor` raises `StorageError` if the backend's required connection setting is missing. A
-pure `run_scan` (or a `--dry-run`) needs none of this — only workspace access.
+pure `run_scan` does not require a storage backend and needs only workspace access.
 
 ## Reading the result
 

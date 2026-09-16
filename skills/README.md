@@ -1,6 +1,6 @@
 # Policy Agent skills
 
-Claude Code skills that teach an agent how to work with the Policy Agent. They ship as a plugin
+Agent skills that teach an agent how to work with the Policy Agent. They ship as a plugin
 named **`policy-agent`** (manifest at [`.claude-plugin/plugin.json`](../.claude-plugin/plugin.json)),
 with one skill per workflow:
 
@@ -15,7 +15,7 @@ the library, so it stays accurate.
 
 ## Using the skills
 
-Install the plugin so Claude Code loads the skills on demand. The plugin root is the repository root
+Install the plugin so an agent loads the skills on demand. The plugin root is the repository root
 (where `.claude-plugin/plugin.json` lives); its `skills` field points here at `./skills/`.
 
 - **From this repo, as a marketplace/plugin:** add the repo as a plugin source in Claude Code and
@@ -28,5 +28,5 @@ Install the plugin so Claude Code loads the skills on demand. The plugin root is
   cp -r skills/scan   <project>/.claude/skills/policy-agent-scan  # project scope
   ```
 
-Claude Code reads each `SKILL.md` frontmatter to decide when a skill is relevant and pulls in its
-body as needed.
+Agents read each `SKILL.md` frontmatter to decide when a skill is relevant and pull in the body as
+needed.

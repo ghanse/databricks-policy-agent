@@ -6,10 +6,11 @@ description: "Gate a Databricks Asset Bundle's declared resources against Policy
 # Enforcing policies on a bundle
 
 `enforce` gates a Databricks Asset Bundle's **declared** resources against policies *before* it
-deploys, so a non-compliant resource is caught at deploy time rather than by a later scan. It
-evaluates the bundle's resolved configuration — no workspace resources are fetched — so any resource
-type a policy targets can be gated, including types that are never live-scanned. Author the policies
-first with **policy-agent:author**.
+deploys. Non-compliant resources are caught at deploy time rather than by a later scan.
+
+Enforcement evaluates the bundle's resolved configuration. No workspace resources are fetched.
+Resource types a policy targets can be gated, including types that cannot be scanned. Author the
+policies first with **policy-agent:author**.
 
 ```bash
 uv run policy-agent enforce --bundle . --target dev --policies examples/
@@ -36,7 +37,7 @@ check.
 Each violation is sorted by its policy's enforcement level against `--fail-on`:
 
 - **blocking** — a violation at or above the `--fail-on` threshold that is not overridden.
-- **overridden** — a *soft* violation named in `--override` (with a reason). Hard violations can
+- **overridden** — a *soft* violation named in `--override` with a reason. Hard violations can
   never be overridden.
 - **warnings** — violations below the threshold.
 
@@ -60,6 +61,6 @@ uv run policy-agent enforce --bundle . --target prod --policies policies/ \
 uv run policy-agent enforce --bundle . --target dev --policies policies/ --fix --output json
 ```
 
-Enforcement and scanning share one policy model, so a policy behaves identically whether it gates a
-bundle here or evaluates live resources in a scan (**policy-agent:scan**). Ready-made example
+Enforcement and scanning share the same policy model, so a policy behaves identically whether it
+gates a bundle here or evaluates live resources in a scan (**policy-agent:scan**). Ready-made example
 policies are in [`examples/`](https://github.com/ghanse/databricks-policy-agent/tree/main/examples).
