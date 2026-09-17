@@ -9,8 +9,8 @@ description: "Gate a Databricks Asset Bundle's declared resources against Policy
 deploys. Non-compliant resources are caught at deploy time rather than by a later scan.
 
 Enforcement evaluates the bundle's resolved configuration. No workspace resources are fetched.
-Resource types a policy targets can be gated, including types that cannot be scanned. Author the
-policies first with **policy-agent:author**.
+Only resource types which are declared as bundle resources can be gated. Tables and columns are
+currently scan-only. Author policies first with **policy0agent:author**.
 
 ```bash
 uv run policy-agent enforce --bundle . --target dev --policies examples/
